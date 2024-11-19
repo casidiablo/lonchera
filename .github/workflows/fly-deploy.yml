@@ -31,6 +31,6 @@ jobs:
           fi
           echo "FULL_VERSION=$FULL_VERSION" >> $GITHUB_ENV
           echo "COMMIT=$COMMIT" >> $GITHUB_ENV
-      - run: flyctl deploy --app loncherita --remote-only --env VERSION="$FULL_VERSION" --env COMMIT="$COMMIT"
+      - run: flyctl deploy --remote-only --env VERSION="$FULL_VERSION" --env COMMIT="$COMMIT"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
