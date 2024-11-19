@@ -106,7 +106,7 @@ async def handle_root(request):
 
     commit = os.getenv("COMMIT")
     commit_link = (
-        f'<a href="https://git.sr.ht/~knur/lonchera/commit/{commit}">{commit}</a>'
+        f'<a href="https://github.com/casidiablo/lonchera/commit/{commit}">{commit}</a>'
         if commit
         else ""
     )
