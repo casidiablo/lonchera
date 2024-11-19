@@ -102,7 +102,7 @@ async def handle_root(request):
     bot_info = await get_bot_info()
 
     version = os.getenv("VERSION")
-    version_info = f"<p>version: {version}</p>" if version else ""
+    version_info = f"version: {version}" if version else ""
 
     commit = os.getenv("COMMIT")
     commit_link = (
@@ -110,13 +110,15 @@ async def handle_root(request):
         if commit
         else ""
     )
-    commit_info = f"<p>commit: {commit_link}</p>" if commit else ""
+    commit_info = f"commit: {commit_link}" if commit else ""
 
     status_details = ""
     if bot_status.last_error and bot_status.last_error_time:
         time_since_error = datetime.now() - bot_status.last_error_time
         if time_since_error < timedelta(minutes=1):
-            status_details = f"<p>Last error ({time_since_error.seconds}s ago): {bot_status.last_error}</p>"
+            status_details = (
+                f"Last error ({time_since_error.seconds}s ago): {bot_status.last_error}"
+            )
 
     bot_status_text = "running" if application_running() else "crashing"
     bot_token = get_masked_token()
@@ -134,24 +136,25 @@ async def handle_root(request):
     <style>
         body {{
             font-family: monospace;
+            white-space: pre-wrap;
         }}
     </style>
     </head>
     <body>
-        <h1>#status</h1>
-        <p>bot: {bot_info}</p>
-        <p>db size: {db_size}</p>
-        <p>uptime: {uptime}</p>
+        <strong>#status</strong>
+        bot: {bot_info}
+        db size: {db_size}
+        uptime: {uptime}
         {version_info}
         {commit_info}
-        <p>bot token: {bot_token}</p>
-        <p>ai status: {ai_status}</p>
-        <p>bot status: {bot_status_text}</p>
+        bot token: {bot_token}
+        ai status: {ai_status}
+        bot status: {bot_status_text}
         {status_details}
     </body>
     </html>
     """
-    return web.Response(text=response, content_type="text/html")
+    return web.Response(text=response.strip(), content_type="text/html")
 
 
 def application_running():
