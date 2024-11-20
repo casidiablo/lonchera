@@ -80,6 +80,8 @@ def format_relative_time(seconds):
             if value == 1:
                 name = name.rstrip("s")
             result.append(f"{int(value)} {name}")
+        if len(result) == 2:
+            break
 
     if not result:
         result.append("just started")
