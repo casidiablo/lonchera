@@ -14,3 +14,12 @@ repos:
     hooks:
       - id: flake8
         args: ["--max-line-length=120", "--ignore=E231,E203,E221,E222,E241,W503,E226"]
+
+  - repo: local
+    hooks:
+      - id: bump-version
+        name: Bump version
+        entry: bash bump_version.sh
+        language: system
+        always_run: true
+        pass_filenames: false
