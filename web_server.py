@@ -21,6 +21,8 @@ class BotStatus:
 bot_status = BotStatus()
 bot_instance = None  # Add this line to store bot instance
 
+bot_info_cache = None
+
 
 def set_bot_instance(bot):
     global bot_instance
@@ -28,10 +30,17 @@ def set_bot_instance(bot):
 
 
 async def get_bot_info():
+    global bot_info_cache
     if bot_instance:
+        if bot_info_cache:
+            return bot_info_cache
         try:
             bot_data = await bot_instance.get_me()
-            return f'<a href="https://t.me/{bot_data.username}">@{bot_data.username}</a> ({bot_data.first_name})'
+            link = (
+                f'<a href="https://t.me/{bot_data.username}">@{bot_data.username}</a>'
+            )
+            bot_info_cache = f"{link} ({bot_data.first_name})"
+            return bot_info_cache
         except Exception as e:
             return f"Error getting bot info: {str(e)}"
     return "Bot instance not available. Did you set the token?"
