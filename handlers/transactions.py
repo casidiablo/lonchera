@@ -79,7 +79,11 @@ async def check_posted_transactions_and_telegram_them(
             chat_id,
             msg_id,
             transaction.recurring_type,
-            plaid_id=transaction.plaid_metadata.get("transaction_id", None),
+            plaid_id=(
+                transaction.plaid_metadata.get("transaction_id", None)
+                if transaction.plaid_metadata
+                else None
+            ),
         )
 
     return transactions
@@ -116,7 +120,11 @@ async def check_pending_transactions_and_telegram_them(
             msg_id,
             transaction.recurring_type,
             pending=True,
-            plaid_id=transaction.plaid_metadata.get("transaction_id", None),
+            plaid_id=(
+                transaction.plaid_metadata.get("transaction_id", None)
+                if transaction.plaid_metadata
+                else None
+            ),
         )
 
     return transactions

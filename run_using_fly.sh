@@ -35,9 +35,9 @@ fi
 
 # Construct the version string
 if [[ "$BRANCH" == "master" || "$BRANCH" == "main" ]]; then
-    FULL_VERSION="${VERSION}-${COMMIT}${DIRTY}"
+    FULL_VERSION="${VERSION}${DIRTY}"
 else
-    FULL_VERSION="${VERSION}-${COMMIT}@${BRANCH}${DIRTY}"
+    FULL_VERSION="${VERSION}@${BRANCH}${DIRTY}"
 fi
 
 # Run the deploy command with the constructed version

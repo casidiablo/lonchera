@@ -24,11 +24,7 @@ jobs:
           else
             DIRTY=""
           fi
-          if [[ "$BRANCH" == "master" || "$BRANCH" == "main" ]]; then
-            FULL_VERSION="${VERSION}-${COMMIT}${DIRTY}"
-          else
-            FULL_VERSION="${VERSION}-${COMMIT}@${BRANCH}${DIRTY}"
-          fi
+          FULL_VERSION="${VERSION}@${BRANCH}${DIRTY}"
           echo "FULL_VERSION=$FULL_VERSION" >> $GITHUB_ENV
           echo "COMMIT=$COMMIT" >> $GITHUB_ENV
       - run: flyctl deploy --remote-only --env VERSION="$FULL_VERSION" --env COMMIT="$COMMIT"

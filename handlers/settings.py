@@ -1,12 +1,13 @@
 from datetime import timedelta
+import pytz
 from textwrap import dedent
 from typing import Optional
-from telegram import InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardMarkup, LinkPreviewOptions, Update
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
 from telegram.constants import ReactionEmoji
 
-from handlers.expectations import EXPECTING_TOKEN, set_expectation
+from handlers.expectations import EXPECTING_TIME_ZONE, EXPECTING_TOKEN, set_expectation
 from lunch import get_lunch_client, get_lunch_client_for_chat_id
 from persistence import Settings, get_db
 from utils import Keyboard
@@ -103,14 +104,15 @@ def get_current_settings_text(chat_id: int) -> Optional[str]:
         last_poll = settings.last_poll_at
         if last_poll:
             next_poll_at = last_poll + timedelta(seconds=settings.poll_interval_secs)
+            next_poll_at = next_poll_at.astimezone(pytz.timezone(settings.timezone))
             next_poll_at = (
-                f"> Next poll at `{next_poll_at.strftime('%a, %b %d at %I:%M %p')}`"
+                f"> Next poll at `{next_poll_at.strftime('%a, %b %d at %I:%M %p %Z')}`"
             )
 
     return dedent(
         f"""
         🛠️ 🆂🅴🆃🆃🅸🅽🅶🆂
-        
+
         1️⃣ *Poll interval*: {poll_interval}
         > This is how often we check for new transactions\\.
         {next_poll_at}
@@ -118,10 +120,12 @@ def get_current_settings_text(chat_id: int) -> Optional[str]:
 
         2️⃣ *Polling mode*: {"`pending`" if settings.poll_pending else "`posted`"}
         > When `posted` is enabled, the bot will poll for transactions that are already posted\\.
-        > This is the default mode and, because of the way Lunch Money/Plaid work, will allow categorizing the transactions and mark them as reviewed from Telegram\\.
-        > 
+        > This is the default mode and, because of the way Lunch Money/Plaid work, will allow categorizing
+        > the transactions and mark them as reviewed from Telegram\\.
+        >
         > When `pending` the bot will only poll for pending transactions\\.
-        > This sends you more timely notifications, but you would need to either manually review them or enable auto\\-mark transactions as reviewed\\.
+        > This sends you more timely notifications, but you would need to either manually review them or
+        > enable auto\\-mark transactions as reviewed\\.
 
         3️⃣ *Auto\\-mark transactions as reviewed*: {"☑️" if settings.auto_mark_reviewed else "☐"}
         > When enabled, transactions will be marked as reviewed automatically after being sent to Telegram\\.
@@ -139,7 +143,10 @@ def get_current_settings_text(chat_id: int) -> Optional[str]:
         > When enabled, renders categories as Telegram tags\\.
         > Useful for filtering transactions\\.
 
-        7️⃣ *API token*: ||{settings.token}||
+        7️⃣ *Timezone*: `{settings.timezone}`
+        > This is the timezone used for displaying dates and times\\.
+
+        8️⃣ *API token*: ||{settings.token}||
         """
     )
 
@@ -158,7 +165,8 @@ def get_settings_buttons(settings: Settings) -> InlineKeyboardMarkup:
     )
     kbd += ("5️⃣ Show date/time?", f"toggleShowDateTime_{settings.show_datetime}")
     kbd += ("6️⃣ Tagging?", f"toggleTagging_{settings.tagging}")
-    kbd += ("7️⃣ Change token", "registerToken")
+    kbd += ("7️⃣ Change timezone", "changeTimezone")
+    kbd += ("8️⃣ Change token", "registerToken")
     kbd += ("Trigger Plaid refresh", "triggerPlaidRefresh")
     kbd += ("Log out", "logout")
     kbd += ("Done", "doneSettings")
@@ -356,4 +364,37 @@ async def handle_btn_toggle_mark_reviewed_after_categorized(
         text=get_current_settings_text(update.effective_chat.id),
         reply_markup=get_settings_buttons(settings),
         parse_mode=ParseMode.MARKDOWN_V2,
+    )
+
+
+async def handle_btn_change_timezone(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+):
+    """Changes the timezone for the chat."""
+    msg = await update.callback_query.edit_message_text(
+        text=dedent(
+            """
+            Please provide a time zone\\.
+
+            The timezone must be specified in tz database format\\.
+
+            Examples:
+            \\- `UTC`
+            \\- `US/Eastern`
+            \\- `Europe/Berlin`
+            \\- `Asia/Tokyo`
+
+            For a full list of time zones,
+            see [this link](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)\\.
+            """
+        ),
+        parse_mode=ParseMode.MARKDOWN_V2,
+        link_preview_options=LinkPreviewOptions(is_disabled=True),
+    )
+    set_expectation(
+        update.effective_chat.id,
+        {
+            "expectation": EXPECTING_TIME_ZONE,
+            "msg_id": msg.message_id,
+        },
     )

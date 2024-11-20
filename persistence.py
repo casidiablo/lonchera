@@ -86,6 +86,9 @@ class Settings(Base):
     # Indicates whether transactions should be marked as reviewed after categorization
     mark_reviewed_after_categorized = Column(Boolean, default=False, nullable=False)
 
+    # The timezone for displaying dates and times
+    timezone = Column(String, default="UTC", nullable=False)
+
 
 class Persistence:
     def __init__(self, db_path: str):
@@ -282,6 +285,16 @@ class Persistence:
                 update(Settings)
                 .where(Settings.chat_id == chat_id)
                 .values(mark_reviewed_after_categorized=value)
+            )
+            session.execute(stmt)
+            session.commit()
+
+    def update_timezone(self, chat_id: int, timezone: str) -> None:
+        with self.Session() as session:
+            stmt = (
+                update(Settings)
+                .where(Settings.chat_id == chat_id)
+                .values(timezone=timezone)
             )
             session.execute(stmt)
             session.commit()

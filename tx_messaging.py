@@ -114,6 +114,10 @@ async def send_transaction_message(
     if transaction.recurring_type:
         recurring = "(recurring 🔄)"
 
+    split_transaction = ""
+    if transaction.parent_id:
+        split_transaction = "🔀"
+
     explicit_sign = ""
     if transaction.amount < 0:
         # lunch money shows credits as negative
@@ -127,7 +131,7 @@ async def send_transaction_message(
     else:
         reviewed_watermark = "\u200C"
 
-    message = f"*{clean_md(transaction.payee)}* {reviewed_watermark} {recurring}\n\n"
+    message = f"*{clean_md(transaction.payee)}* {reviewed_watermark} {recurring} {split_transaction}\n\n"
     message += f"*Amount*: `{explicit_sign}{abs(transaction.amount):,.2f}` `{transaction.currency.upper()}`\n"
     message += f"*Date/Time*: {formatted_date_time}\n"
 

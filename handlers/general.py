@@ -6,12 +6,17 @@ from lunchable import TransactionUpdateObject
 from telegram import Update
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
-from handlers.settings import handle_register_token
+from handlers.settings import (
+    get_current_settings_text,
+    get_settings_buttons,
+    handle_register_token,
+)
 from telegram.constants import ReactionEmoji
 
 from lunch import NoLunchToken, get_lunch_client_for_chat_id
 from handlers.expectations import (
     EDIT_NOTES,
+    EXPECTING_TIME_ZONE,
     EXPECTING_TOKEN,
     RENAME_PAYEE,
     SET_TAGS,
@@ -20,6 +25,7 @@ from handlers.expectations import (
 )
 from persistence import get_db
 from tx_messaging import send_transaction_message
+import pytz
 
 logger = logging.getLogger("handlers")
 
@@ -91,6 +97,36 @@ async def handle_generic_message(
         )
 
         await handle_register_token(update, context, token_override=update.message.text)
+        return True
+    # if waiting for a time zone, persist it
+    elif expectation and expectation["expectation"] == EXPECTING_TIME_ZONE:
+        await context.bot.delete_message(
+            chat_id=update.message.chat_id,
+            message_id=update.message.message_id,
+        )
+
+        # validate the time zone
+        if update.message.text not in pytz.all_timezones:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=f"`{update.message.text}` is an invalid timezone. Please try again.",
+                parse_mode=ParseMode.MARKDOWN,
+            )
+            return True
+
+        clear_expectation(update.effective_chat.id)
+
+        # save the time zone
+        get_db().update_timezone(update.effective_chat.id, update.message.text)
+
+        settings = get_db().get_current_settings(update.effective_chat.id)
+        await context.bot.edit_message_text(
+            message_id=expectation["msg_id"],
+            text=get_current_settings_text(update.effective_chat.id),
+            chat_id=update.effective_chat.id,
+            reply_markup=get_settings_buttons(settings),
+            parse_mode=ParseMode.MARKDOWN_V2,
+        )
         return True
     elif expectation and expectation["expectation"] == RENAME_PAYEE:
         clear_expectation(update.effective_chat.id)

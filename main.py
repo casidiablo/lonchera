@@ -66,6 +66,7 @@ from handlers.settings import (
     handle_btn_set_token_from_button,
     handle_settings,
     handle_btn_toggle_mark_reviewed_after_categorized,
+    handle_btn_change_timezone,
 )
 from web_server import run_web_server, update_bot_status, set_bot_instance
 
@@ -214,6 +215,10 @@ def setup_handlers(config):
         )
     )
 
+    app.add_handler(
+        CallbackQueryHandler(handle_btn_change_timezone, pattern=r"^changeTimezone")
+    )
+
     app.add_handler(CallbackQueryHandler(handle_unknown_btn))
 
     app.add_error_handler(handle_errors)
@@ -320,3 +325,4 @@ if __name__ == "__main__":
 #  - Current networth
 #  - current debt
 #  - next recurring charges
+# - Make sure split transactions are handled correctly
