@@ -326,3 +326,5 @@ if __name__ == "__main__":
 #  - current debt
 #  - next recurring charges
 # - Make sure split transactions are handled correctly
+# - Add option to run auto-categorization after adding notes
+# - Add option to run auto-categorization as transactions are added

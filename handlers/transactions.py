@@ -205,7 +205,10 @@ async def handle_btn_show_categories(update: Update, _: ContextTypes.DEFAULT_TYP
     for category in categories:
         if category.group_id is None:
             if category.children:
-                kbd += (category.name, f"subcategorize_{transaction_id}_{category.id}")
+                kbd += (
+                    f"📂 {category.name}",
+                    f"subcategorize_{transaction_id}_{category.id}",
+                )
             else:
                 kbd += (category.name, f"applyCategory_{transaction_id}_{category.id}")
 
