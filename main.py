@@ -16,7 +16,11 @@ from telegram.ext import (
 )
 
 
-from handlers.balances import handle_btn_accounts_balances, handle_show_balances
+from handlers.balances import (
+    handle_btn_accounts_balances,
+    handle_show_balances,
+    handle_done_balances,
+)
 from handlers.budget import (
     handle_btn_hide_budget_categories,
     handle_btn_show_budget_categories,
@@ -186,6 +190,9 @@ def setup_handlers(config):
             handle_btn_accounts_balances, pattern=r"^accountsBalances_"
         )
     )
+    app.add_handler(
+        CallbackQueryHandler(handle_done_balances, pattern=r"^doneBalances$")
+    )
 
     app.add_handler(
         CallbackQueryHandler(
@@ -333,7 +340,5 @@ if __name__ == "__main__":
 #  - Current networth
 #  - current debt
 #  - next recurring charges
-# - Make sure split transactions are handled correctly
-# - Add option to run auto-categorization after adding notes
 # - Add option to run auto-categorization as transactions are added
-# - show FLY_APP_NAME in webserver
+# - reorder settings to make them less confusing

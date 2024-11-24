@@ -68,6 +68,8 @@ def get_accounts_buttons(current_mask: int) -> InlineKeyboardMarkup:
         f"accountsBalances_{show_details_mask}",
     )
 
+    kbd += ("Done", "doneBalances")
+
     return kbd.build()
 
 
@@ -209,3 +211,8 @@ async def handle_btn_accounts_balances(
     await handle_show_balances(
         update, context, mask=mask, message_id=update.callback_query.message.message_id
     )
+
+
+async def handle_done_balances(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handles the 'Done' button press to delete the balances message."""
+    await update.callback_query.message.delete()
