@@ -135,10 +135,12 @@ async def handle_root(request):
     bot_token = get_masked_token()
     ai_status = get_ai_status()
 
+    app_name = os.getenv("FLY_APP_NAME", "lonchera")
+
     response = f"""
     <html>
     <head>
-    <title>lonchera</title>
+    <title>{app_name}</title>
     <link rel="stylesheet" href="https://unpkg.com/sakura.css/css/sakura.css" media="screen" />
     <link rel="stylesheet"
           href="https://unpkg.com/sakura.css/css/sakura-dark.css"

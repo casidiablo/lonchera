@@ -138,6 +138,7 @@ def get_current_settings_text(chat_id: int) -> Optional[str]:
 
         5️⃣ *Auto\\-categorize after notes*: {"☑️" if settings.auto_categorize_after_notes else "☐"}
         > When enabled, automatically runs auto\\-categorization after a note is added to a transaction\\.
+        > _Requires AI to be enabled_\\.
 
         6️⃣ *Show full date/time*: {"☑️" if settings.show_datetime else "☐"}
         > When enabled, shows the full date and time for each transaction\\.
