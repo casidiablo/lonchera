@@ -54,6 +54,7 @@ from manual_tx import setup_manual_tx_handler
 from handlers.settings import (
     handle_btn_change_poll_interval,
     handle_btn_done_settings,
+    handle_btn_toggle_auto_categorize_after_notes,
     handle_btn_toggle_auto_mark_reviewed,
     handle_btn_toggle_poll_pending,
     handle_btn_toggle_show_datetime,
@@ -219,6 +220,13 @@ def setup_handlers(config):
         CallbackQueryHandler(handle_btn_change_timezone, pattern=r"^changeTimezone")
     )
 
+    app.add_handler(
+        CallbackQueryHandler(
+            handle_btn_toggle_auto_categorize_after_notes,
+            pattern=r"^toggleAutoCategorizeAfterNotes",
+        )
+    )
+
     app.add_handler(CallbackQueryHandler(handle_unknown_btn))
 
     app.add_error_handler(handle_errors)
@@ -328,3 +336,4 @@ if __name__ == "__main__":
 # - Make sure split transactions are handled correctly
 # - Add option to run auto-categorization after adding notes
 # - Add option to run auto-categorization as transactions are added
+# - show FLY_APP_NAME in webserver

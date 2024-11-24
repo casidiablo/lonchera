@@ -89,6 +89,9 @@ class Settings(Base):
     # The timezone for displaying dates and times
     timezone = Column(String, default="UTC", nullable=False)
 
+    # Indicates whether transactions should be automatically categorized after notes are added
+    auto_categorize_after_notes = Column(Boolean, default=False, nullable=False)
+
 
 class Persistence:
     def __init__(self, db_path: str):
@@ -295,6 +298,16 @@ class Persistence:
                 update(Settings)
                 .where(Settings.chat_id == chat_id)
                 .values(timezone=timezone)
+            )
+            session.execute(stmt)
+            session.commit()
+
+    def update_auto_categorize_after_notes(self, chat_id: int, value: bool) -> None:
+        with self.Session() as session:
+            stmt = (
+                update(Settings)
+                .where(Settings.chat_id == chat_id)
+                .values(auto_categorize_after_notes=value)
             )
             session.execute(stmt)
             session.commit()

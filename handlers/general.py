@@ -6,6 +6,7 @@ from lunchable import TransactionUpdateObject
 from telegram import Update
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
+from handlers.categorization import auto_categorize_transaction
 from handlers.settings import (
     get_current_settings_text,
     get_settings_buttons,
@@ -175,6 +176,12 @@ async def handle_generic_message(
             chat_id=update.effective_chat.id,
             message_id=msg_id,
         )
+
+        settings = get_db().get_current_settings(update.effective_chat.id)
+        if settings.auto_categorize_after_notes:
+            await auto_categorize_transaction(
+                transaction_id, update.effective_chat.id, context
+            )
 
         # react to the message
         await context.bot.set_message_reaction(

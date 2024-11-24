@@ -104,7 +104,9 @@ def get_current_settings_text(chat_id: int) -> Optional[str]:
         last_poll = settings.last_poll_at
         if last_poll:
             next_poll_at = last_poll + timedelta(seconds=settings.poll_interval_secs)
-            next_poll_at = next_poll_at.astimezone(pytz.timezone(settings.timezone))
+            next_poll_at = next_poll_at.astimezone(
+                pytz.timezone(settings.timezone or "UTC")
+            )
             next_poll_at = (
                 f"> Next poll at `{next_poll_at.strftime('%a, %b %d at %I:%M %p %Z')}`"
             )
@@ -134,19 +136,22 @@ def get_current_settings_text(chat_id: int) -> Optional[str]:
         4️⃣ *Mark reviewed after categorization*: {"☑️" if settings.mark_reviewed_after_categorized else "☐"}
         > When enabled, transactions will be marked as reviewed automatically after being categorized\\.
 
-        5️⃣ *Show full date/time*: {"☑️" if settings.show_datetime else "☐"}
+        5️⃣ *Auto\\-categorize after notes*: {"☑️" if settings.auto_categorize_after_notes else "☐"}
+        > When enabled, automatically runs auto\\-categorization after a note is added to a transaction\\.
+
+        6️⃣ *Show full date/time*: {"☑️" if settings.show_datetime else "☐"}
         > When enabled, shows the full date and time for each transaction\\.
         > When disabled, shows only the date without the time\\.
         > _We allow disabling time because more often than it is not reliable\\._
 
-        6️⃣ *Tagging*: {"☑️" if settings.tagging else "☐"}
+        7️⃣ *Tagging*: {"☑️" if settings.tagging else "☐"}
         > When enabled, renders categories as Telegram tags\\.
         > Useful for filtering transactions\\.
 
-        7️⃣ *Timezone*: `{settings.timezone}`
+        8️⃣ *Timezone*: `{settings.timezone}`
         > This is the timezone used for displaying dates and times\\.
 
-        8️⃣ *API token*: ||{settings.token}||
+        *API token*: ||{settings.token}||
         """
     )
 
@@ -163,9 +168,13 @@ def get_settings_buttons(settings: Settings) -> InlineKeyboardMarkup:
         "4️⃣ Mark reviewed after categorization?",
         "toggleMarkReviewedAfterCategorized",
     )
-    kbd += ("5️⃣ Show date/time?", f"toggleShowDateTime_{settings.show_datetime}")
-    kbd += ("6️⃣ Tagging?", f"toggleTagging_{settings.tagging}")
-    kbd += ("7️⃣ Change timezone", "changeTimezone")
+    kbd += (
+        "5️⃣ Auto-categorize after notes?",
+        f"toggleAutoCategorizeAfterNotes_{settings.auto_categorize_after_notes}",
+    )
+    kbd += ("6️⃣ Show date/time?", f"toggleShowDateTime_{settings.show_datetime}")
+    kbd += ("7️⃣ Tagging?", f"toggleTagging_{settings.tagging}")
+    kbd += ("8️⃣ Change timezone", "changeTimezone")
     kbd += ("8️⃣ Change token", "registerToken")
     kbd += ("Trigger Plaid refresh", "triggerPlaidRefresh")
     kbd += ("Log out", "logout")
@@ -397,4 +406,20 @@ async def handle_btn_change_timezone(
             "expectation": EXPECTING_TIME_ZONE,
             "msg_id": msg.message_id,
         },
+    )
+
+
+async def handle_btn_toggle_auto_categorize_after_notes(
+    update: Update, _: ContextTypes.DEFAULT_TYPE
+):
+    settings = get_db().get_current_settings(update.effective_chat.id)
+    get_db().update_auto_categorize_after_notes(
+        update.effective_chat.id, not settings.auto_categorize_after_notes
+    )
+
+    await update.callback_query.answer()
+    await update.callback_query.edit_message_text(
+        text=get_current_settings_text(update.effective_chat.id),
+        reply_markup=get_settings_buttons(settings),
+        parse_mode=ParseMode.MARKDOWN_V2,
     )
