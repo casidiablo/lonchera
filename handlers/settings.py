@@ -78,7 +78,7 @@ async def handle_register_token(
         )
 
 
-def get_current_settings_text(chat_id: int) -> Optional[str]:
+def get_schedule_rendering_text(chat_id: int) -> Optional[str]:
     settings = get_db().get_current_settings(chat_id)
     if settings is None:
         return None
@@ -113,7 +113,7 @@ def get_current_settings_text(chat_id: int) -> Optional[str]:
 
     return dedent(
         f"""
-        🛠️ 🆂🅴🆃🆃🅸🅽🅶🆂
+        🛠️ 🆂🅴🆃🆃🅸🅽🅶🆂 \\- *Schedule & Rendering*
 
         1️⃣ *Poll interval*: {poll_interval}
         > This is how often we check for new transactions\\.
@@ -129,79 +129,150 @@ def get_current_settings_text(chat_id: int) -> Optional[str]:
         > This sends you more timely notifications, but you would need to either manually review them or
         > enable auto\\-mark transactions as reviewed\\.
 
-        3️⃣ *Auto\\-mark transactions as reviewed*: {"☑️" if settings.auto_mark_reviewed else "☐"}
-        > When enabled, transactions will be marked as reviewed automatically after being sent to Telegram\\.
-        > When disabled, you need to explicitly mark them as reviewed\\.
-
-        4️⃣ *Mark reviewed after categorization*: {"☑️" if settings.mark_reviewed_after_categorized else "☐"}
-        > When enabled, transactions will be marked as reviewed automatically after being categorized\\.
-
-        5️⃣ *Auto\\-categorize after notes*: {"☑️" if settings.auto_categorize_after_notes else "☐"}
-        > When enabled, automatically runs auto\\-categorization after a note is added to a transaction\\.
-        > _Requires AI to be enabled_\\.
-
-        6️⃣ *Show full date/time*: {"☑️" if settings.show_datetime else "☐"}
+        3️⃣ *Show full date/time*: {"☑️" if settings.show_datetime else "☐"}
         > When enabled, shows the full date and time for each transaction\\.
         > When disabled, shows only the date without the time\\.
         > _We allow disabling time because more often than it is not reliable\\._
 
-        7️⃣ *Tagging*: {"☑️" if settings.tagging else "☐"}
+        4️⃣ *Tagging*: {"☑️" if settings.tagging else "☐"}
         > When enabled, renders categories as Telegram tags\\.
         > Useful for filtering transactions\\.
 
-        8️⃣ *Timezone*: `{settings.timezone}`
+        5️⃣ *Timezone*: `{settings.timezone}`
         > This is the timezone used for displaying dates and times\\.
+        """
+    )
+
+
+def get_transactions_handling_text(chat_id: int) -> Optional[str]:
+    settings = get_db().get_current_settings(chat_id)
+    if settings is None:
+        return None
+
+    return dedent(
+        f"""
+        🛠️ 🆂🅴🆃🆃🅸🅽🅶🆂 \\- *Transactions Handling*
+
+        1️⃣ *Auto\\-mark transactions as reviewed*: {"☑️" if settings.auto_mark_reviewed else "☐"}
+        > When enabled, transactions will be marked as reviewed automatically after being sent to Telegram\\.
+        > When disabled, you need to explicitly mark them as reviewed\\.
+
+        2️⃣ *Mark reviewed after categorization*: {"☑️" if settings.mark_reviewed_after_categorized else "☐"}
+        > When enabled, transactions will be marked as reviewed automatically after being categorized\\.
+
+        3️⃣ *Auto\\-categorize after notes*: {"☑️" if settings.auto_categorize_after_notes else "☐"}
+        > When enabled, automatically runs auto\\-categorization after a note is added to a transaction\\.
+        > _Requires AI to be enabled_\\.
+        """
+    )
+
+
+def get_session_text(chat_id: int) -> Optional[str]:
+    settings = get_db().get_current_settings(chat_id)
+    if settings is None:
+        return None
+
+    return dedent(
+        f"""
+        🛠️ 🆂🅴🆃🆃🅸🅽🅶🆂 \\- *Session*
 
         *API token*: ||{settings.token}||
         """
     )
 
 
-def get_settings_buttons(settings: Settings) -> InlineKeyboardMarkup:
+def get_schedule_rendering_buttons(settings: Settings) -> InlineKeyboardMarkup:
     kbd = Keyboard()
     kbd += ("1️⃣ Change interval", "changePollInterval")
     kbd += ("2️⃣ Toggle polling mode", f"togglePollPending_{settings.poll_pending}")
+    kbd += ("3️⃣ Show date/time?", f"toggleShowDateTime_{settings.show_datetime}")
+    kbd += ("4️⃣ Tagging?", f"toggleTagging_{settings.tagging}")
+    kbd += ("5️⃣ Change timezone", "changeTimezone")
+    kbd += ("Back", "settingsMenu")
+    return kbd.build()
+
+
+def get_transactions_handling_buttons(settings: Settings) -> InlineKeyboardMarkup:
+    kbd = Keyboard()
     kbd += (
-        "3️⃣ Auto-mark reviewed?",
+        "1️⃣ Auto-mark reviewed?",
         f"toggleAutoMarkReviewed_{settings.auto_mark_reviewed}",
     )
     kbd += (
-        "4️⃣ Mark reviewed after categorization?",
+        "2️⃣ Mark reviewed after categorization?",
         "toggleMarkReviewedAfterCategorized",
     )
     kbd += (
-        "5️⃣ Auto-categorize after notes?",
+        "3️⃣ Auto-categorize after notes?",
         f"toggleAutoCategorizeAfterNotes_{settings.auto_categorize_after_notes}",
     )
-    kbd += ("6️⃣ Show date/time?", f"toggleShowDateTime_{settings.show_datetime}")
-    kbd += ("7️⃣ Tagging?", f"toggleTagging_{settings.tagging}")
-    kbd += ("8️⃣ Change timezone", "changeTimezone")
-    kbd += ("8️⃣ Change token", "registerToken")
-    kbd += ("Trigger Plaid refresh", "triggerPlaidRefresh")
-    kbd += ("Log out", "logout")
-    kbd += ("Done", "doneSettings")
+    kbd += ("Back", "settingsMenu")
+    return kbd.build()
+
+
+def get_session_buttons(settings: Settings) -> InlineKeyboardMarkup:
+    kbd = Keyboard()
+    kbd += ("🚪 Log out", "logout")
+    kbd += ("Back", "settingsMenu")
     return kbd.build()
 
 
 async def handle_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Sends a message with the current settings."""
-    settings_text = get_current_settings_text(update.effective_chat.id)
-    if settings_text is None:
-        await update.message.reply_text(
-            text="No settings found for this chat. Did you register a token?",
-        )
-        return
-
-    settings = get_db().get_current_settings(update.effective_chat.id)
     await update.message.reply_text(
+        text="🛠️ 🆂🅴🆃🆃🅸🅽🅶🆂\n\nPlease choose a settings category:",
+        reply_markup=get_general_settings_buttons(),
+    )
+    await context.bot.delete_message(
+        chat_id=update.message.chat_id, message_id=update.message.message_id
+    )
+
+
+def get_general_settings_buttons() -> InlineKeyboardMarkup:
+    kbd = Keyboard()
+    kbd += ("🗓️ Schedule & Rendering", "scheduleRenderingSettings")
+    kbd += ("💳 Transactions Handling", "transactionsHandlingSettings")
+    kbd += ("🔑 Session", "sessionSettings")
+    kbd += ("Done", "doneSettings")
+    return kbd.build(columns=1)
+
+
+async def handle_settings_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.callback_query.edit_message_text(
+        text="🛠️ 🆂🅴🆃🆃🅸🅽🅶🆂\n\nPlease choose a settings category:",
+        reply_markup=get_general_settings_buttons(),
+    )
+
+
+async def handle_schedule_rendering_settings(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+):
+    settings_text = get_schedule_rendering_text(update.effective_chat.id)
+    settings = get_db().get_current_settings(update.effective_chat.id)
+    await update.callback_query.edit_message_text(
         text=settings_text,
-        reply_markup=get_settings_buttons(settings),
+        reply_markup=get_schedule_rendering_buttons(settings),
         parse_mode=ParseMode.MARKDOWN_V2,
     )
 
-    # delete the message with the command
-    await context.bot.delete_message(
-        chat_id=update.message.chat_id, message_id=update.message.message_id
+
+async def handle_transactions_handling_settings(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+):
+    settings_text = get_transactions_handling_text(update.effective_chat.id)
+    settings = get_db().get_current_settings(update.effective_chat.id)
+    await update.callback_query.edit_message_text(
+        text=settings_text,
+        reply_markup=get_transactions_handling_buttons(settings),
+        parse_mode=ParseMode.MARKDOWN_V2,
+    )
+
+
+async def handle_session_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    settings = get_db().get_current_settings(update.effective_chat.id)
+    await update.callback_query.edit_message_text(
+        text=get_session_text(update.effective_chat.id),
+        reply_markup=get_session_buttons(settings),
+        parse_mode=ParseMode.MARKDOWN_V2,
     )
 
 
@@ -230,8 +301,8 @@ async def handle_btn_toggle_auto_mark_reviewed(
 
     await update.callback_query.answer()
     await update.callback_query.edit_message_text(
-        text=get_current_settings_text(update.effective_chat.id),
-        reply_markup=get_settings_buttons(settings),
+        text=get_transactions_handling_text(update.effective_chat.id),
+        reply_markup=get_transactions_handling_buttons(settings),
         parse_mode=ParseMode.MARKDOWN_V2,
     )
 
@@ -245,8 +316,8 @@ async def handle_btn_change_poll_interval(
         get_db().update_poll_interval(update.effective_chat.id, poll_interval)
         settings = get_db().get_current_settings(update.effective_chat.id)
         await update.callback_query.edit_message_text(
-            text=f"_Poll interval updated_\n\n{get_current_settings_text(update.effective_chat.id)}",
-            reply_markup=get_settings_buttons(settings),
+            text=f"_Poll interval updated_\n\n{get_schedule_rendering_text(update.effective_chat.id)}",
+            reply_markup=get_schedule_rendering_buttons(settings),
             parse_mode=ParseMode.MARKDOWN_V2,
         )
     else:
@@ -314,11 +385,11 @@ async def handle_btn_trigger_plaid_refresh(
         reaction=ReactionEmoji.HANDSHAKE,
     )
 
-    settings_text = get_current_settings_text(update.effective_chat.id)
+    settings_text = get_session_text(update.effective_chat.id)
     settings = get_db().get_current_settings(update.effective_chat.id)
     await update.callback_query.edit_message_text(
         text=f"_Plaid refresh triggered_\n\n{settings_text}",
-        reply_markup=get_settings_buttons(settings),
+        reply_markup=get_session_buttons(settings),
         parse_mode=ParseMode.MARKDOWN_V2,
     )
 
@@ -329,8 +400,8 @@ async def handle_btn_toggle_poll_pending(update: Update, _: ContextTypes.DEFAULT
 
     await update.callback_query.answer()
     await update.callback_query.edit_message_text(
-        text=get_current_settings_text(update.effective_chat.id),
-        reply_markup=get_settings_buttons(settings),
+        text=get_schedule_rendering_text(update.effective_chat.id),
+        reply_markup=get_schedule_rendering_buttons(settings),
         parse_mode=ParseMode.MARKDOWN_V2,
     )
 
@@ -342,8 +413,8 @@ async def handle_btn_toggle_show_datetime(update: Update, _: ContextTypes.DEFAUL
 
     await update.callback_query.answer()
     await update.callback_query.edit_message_text(
-        text=get_current_settings_text(update.effective_chat.id),
-        reply_markup=get_settings_buttons(settings),
+        text=get_schedule_rendering_text(update.effective_chat.id),
+        reply_markup=get_schedule_rendering_buttons(settings),
         parse_mode=ParseMode.MARKDOWN_V2,
     )
 
@@ -355,8 +426,8 @@ async def handle_btn_toggle_tagging(update: Update, _: ContextTypes.DEFAULT_TYPE
 
     await update.callback_query.answer()
     await update.callback_query.edit_message_text(
-        text=get_current_settings_text(update.effective_chat.id),
-        reply_markup=get_settings_buttons(settings),
+        text=get_schedule_rendering_text(update.effective_chat.id),
+        reply_markup=get_schedule_rendering_buttons(settings),
         parse_mode=ParseMode.MARKDOWN_V2,
     )
 
@@ -371,8 +442,8 @@ async def handle_btn_toggle_mark_reviewed_after_categorized(
 
     await update.callback_query.answer()
     await update.callback_query.edit_message_text(
-        text=get_current_settings_text(update.effective_chat.id),
-        reply_markup=get_settings_buttons(settings),
+        text=get_transactions_handling_text(update.effective_chat.id),
+        reply_markup=get_transactions_handling_buttons(settings),
         parse_mode=ParseMode.MARKDOWN_V2,
     )
 
@@ -420,7 +491,7 @@ async def handle_btn_toggle_auto_categorize_after_notes(
 
     await update.callback_query.answer()
     await update.callback_query.edit_message_text(
-        text=get_current_settings_text(update.effective_chat.id),
-        reply_markup=get_settings_buttons(settings),
+        text=get_transactions_handling_text(update.effective_chat.id),
+        reply_markup=get_transactions_handling_buttons(settings),
         parse_mode=ParseMode.MARKDOWN_V2,
     )

@@ -8,8 +8,8 @@ from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
 from handlers.categorization import auto_categorize_transaction
 from handlers.settings import (
-    get_current_settings_text,
-    get_settings_buttons,
+    get_schedule_rendering_buttons,
+    get_schedule_rendering_text,
     handle_register_token,
 )
 from telegram.constants import ReactionEmoji
@@ -123,9 +123,9 @@ async def handle_generic_message(
         settings = get_db().get_current_settings(update.effective_chat.id)
         await context.bot.edit_message_text(
             message_id=expectation["msg_id"],
-            text=get_current_settings_text(update.effective_chat.id),
+            text=get_schedule_rendering_text(update.effective_chat.id),
             chat_id=update.effective_chat.id,
-            reply_markup=get_settings_buttons(settings),
+            reply_markup=get_schedule_rendering_buttons(settings),
             parse_mode=ParseMode.MARKDOWN_V2,
         )
         return True

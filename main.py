@@ -72,6 +72,10 @@ from handlers.settings import (
     handle_settings,
     handle_btn_toggle_mark_reviewed_after_categorized,
     handle_btn_change_timezone,
+    handle_settings_menu,
+    handle_schedule_rendering_settings,
+    handle_transactions_handling_settings,
+    handle_session_settings,
 )
 from web_server import run_web_server, update_bot_status, set_bot_instance
 
@@ -103,6 +107,23 @@ def setup_handlers(config):
     app.add_handler(CommandHandler("show_budget", handle_show_budget))
     app.add_handler(CommandHandler("clear_cache", clear_cache))
     app.add_handler(CommandHandler("settings", handle_settings))
+    app.add_handler(
+        CallbackQueryHandler(handle_settings_menu, pattern=r"^settingsMenu$")
+    )
+    app.add_handler(
+        CallbackQueryHandler(
+            handle_schedule_rendering_settings, pattern=r"^scheduleRenderingSettings$"
+        )
+    )
+    app.add_handler(
+        CallbackQueryHandler(
+            handle_transactions_handling_settings,
+            pattern=r"^transactionsHandlingSettings$",
+        )
+    )
+    app.add_handler(
+        CallbackQueryHandler(handle_session_settings, pattern=r"^sessionSettings$")
+    )
     app.add_handler(CommandHandler("resync", handle_resync))
     app.add_handler(
         CallbackQueryHandler(handle_btn_skip_transaction, pattern=r"^skip_")
@@ -341,4 +362,3 @@ if __name__ == "__main__":
 #  - current debt
 #  - next recurring charges
 # - Add option to run auto-categorization as transactions are added
-# - reorder settings to make them less confusing
