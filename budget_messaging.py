@@ -66,8 +66,7 @@ def get_budget_category_buttons(
             f"showBudgetDetails_{budget_date.isoformat()}_{budget_item.category_id}",
         )
 
-    # add exit button
-    kbd += ("Exit", f"exitBudgetDetails_{budget_date}")
+    kbd += ("Back", f"exitBudgetDetails_{budget_date}")
     kbd += ("Done", "doneBudget")
     return kbd.build(columns=2)
 

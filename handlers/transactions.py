@@ -8,7 +8,7 @@ from telegram.ext import ContextTypes
 from telegram.constants import ReactionEmoji, ParseMode
 
 from deepinfra import auto_categorize
-from handlers.categorization import auto_categorize_transaction
+from handlers.categorization import ai_categorize_transaction
 from handlers.expectations import (
     EDIT_NOTES,
     RENAME_PAYEE,
@@ -407,7 +407,7 @@ async def handle_set_tx_notes_or_tags(
 
     settings = get_db().get_current_settings(update.message.chat_id)
     if settings.auto_categorize_after_notes and not message_are_tags:
-        await auto_categorize_transaction(tx_id, update.message.chat_id, context)
+        await ai_categorize_transaction(tx_id, update.message.chat_id, context)
 
     await context.bot.set_message_reaction(
         chat_id=update.message.chat_id,
@@ -416,7 +416,7 @@ async def handle_set_tx_notes_or_tags(
     )
 
 
-async def handle_btn_autocategorize(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_btn_ai_categorize(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     tx_id = int(query.data.split("_")[1])
 

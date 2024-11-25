@@ -8,11 +8,11 @@ from tx_messaging import send_transaction_message
 logger = logging.getLogger("categorization")
 
 
-async def auto_categorize_transaction(
+async def ai_categorize_transaction(
     tx_id: int, chat_id: int, context: ContextTypes.DEFAULT_TYPE
 ):
     response = auto_categorize(tx_id, chat_id)
-    logger.info(f"Auto-categorization response: {response}")
+    logger.info(f"AI-categorization response: {response}")
 
     # update the transaction message to show the new categories
     lunch = get_lunch_client_for_chat_id(chat_id)

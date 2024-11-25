@@ -112,7 +112,7 @@ This will create a new app in fly.io with the name provided, but will not run it
 fly secrets set TELEGRAM_BOT_TOKEN=<TOKEN PROVIDED BY BOTFATHER>
 ```
 
-Optionally, set a https://deepinfra.com/ API token which enables the auto-categorize feature,
+Optionally, set a https://deepinfra.com/ API token which enables the AI-categorize feature,
 which uses an LLM to find you the best category for a particular transaction:
 
 ```

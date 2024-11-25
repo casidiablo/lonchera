@@ -49,7 +49,7 @@ def get_tx_buttons(
     if categorize and not collapsed:
         kbd += ("Categorize", f"categorize_{transaction_id}")
         if os.getenv("DEEPINFRA_API_KEY"):
-            kbd += ("Auto-categorize 🪄", f"autocategorize_{transaction_id}")
+            kbd += ("AI-categorize 🪄", f"aicategorize_{transaction_id}")
 
     if not collapsed:
         kbd += ("Rename payee", f"renamePayee_{transaction_id}")
