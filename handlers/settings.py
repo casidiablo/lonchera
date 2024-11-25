@@ -129,14 +129,17 @@ def get_schedule_rendering_text(chat_id: int) -> Optional[str]:
         > This sends you more timely notifications, but you would need to either manually review them or
         > enable auto\\-mark transactions as reviewed\\.
 
+
         3️⃣ *Show full date/time*: {"☑️" if settings.show_datetime else "☐"}
         > When enabled, shows the full date and time for each transaction\\.
         > When disabled, shows only the date without the time\\.
         > _We allow disabling time because more often than it is not reliable\\._
 
+
         4️⃣ *Tagging*: {"☑️" if settings.tagging else "☐"}
         > When enabled, renders categories as Telegram tags\\.
         > Useful for filtering transactions\\.
+
 
         5️⃣ *Timezone*: `{settings.timezone}`
         > This is the timezone used for displaying dates and times\\.
@@ -157,10 +160,12 @@ def get_transactions_handling_text(chat_id: int) -> Optional[str]:
         > When enabled, transactions will be marked as reviewed automatically after being sent to Telegram\\.
         > When disabled, you need to explicitly mark them as reviewed\\.
 
-        2️⃣ *Mark reviewed after categorization*: {"☑️" if settings.mark_reviewed_after_categorized else "☐"}
+
+        2️⃣ *Mark as reviewed after categorization*: {"☑️" if settings.mark_reviewed_after_categorized else "☐"}
         > When enabled, transactions will be marked as reviewed automatically after being categorized\\.
 
-        3️⃣ *Auto\\-categorize after notes*: {"☑️" if settings.auto_categorize_after_notes else "☐"}
+
+        3️⃣ *Auto\\-categorize after adding notes*: {"☑️" if settings.auto_categorize_after_notes else "☐"}
         > When enabled, automatically runs auto\\-categorization after a note is added to a transaction\\.
         > _Requires AI to be enabled_\\.
         """
@@ -213,6 +218,7 @@ def get_transactions_handling_buttons(settings: Settings) -> InlineKeyboardMarku
 def get_session_buttons(settings: Settings) -> InlineKeyboardMarkup:
     kbd = Keyboard()
     kbd += ("🚪 Log out", "logout")
+    kbd += ("🔄 Trigger Plaid Refresh", "triggerPlaidRefresh")  # Added button
     kbd += ("Back", "settingsMenu")
     return kbd.build()
 
