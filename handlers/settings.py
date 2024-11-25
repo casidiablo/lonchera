@@ -115,12 +115,12 @@ def get_schedule_rendering_text(chat_id: int) -> Optional[str]:
         f"""
         🛠️ 🆂🅴🆃🆃🅸🅽🅶🆂 \\- *Schedule & Rendering*
 
-        1️⃣ *Poll interval*: {poll_interval}
+        ➊ *Poll interval*: {poll_interval}
         > This is how often we check for new transactions\\.
         {next_poll_at}
         > Trigger now: /review\\_transactions
 
-        2️⃣ *Polling mode*: {"`pending`" if settings.poll_pending else "`posted`"}
+        ➋ *Polling mode*: {"`pending`" if settings.poll_pending else "`posted`"}
         > When `posted` is enabled, the bot will poll for transactions that are already posted\\.
         > This is the default mode and, because of the way Lunch Money/Plaid work, will allow categorizing
         > the transactions and mark them as reviewed from Telegram\\.
@@ -130,18 +130,18 @@ def get_schedule_rendering_text(chat_id: int) -> Optional[str]:
         > enable auto\\-mark transactions as reviewed\\.
 
 
-        3️⃣ *Show full date/time*: {"☑️" if settings.show_datetime else "☐"}
+        ➌ *Show full date/time*: {"🟢 ᴏɴ" if settings.show_datetime else "🔴 ᴏꜰꜰ"}
         > When enabled, shows the full date and time for each transaction\\.
         > When disabled, shows only the date without the time\\.
         > _We allow disabling time because more often than it is not reliable\\._
 
 
-        4️⃣ *Tagging*: {"☑️" if settings.tagging else "☐"}
+        ➍ *Tagging*: {"🟢 ᴏɴ" if settings.tagging else "🔴 ᴏꜰꜰ"}
         > When enabled, renders categories as Telegram tags\\.
         > Useful for filtering transactions\\.
 
 
-        5️⃣ *Timezone*: `{settings.timezone}`
+        ➎ *Timezone*: `{settings.timezone}`
         > This is the timezone used for displaying dates and times\\.
         """
     )
@@ -156,16 +156,16 @@ def get_transactions_handling_text(chat_id: int) -> Optional[str]:
         f"""
         🛠️ 🆂🅴🆃🆃🅸🅽🅶🆂 \\- *Transactions Handling*
 
-        1️⃣ *Auto\\-mark transactions as reviewed*: {"☑️" if settings.auto_mark_reviewed else "☐"}
+        ➊ *Auto\\-mark transactions as reviewed*: {"🟢 ᴏɴ" if settings.auto_mark_reviewed else "🔴 ᴏꜰꜰ"}
         > When enabled, transactions will be marked as reviewed automatically after being sent to Telegram\\.
         > When disabled, you need to explicitly mark them as reviewed\\.
 
 
-        2️⃣ *Mark as reviewed after categorization*: {"☑️" if settings.mark_reviewed_after_categorized else "☐"}
+        ➋ *Mark as reviewed after categorization*: {"🟢 ᴏɴ" if settings.mark_reviewed_after_categorized else "🔴 ᴏꜰꜰ"}
         > When enabled, transactions will be marked as reviewed automatically after being categorized\\.
 
 
-        3️⃣ *Auto\\-categorize after adding notes*: {"☑️" if settings.auto_categorize_after_notes else "☐"}
+        ➌ *Auto\\-categorize after adding notes*: {"🟢 ᴏɴ" if settings.auto_categorize_after_notes else "🔴 ᴏꜰꜰ"}
         > When enabled, automatically runs auto\\-categorization after a note is added to a transaction\\.
         > _Requires AI to be enabled_\\.
         """
@@ -188,11 +188,11 @@ def get_session_text(chat_id: int) -> Optional[str]:
 
 def get_schedule_rendering_buttons(settings: Settings) -> InlineKeyboardMarkup:
     kbd = Keyboard()
-    kbd += ("1️⃣ Change interval", "changePollInterval")
-    kbd += ("2️⃣ Toggle polling mode", f"togglePollPending_{settings.poll_pending}")
-    kbd += ("3️⃣ Show date/time?", f"toggleShowDateTime_{settings.show_datetime}")
-    kbd += ("4️⃣ Tagging?", f"toggleTagging_{settings.tagging}")
-    kbd += ("5️⃣ Change timezone", "changeTimezone")
+    kbd += ("➊ Change interval", "changePollInterval")
+    kbd += ("➋ Toggle polling mode", f"togglePollPending_{settings.poll_pending}")
+    kbd += ("➌ Show date/time?", f"toggleShowDateTime_{settings.show_datetime}")
+    kbd += ("➍ Toggle tagging", f"toggleTagging_{settings.tagging}")
+    kbd += ("➎ Change timezone", "changeTimezone")
     kbd += ("Back", "settingsMenu")
     return kbd.build()
 
@@ -200,15 +200,15 @@ def get_schedule_rendering_buttons(settings: Settings) -> InlineKeyboardMarkup:
 def get_transactions_handling_buttons(settings: Settings) -> InlineKeyboardMarkup:
     kbd = Keyboard()
     kbd += (
-        "1️⃣ Auto-mark reviewed?",
+        "➊ Auto-mark reviewed?",
         f"toggleAutoMarkReviewed_{settings.auto_mark_reviewed}",
     )
     kbd += (
-        "2️⃣ Mark reviewed after categorization?",
+        "➋ Mark reviewed after categorization?",
         "toggleMarkReviewedAfterCategorized",
     )
     kbd += (
-        "3️⃣ Auto-categorize after notes?",
+        "➌ Auto-categorize after notes?",
         f"toggleAutoCategorizeAfterNotes_{settings.auto_categorize_after_notes}",
     )
     kbd += ("Back", "settingsMenu")
@@ -499,5 +499,17 @@ async def handle_btn_toggle_auto_categorize_after_notes(
     await update.callback_query.edit_message_text(
         text=get_transactions_handling_text(update.effective_chat.id),
         reply_markup=get_transactions_handling_buttons(settings),
+        parse_mode=ParseMode.MARKDOWN_V2,
+    )
+
+
+async def handle_btn_cancel_poll_interval_change(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+):
+    settings_text = get_schedule_rendering_text(update.effective_chat.id)
+    settings = get_db().get_current_settings(update.effective_chat.id)
+    await update.callback_query.edit_message_text(
+        text=settings_text,
+        reply_markup=get_schedule_rendering_buttons(settings),
         parse_mode=ParseMode.MARKDOWN_V2,
     )

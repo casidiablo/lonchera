@@ -194,6 +194,9 @@ async def handle_show_balances(
             reply_markup=get_accounts_buttons(mask),
         )
 
+        # delete the command message
+        await update.message.delete()
+
 
 async def handle_btn_accounts_balances(
     update: Update, context: ContextTypes.DEFAULT_TYPE

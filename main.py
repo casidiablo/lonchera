@@ -56,6 +56,7 @@ from handlers.transactions import (
 )
 from manual_tx import setup_manual_tx_handler
 from handlers.settings import (
+    handle_btn_cancel_poll_interval_change,
     handle_btn_change_poll_interval,
     handle_btn_done_settings,
     handle_btn_toggle_auto_categorize_after_notes,
@@ -252,6 +253,13 @@ def setup_handlers(config):
         CallbackQueryHandler(
             handle_btn_toggle_auto_categorize_after_notes,
             pattern=r"^toggleAutoCategorizeAfterNotes",
+        )
+    )
+
+    app.add_handler(
+        CallbackQueryHandler(
+            handle_btn_cancel_poll_interval_change,
+            pattern=r"^cancelPollIntervalChange$",
         )
     )
 
