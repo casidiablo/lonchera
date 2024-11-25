@@ -70,6 +70,9 @@ async def handle_show_budget(update: Update, context: ContextTypes.DEFAULT_TYPE)
     budget = lunch.get_budgets(start_date=budget_date, end_date=budget_end_date)
     await send_budget(update, context, budget, budget_date, message_id)
 
+    # delete command message
+    await update.message.delete()
+
 
 async def handle_btn_show_budget_categories(
     update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -128,3 +131,8 @@ async def handle_btn_show_budget_for_category(
 
     await update.callback_query.answer()
     await show_bugdget_for_category(update, all_budget, sub_budget, budget_date)
+
+
+async def handle_done_budget(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Deletes the budget message."""
+    await update.callback_query.message.delete()

@@ -26,6 +26,7 @@ from handlers.budget import (
     handle_btn_show_budget_categories,
     handle_btn_show_budget_for_category,
     handle_show_budget,
+    handle_done_budget,
 )
 from handlers.general import (
     clear_cache,
@@ -263,6 +264,8 @@ def setup_handlers(config):
         )
     )
 
+    app.add_handler(CallbackQueryHandler(handle_done_budget, pattern=r"^doneBudget$"))
+
     app.add_handler(CallbackQueryHandler(handle_unknown_btn))
 
     app.add_error_handler(handle_errors)
@@ -360,11 +363,7 @@ if __name__ == "__main__":
     asyncio.run(main())
 
 # TODO
-# - Add custom icons for famous merchants
 # - Add some settings to disable part of the add manual transaction flow
-# - Add command to resync transactions. i.e., if a change was made to the transaction in Lunch Money,
-#   it should be reflected in the bot after this is run. It should just go through all the messages
-#   sent and for each one get the transaction from Lunch Money and update the message.
 # - Have the bot pin a message containing important info:
 #  - Current networth
 #  - current debt

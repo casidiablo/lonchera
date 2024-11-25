@@ -51,6 +51,7 @@ def get_bugdet_buttons(current_budget_date: datetime) -> InlineKeyboardMarkup:
         )
 
     kbd += ("Details", f"showBudgetCategories_{current_budget_date.isoformat()}")
+    kbd += ("Done", "doneBudget")
 
     return kbd.build()
 
@@ -67,6 +68,7 @@ def get_budget_category_buttons(
 
     # add exit button
     kbd += ("Exit", f"exitBudgetDetails_{budget_date}")
+    kbd += ("Done", "doneBudget")
     return kbd.build(columns=2)
 
 
