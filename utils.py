@@ -182,7 +182,7 @@ def build_conversation_handler(
     return ConversationHandler(
         per_chat=True,
         per_user=True,
-        per_message=True,
+        per_message=False,
         entry_points=[CommandHandler("add_transaction", start)],
         states=states,
         fallbacks=[cancel_handler],
