@@ -39,7 +39,13 @@ async def handle_start(update: Update, _: ContextTypes.DEFAULT_TYPE):
         text=dedent(
             """
             Welcome to Lonchera! A Telegram bot that helps you stay on top of your Lunch Money transactions.
-            To start, please send me your [Lunch Money API token](https://my.lunchmoney.app/developers).
+            To start, please send me your *Lunch Money API token*
+
+            If you are not a Lunch Money user already, you can use my referral link to create an account:
+
+            https://lunchmoney.app/?refer=g5cotlcw
+
+            It's an amazing tool to track your finances. Do give them a try!
             """
         ),
         parse_mode=ParseMode.MARKDOWN,
