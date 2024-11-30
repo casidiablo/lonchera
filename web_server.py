@@ -95,7 +95,7 @@ start_time = time.time()
 def get_masked_token():
     token = os.getenv("TELEGRAM_BOT_TOKEN", "")
     if len(token) > 8:
-        return f"{token[:4]}...{token[-4:]}"
+        return f"{token[:4]}..."
     return "not set"
 
 
@@ -103,7 +103,7 @@ def get_ai_status():
     api_key = os.getenv("DEEPINFRA_API_KEY", "")
     if not api_key:
         return "AI features disabled (no API key provided)"
-    return f"AI enabled (key: {api_key[:4]}...{api_key[-4:]})"
+    return f"AI enabled (key: {api_key[:4]}...)"
 
 
 async def handle_root(request):
