@@ -256,3 +256,13 @@ async def clear_cache(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         message_id=update.message.message_id,
         reaction=ReactionEmoji.THUMBS_UP,
     )
+
+
+async def handle_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Generic handler for cancel buttons that simply deletes the message."""
+    query = update.callback_query
+    await query.answer()
+    await context.bot.delete_message(
+        chat_id=update.effective_chat.id,
+        message_id=query.message.message_id,
+    )

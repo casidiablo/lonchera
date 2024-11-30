@@ -33,6 +33,7 @@ from handlers.general import (
     handle_errors,
     handle_generic_message,
     handle_start,
+    handle_cancel,
 )
 from handlers.syncing import handle_resync
 from handlers.transactions import (
@@ -264,6 +265,10 @@ def setup_handlers(config):
 
     app.add_handler(CallbackQueryHandler(handle_done_budget, pattern=r"^doneBudget$"))
 
+    # Add a generic cancel handler for any leftover cancel buttons
+    app.add_handler(CallbackQueryHandler(handle_cancel, pattern=r"^cancel$"))
+
+    # Catch any other unknown buttons
     app.add_handler(CallbackQueryHandler(handle_unknown_btn))
 
     app.add_error_handler(handle_errors)
