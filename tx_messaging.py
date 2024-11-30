@@ -29,16 +29,18 @@ def get_tx_buttons(
         tx = get_db().get_tx_by_id(transaction_id)
         if tx is None:
             raise ValueError(f"Transaction {transaction_id} not in the database")
-        recurring_type, is_pending, is_reviewed = (
+        recurring_type, is_pending, is_reviewed, plaid_id = (
             tx.recurring_type,
             tx.pending,
             tx.reviewed_at is not None,
+            tx.plaid_id,
         )
     else:
         transaction_id = transaction.id
         recurring_type = transaction.recurring_type
         is_pending = transaction.is_pending
         is_reviewed = transaction.status == "cleared"
+        plaid_id = transaction.plaid_account_id
 
     kbd = Keyboard()
     if collapsed:
@@ -55,7 +57,8 @@ def get_tx_buttons(
         kbd += ("Rename payee", f"renamePayee_{transaction_id}")
         kbd += ("Set notes", f"editNotes_{transaction_id}")
         kbd += ("Set tags", f"setTags_{transaction_id}")
-        kbd += ("Plaid details", f"plaid_{transaction_id}")
+        if plaid_id:
+            kbd += ("Plaid details", f"plaid_{transaction_id}")
 
         skip = not is_pending
         if skip and not is_reviewed:

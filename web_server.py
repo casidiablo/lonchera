@@ -5,6 +5,11 @@ from typing import Optional
 from aiohttp import web
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+import hashlib
+from urllib.parse import unquote
+import hmac
+
+from lunch import get_lunch_client_for_chat_id
 
 # Initialize logger
 logger = logging.getLogger("web_server")
@@ -170,6 +175,14 @@ async def handle_root(request):
     return web.Response(text=response.strip(), content_type="text/html")
 
 
+async def handle_manual_tx(request):
+    chat_id = request.match_info.get("chat_id")
+    html_path = os.path.join(os.path.dirname(__file__), "manual_tx.html")
+    with open(html_path, "r") as file:
+        response = file.read().replace("{chat_id}", chat_id)
+    return web.Response(text=response, content_type="text/html")
+
+
 def application_running():
     if not bot_status.is_running:
         return False
@@ -182,9 +195,102 @@ def application_running():
     return True
 
 
+def validate_init_data(init_data: str, bot_token: str):
+    print("REMOVE", init_data, bot_token)
+    vals = {k: unquote(v) for k, v in [s.split("=", 1) for s in init_data.split("&")]}
+    data_check_string = "\n".join(
+        f"{k}={v}" for k, v in sorted(vals.items()) if k != "hash"
+    )
+    secret_key = hmac.new(
+        "WebAppData".encode(), bot_token.encode(), hashlib.sha256
+    ).digest()
+    h = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256)
+    return h.hexdigest() == vals["hash"]
+
+
+async def handle_validate(request):
+    data = await request.post()
+    init_data = data.get("initData", "")
+    bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    is_valid = validate_init_data(init_data, bot_token)
+    return web.json_response({"valid": is_valid})
+
+
+async def handle_get_categories(request):
+    chat_id = int(request.match_info.get("chat_id", 0))
+    lunch = get_lunch_client_for_chat_id(chat_id)
+    categories = lunch.get_categories()
+
+    super_categories = [cat for cat in categories if cat.is_group]
+    subcategories = [cat for cat in categories if cat.group_id is not None]
+    standalone_categories = [
+        cat for cat in categories if not cat.is_group and cat.group_id is None
+    ]
+
+    options = ""
+
+    for super_category in super_categories:
+        options += f"<option disabled>{super_category.name}</option>"
+        for subcategory in subcategories:
+            if subcategory.group_id == super_category.id:
+                options += (
+                    f'<option value="{subcategory.id}">└ {subcategory.name}</option>'
+                )
+
+    for category in standalone_categories:
+        options += f'<option value="{category.id}">{category.name}</option>'
+
+    return web.Response(text=options, content_type="text/html")
+
+
+async def handle_get_accounts(request):
+    chat_id = int(request.match_info.get("chat_id", 0))
+    lunch = get_lunch_client_for_chat_id(chat_id)
+
+    options = "<option value=''>Select account...</option>"
+
+    # Disabled for now
+    # plaid_accounts = lunch.get_plaid_accounts()
+    # if plaid_accounts:
+    #     # Group accounts by type
+    #     accounts_by_type = {}
+    #     for account in plaid_accounts:
+    #         if account.status == "active":
+    #             account_type = account.type.capitalize()
+    #             if account_type not in accounts_by_type:
+    #                 accounts_by_type[account_type] = []
+    #             accounts_by_type[account_type].append(account)
+
+    #     # Add each type and its accounts
+    #     for account_type in sorted(accounts_by_type.keys()):
+    #         options += f"<option disabled>{account_type}</option>"
+    #         for account in accounts_by_type[account_type]:
+    #             options += (
+    #                 f'<option value="{account.id}">└ {account.display_name}</option>'
+    #             )
+
+    assets = lunch.get_assets()
+    only_accounts = [
+        asset
+        for asset in assets
+        if asset.type_name == "credit" or asset.type_name == "cash"
+    ]
+    if only_accounts:
+        options += "<option disabled>Manually-managed accounts</option>"
+        for asset in only_accounts:
+            balance = f"{asset.balance:,.2f} {asset.currency.upper()}"
+            options += f'<option value="{asset.id}">└ {asset.name} ($<pre>{balance}</pre>)</option>'
+
+    return web.Response(text=options, content_type="text/html")
+
+
 async def run_web_server():
     app = web.Application()
     app.router.add_get("/", handle_root)
+    app.router.add_get("/manual_tx/{chat_id}", handle_manual_tx)
+    app.router.add_post("/validate", handle_validate)
+    app.router.add_get("/get_categories/{chat_id}", handle_get_categories)
+    app.router.add_get("/get_accounts/{chat_id}", handle_get_accounts)
 
     runner = web.AppRunner(app)
     await runner.setup()

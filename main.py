@@ -56,7 +56,7 @@ from handlers.transactions import (
     handle_set_tx_notes_or_tags,
     poll_transactions_on_schedule,
 )
-from manual_tx import setup_manual_tx_handler
+from manual_tx import handle_manual_tx, handle_web_app_data
 from handlers.settings import (
     handle_btn_cancel_poll_interval_change,
     handle_btn_change_poll_interval,
@@ -100,9 +100,8 @@ def setup_handlers(config):
         query = update.callback_query
         await query.answer(text=f"Unknown command {query.data}", show_alert=True)
 
-    setup_manual_tx_handler(app, config)
-
     app.add_handler(CommandHandler("start", handle_start))
+    app.add_handler(CommandHandler("add_transaction", handle_manual_tx))
     app.add_handler(CommandHandler("review_transactions", handle_check_transactions))
     app.add_handler(CommandHandler("pending_transactions", check_pending_transactions))
     app.add_handler(CommandHandler("show_budget", handle_show_budget))
@@ -279,6 +278,9 @@ def setup_handlers(config):
         MessageHandler(filters.TEXT & filters.REPLY, handle_set_tx_notes_or_tags)
     )
     app.add_handler(MessageHandler(filters.TEXT, handle_generic_message))
+    app.add_handler(
+        MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_web_app_data)
+    )
 
     logger.info("Telegram handlers set up successfully")
 
