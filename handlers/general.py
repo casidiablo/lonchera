@@ -14,7 +14,7 @@ from handlers.settings import (
 )
 from telegram.constants import ReactionEmoji
 
-from lunch import NoLunchToken, get_lunch_client_for_chat_id
+from lunch import get_lunch_client_for_chat_id
 from handlers.expectations import (
     EDIT_NOTES,
     EXPECTING_TIME_ZONE,
@@ -23,28 +23,35 @@ from handlers.expectations import (
     SET_TAGS,
     clear_expectation,
     get_expectation,
+    set_expectation,
 )
 from persistence import get_db
 from tx_messaging import send_transaction_message
 import pytz
 
+from errors import NoLunchToken
+
 logger = logging.getLogger("handlers")
 
 
 async def handle_start(update: Update, _: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
+    msg = await update.message.reply_text(
         text=dedent(
             """
             Welcome to Lonchera! A Telegram bot that helps you stay on top of your Lunch Money transactions.
-            To start, please register your [Lunch Money API token](https://my.lunchmoney.app/developers) by sending:
-
-            `/register <token>`
-
-            Only one token is supported per chat.
+            To start, please send me your [Lunch Money API token](https://my.lunchmoney.app/developers).
             """
         ),
         parse_mode=ParseMode.MARKDOWN,
         disable_web_page_preview=True,
+    )
+
+    set_expectation(
+        update.effective_chat.id,
+        {
+            "expectation": EXPECTING_TOKEN,
+            "msg_id": msg.message_id,
+        },
     )
 
 
@@ -56,12 +63,7 @@ async def handle_errors(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if isinstance(context.error, NoLunchToken):
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text=dedent(
-                """
-                No token registered for this chat. Please register a token using:
-                `/register <token>`
-                """
-            ),
+            text="No Lunch Money API token found. Please register a token using /start",
             parse_mode=ParseMode.MARKDOWN,
         )
         return
@@ -91,13 +93,12 @@ async def handle_generic_message(
     # if waiting for a token, register it
     expectation = get_expectation(update.effective_chat.id)
     if expectation and expectation["expectation"] == EXPECTING_TOKEN:
-        clear_expectation(update.effective_chat.id)
-
-        await context.bot.delete_message(
-            chat_id=update.effective_chat.id, message_id=expectation["msg_id"]
+        await handle_register_token(
+            update,
+            context,
+            token_msg=update.message.text,
+            hello_msg_id=expectation["msg_id"],
         )
-
-        await handle_register_token(update, context, token_override=update.message.text)
         return True
     # if waiting for a time zone, persist it
     elif expectation and expectation["expectation"] == EXPECTING_TIME_ZONE:
@@ -249,7 +250,7 @@ async def handle_generic_message(
 
 
 async def clear_cache(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    get_db().nuke(update.message.chat_id)
+    get_db().delete_transactions_for_chat(update.message.chat_id)
     await context.bot.set_message_reaction(
         chat_id=update.message.chat_id,
         message_id=update.message.message_id,

@@ -1,6 +1,7 @@
 from typing import Dict
 from lunchable import LunchMoney
 
+from errors import NoLunchToken
 from persistence import get_db
 
 
@@ -21,9 +22,3 @@ def get_lunch_client_for_chat_id(chat_id: int) -> LunchMoney:
 
     lunch_clients_cache[chat_id] = get_lunch_client(token)
     return lunch_clients_cache[chat_id]
-
-
-class NoLunchToken(Exception):
-    def __init__(self, message):
-        super().__init__(message)
-        self.message = message

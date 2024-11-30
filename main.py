@@ -69,7 +69,6 @@ from handlers.settings import (
     handle_logout,
     handle_logout_cancel,
     handle_logout_confirm,
-    handle_register_token,
     handle_btn_set_token_from_button,
     handle_settings,
     handle_btn_toggle_mark_reviewed_after_categorized,
@@ -103,7 +102,6 @@ def setup_handlers(config):
     setup_manual_tx_handler(app, config)
 
     app.add_handler(CommandHandler("start", handle_start))
-    app.add_handler(CommandHandler("register", handle_register_token))
     app.add_handler(CommandHandler("review_transactions", handle_check_transactions))
     app.add_handler(CommandHandler("pending_transactions", check_pending_transactions))
     app.add_handler(CommandHandler("show_budget", handle_show_budget))

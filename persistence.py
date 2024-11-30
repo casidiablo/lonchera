@@ -17,6 +17,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import func
 
+from errors import NoLunchToken
+
 logger = logging.getLogger("db")
 
 Base = declarative_base()
@@ -179,7 +181,7 @@ class Persistence:
             )
             return transaction.message_id if transaction else None
 
-    def nuke(self, chat_id: int):
+    def delete_transactions_for_chat(self, chat_id: int):
         with self.Session() as session:
             stmt = delete(Transaction).where(Transaction.chat_id == chat_id)
             session.execute(stmt)
@@ -214,7 +216,10 @@ class Persistence:
 
     def get_current_settings(self, chat_id: int) -> Settings:
         with self.Session() as session:
-            return session.query(Settings).filter_by(chat_id=chat_id).first()
+            settings = session.query(Settings).filter_by(chat_id=chat_id).first()
+            if settings is None:
+                raise NoLunchToken("No settings found for this chat")
+            return settings
 
     def update_poll_interval(self, chat_id: int, interval: int) -> None:
         with self.Session() as session:

@@ -7,34 +7,53 @@ from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
 from telegram.constants import ReactionEmoji
 
-from handlers.expectations import EXPECTING_TIME_ZONE, EXPECTING_TOKEN, set_expectation
+from handlers.expectations import (
+    EXPECTING_TIME_ZONE,
+    EXPECTING_TOKEN,
+    clear_expectation,
+    set_expectation,
+)
 from lunch import get_lunch_client, get_lunch_client_for_chat_id
 from persistence import Settings, get_db
-from utils import Keyboard
+from utils import Keyboard, ensure_token
+
+import re
+
+
+def extract_api_token(input_string: str) -> str:
+    # Define the regex pattern for the API token
+    pattern = r"\b[a-f0-9]{50}\b"
+
+    print("checking for token", pattern, input_string)
+
+    # Search for the pattern in the input string
+    match = re.search(pattern, input_string)
+
+    # If a match is found, return the matched string, otherwise return None
+    return match.group(0) if match else None
 
 
 async def handle_register_token(
-    update: Update, context: ContextTypes.DEFAULT_TYPE, token_override: str = None
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    token_msg: str,
+    hello_msg_id: int,
 ):
-    # if the message is empty, ask to provide a token
-    if token_override is None and len(update.message.text.split(" ")) < 2:
-        msg = await context.bot.send_message(
+    # be forgiving and extract the token from the message, if possible
+    token = extract_api_token(token_msg)
+
+    if not token:
+        await context.bot.send_message(
             chat_id=update.message.chat_id,
-            text="Please provide a token to register",
-        )
-        set_expectation(
-            update.effective_chat.id,
-            {
-                "expectation": EXPECTING_TOKEN,
-                "msg_id": msg.message_id,
-            },
+            text=dedent(
+                """
+                I couldn't find a valid token in the message you sent me.
+                Please make sure you send me the token in the correct format.
+                It's typically a 50-character long string of hexadecimal characters.
+                """
+            ),
         )
         return
-
-    if token_override is not None:
-        token = token_override
-    else:
-        token = update.message.text.split(" ")[1]
 
     # delete the message with the token
     await context.bot.delete_message(
@@ -47,23 +66,61 @@ async def handle_register_token(
         lunch_user = lunch.get_user()
         get_db().save_token(update.message.chat_id, token)
 
-        # TODO include basic docs of the available commands
+        clear_expectation(hello_msg_id)
+
+        await context.bot.delete_message(
+            chat_id=update.effective_chat.id, message_id=hello_msg_id
+        )
+
         await context.bot.send_message(
             chat_id=update.message.chat_id,
             text=dedent(
                 f"""
-                Hello {lunch_user.user_name}!
+                🎉 🎊 Hello {lunch_user.user_name}!
 
-                Your token was successfully registered. Will start polling for unreviewed transactions.
+                Your token was successfully stored. I will start polling for unreviewed transactions, shortly.
 
-                Use /settings to change my behavior.
+                These are some commands to get you started:
+
+                /review\\_transactions - Check for unreviewed transactions now.
+
+                Use /settings to change my behavior, like how often to poll for new transactions.
+
+                /add\\_transaction - Adds a transaction manually
+                /show\\_budget - Show the budget for the current month
+                /balances - Shows the current balances in all accounts
+                /pending\\_transactions - Lists all pending transactions
+
+                Need help?
+                [Join our Discord support channel](https://discord.com/channels/842337014556262411/1311765488140816484)
 
                 (_I deleted the message with the token you provided for security purposes_)
                 """
             ),
             parse_mode=ParseMode.MARKDOWN,
+            disable_web_page_preview=True,
         )
     except Exception as e:
+        # if e contains "Access token does not exist." it means
+        # the token is revoked or just invalid
+
+        if "Access token does not exist." in str(e):
+            await context.bot.send_message(
+                chat_id=update.message.chat_id,
+                # noqa: E501
+                text=dedent(
+                    f"""
+                    Failed to register token `{token}`:
+
+                    *The token provided is invalid or has been revoked\\.*
+
+                    Double check the token is valid or create a new one at the [Lunch Money developer console](https://my.lunchmoney.app/developers)
+                    """
+                ),
+                parse_mode=ParseMode.MARKDOWN_V2,
+                disable_web_page_preview=True,
+            )
+            return
         await context.bot.send_message(
             chat_id=update.message.chat_id,
             text=dedent(
@@ -72,6 +129,9 @@ async def handle_register_token(
                 ```
                 {e}
                 ```
+
+                If you need help, reach out in the
+                [Discord support channel](https://discord.com/channels/842337014556262411/1311765488140816484)
                 """
             ),
             parse_mode=ParseMode.MARKDOWN_V2,
@@ -224,6 +284,8 @@ def get_session_buttons(settings: Settings) -> InlineKeyboardMarkup:
 
 
 async def handle_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    ensure_token(update)
+
     await update.message.reply_text(
         text="🛠️ 🆂🅴🆃🆃🅸🅽🅶🆂\n\nPlease choose a settings category:",
         reply_markup=get_general_settings_buttons(),
@@ -368,6 +430,7 @@ async def handle_logout(update: Update, _: ContextTypes.DEFAULT_TYPE):
 
 async def handle_logout_confirm(update: Update, _: ContextTypes.DEFAULT_TYPE):
     get_db().logout(update.effective_chat.id)
+    get_db().delete_transactions_for_chat(update.effective_chat.id)
 
     await update.callback_query.delete_message()
     await update.callback_query.answer(

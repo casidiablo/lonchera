@@ -21,7 +21,7 @@ from lunchable.models import TransactionObject
 
 from persistence import get_db
 from tx_messaging import get_tx_buttons, send_plaid_details, send_transaction_message
-from utils import Keyboard, find_related_tx
+from utils import Keyboard, ensure_token, find_related_tx
 
 logger = logging.getLogger("tx_handler")
 
@@ -134,10 +134,7 @@ async def check_pending_transactions_and_telegram_them(
 async def handle_check_transactions(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
-    settings = get_db().get_current_settings(update.effective_chat.id)
-    if not settings:
-        logger.error(f"No settings found for chat {update.effective_chat.id}!")
-        return
+    settings = ensure_token(update)
 
     if settings.poll_pending:
         transactions = await check_pending_transactions_and_telegram_them(
@@ -451,6 +448,7 @@ async def poll_transactions_on_schedule(context: ContextTypes.DEFAULT_TYPE):
     for chat_id in chat_ids:
         settings = get_db().get_current_settings(chat_id)
         if not settings:
+            # technically this should never happen, but just in case
             logger.error(f"No settings found for chat {chat_id}!")
             continue
 

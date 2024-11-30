@@ -14,7 +14,13 @@ import datetime
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
 from tx_messaging import send_transaction_message
-from utils import CONVERSATION_MSG_ID, Keyboard, build_conversation_handler, make_tag
+from utils import (
+    CONVERSATION_MSG_ID,
+    Keyboard,
+    build_conversation_handler,
+    ensure_token,
+    make_tag,
+)
 
 # Conversation states
 (
@@ -78,6 +84,8 @@ def get_transaction_state_message(
 
 
 async def start_transaction(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    ensure_token(update)
+
     msg = await update.message.reply_text(
         text=dedent(
             """

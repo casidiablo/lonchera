@@ -11,6 +11,8 @@ from telegram.ext import (
     filters,
 )
 
+from persistence import Settings, get_db
+
 
 def is_emoji(char):
     return char in emoji.EMOJI_DATA
@@ -191,3 +193,9 @@ def build_conversation_handler(
 
 def clean_md(text: str) -> str:
     return text.replace("_", " ").replace("*", " ").replace("`", " ")
+
+
+def ensure_token(update: Update) -> Settings:
+    # make sure the user has registered a token by trying to get the settings
+    # which will raise an exception if the token is not set
+    return get_db().get_current_settings(update.effective_chat.id)
