@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from textwrap import dedent
 from lunchable import TransactionInsertObject
 from telegram import KeyboardButton, ReplyKeyboardMarkup, Update, WebAppInfo
@@ -106,7 +107,8 @@ async def do_save_transaction(
 
 async def handle_manual_tx(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_chat.id
-    web_app = WebAppInfo(url=f"https://loncherita.fly.dev/manual_tx/{chat_id}")
+    app_name = os.getenv("FLY_APP_NAME", "lonchera")
+    web_app = WebAppInfo(url=f"https://{app_name}.fly.dev/manual_tx/{chat_id}")
     await update.message.reply_text(
         text=dedent(
             """

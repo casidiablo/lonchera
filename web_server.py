@@ -175,11 +175,54 @@ async def handle_root(request):
     return web.Response(text=response.strip(), content_type="text/html")
 
 
-async def handle_manual_tx(request):
+async def handle_manual_tx_endpoint(request):
     chat_id = request.match_info.get("chat_id")
+    logger.info("Serving manual tx page for chat id %s", chat_id)
+
+    # Generate account options
+    lunch = get_lunch_client_for_chat_id(int(chat_id))
+    account_options = "<option value=''>Select account...</option>"
+    assets = lunch.get_assets()
+    only_accounts = [
+        asset
+        for asset in assets
+        if asset.type_name == "credit" or asset.type_name == "cash"
+    ]
+    if only_accounts:
+        account_options += "<option disabled>Manually-managed accounts</option>"
+        for asset in only_accounts:
+            balance = f"{asset.balance:,.2f} {asset.currency.upper()}"
+            account_options += (
+                f'<option value="{asset.id}">└ {asset.name} (${balance})</option>'
+            )
+
+    # Generate category options
+    categories = lunch.get_categories()
+    super_categories = [cat for cat in categories if cat.is_group]
+    subcategories = [cat for cat in categories if cat.group_id is not None]
+    standalone_categories = [
+        cat for cat in categories if not cat.is_group and cat.group_id is None
+    ]
+
+    category_options = """
+        <option value=''>Select category...</option>
+        <option value='None'>Uncategorized</option>
+    """
+    for super_category in super_categories:
+        category_options += f"<option disabled>{super_category.name}</option>"
+        for subcategory in subcategories:
+            if subcategory.group_id == super_category.id:
+                category_options += (
+                    f'<option value="{subcategory.id}">└ {subcategory.name}</option>'
+                )
+    for category in standalone_categories:
+        category_options += f'<option value="{category.id}">{category.name}</option>'
+
     html_path = os.path.join(os.path.dirname(__file__), "manual_tx.html")
     with open(html_path, "r") as file:
         response = file.read().replace("{chat_id}", chat_id)
+        response = response.replace("{account_options}", account_options)
+        response = response.replace("{category_options}", category_options)
     return web.Response(text=response, content_type="text/html")
 
 
@@ -216,81 +259,11 @@ async def handle_validate(request):
     return web.json_response({"valid": is_valid})
 
 
-async def handle_get_categories(request):
-    chat_id = int(request.match_info.get("chat_id", 0))
-    lunch = get_lunch_client_for_chat_id(chat_id)
-    categories = lunch.get_categories()
-
-    super_categories = [cat for cat in categories if cat.is_group]
-    subcategories = [cat for cat in categories if cat.group_id is not None]
-    standalone_categories = [
-        cat for cat in categories if not cat.is_group and cat.group_id is None
-    ]
-
-    options = ""
-
-    for super_category in super_categories:
-        options += f"<option disabled>{super_category.name}</option>"
-        for subcategory in subcategories:
-            if subcategory.group_id == super_category.id:
-                options += (
-                    f'<option value="{subcategory.id}">└ {subcategory.name}</option>'
-                )
-
-    for category in standalone_categories:
-        options += f'<option value="{category.id}">{category.name}</option>'
-
-    return web.Response(text=options, content_type="text/html")
-
-
-async def handle_get_accounts(request):
-    chat_id = int(request.match_info.get("chat_id", 0))
-    lunch = get_lunch_client_for_chat_id(chat_id)
-
-    options = "<option value=''>Select account...</option>"
-
-    # Disabled for now
-    # plaid_accounts = lunch.get_plaid_accounts()
-    # if plaid_accounts:
-    #     # Group accounts by type
-    #     accounts_by_type = {}
-    #     for account in plaid_accounts:
-    #         if account.status == "active":
-    #             account_type = account.type.capitalize()
-    #             if account_type not in accounts_by_type:
-    #                 accounts_by_type[account_type] = []
-    #             accounts_by_type[account_type].append(account)
-
-    #     # Add each type and its accounts
-    #     for account_type in sorted(accounts_by_type.keys()):
-    #         options += f"<option disabled>{account_type}</option>"
-    #         for account in accounts_by_type[account_type]:
-    #             options += (
-    #                 f'<option value="{account.id}">└ {account.display_name}</option>'
-    #             )
-
-    assets = lunch.get_assets()
-    only_accounts = [
-        asset
-        for asset in assets
-        if asset.type_name == "credit" or asset.type_name == "cash"
-    ]
-    if only_accounts:
-        options += "<option disabled>Manually-managed accounts</option>"
-        for asset in only_accounts:
-            balance = f"{asset.balance:,.2f} {asset.currency.upper()}"
-            options += f'<option value="{asset.id}">└ {asset.name} ($<pre>{balance}</pre>)</option>'
-
-    return web.Response(text=options, content_type="text/html")
-
-
 async def run_web_server():
     app = web.Application()
     app.router.add_get("/", handle_root)
-    app.router.add_get("/manual_tx/{chat_id}", handle_manual_tx)
+    app.router.add_get("/manual_tx/{chat_id}", handle_manual_tx_endpoint)
     app.router.add_post("/validate", handle_validate)
-    app.router.add_get("/get_categories/{chat_id}", handle_get_categories)
-    app.router.add_get("/get_accounts/{chat_id}", handle_get_accounts)
 
     runner = web.AppRunner(app)
     await runner.setup()

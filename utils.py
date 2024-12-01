@@ -15,7 +15,12 @@ def make_tag(t: str, title=False, tagging=True, no_emojis=False) -> str:
     if tagging:
         result = "".join([char for char in t if char not in emoji.EMOJI_DATA])
         result = (
-            result.title().replace(" ", "").replace(".", "").replace("_", "\\_").strip()
+            result.title()
+            .replace(" ", "")
+            .replace(".", "")
+            .replace("*", "\\*")
+            .replace("_", "\\_")
+            .strip()
         )
 
     # find emojis so we can all put them at the beginning
