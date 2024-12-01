@@ -14,19 +14,6 @@ from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
 from tx_messaging import send_transaction_message
 
-# Conversation states
-(
-    DATE,
-    CATEGORY_GROUP,
-    CATEGORY,
-    PAYEE,
-    AMOUNT,
-    CURRENCY,
-    NOTES,
-    ACCOUNT,
-    CONFIRM,
-) = range(9)
-
 logger = logging.getLogger("manual_tx")
 
 
@@ -107,6 +94,34 @@ async def do_save_transaction(
 
 async def handle_manual_tx(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_chat.id
+    lunch = get_lunch_client_for_chat_id(chat_id)
+
+    # Check for manually managed accounts
+    assets = lunch.get_assets()
+    manual_accounts = [
+        asset
+        for asset in assets
+        if asset.type_name == "credit" or asset.type_name == "cash"
+    ]
+
+    if not manual_accounts:
+        await update.message.reply_text(
+            text=dedent(
+                """
+            You don't have any manually managed accounts.
+
+            Adding manual transactions is only possible for accounts that are not managed by Plaid,
+            and they must be of type 'credit' or 'cash'.
+
+            Need help?
+            [Join our Discord support channel](https://discord.com/channels/842337014556262411/1311765488140816484)
+            """
+            ),
+            parse_mode=ParseMode.MARKDOWN,
+            disable_web_page_preview=True,
+        )
+        return
+
     app_name = os.getenv("FLY_APP_NAME", "lonchera")
     web_app = WebAppInfo(url=f"https://{app_name}.fly.dev/manual_tx/{chat_id}")
     await update.message.reply_text(
