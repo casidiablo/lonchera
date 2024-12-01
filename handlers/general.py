@@ -7,13 +7,13 @@ from telegram import Update
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
 from handlers.categorization import ai_categorize_transaction
-from handlers.settings import (
+from handlers.settings.schedule_rendering import (
     get_schedule_rendering_buttons,
     get_schedule_rendering_text,
-    handle_register_token,
 )
 from telegram.constants import ReactionEmoji
 
+from handlers.settings.session import handle_register_token
 from lunch import get_lunch_client_for_chat_id
 from handlers.expectations import (
     EDIT_NOTES,
