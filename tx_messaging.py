@@ -164,6 +164,7 @@ async def send_transaction_message(
         message += f"*Tags*: {', '.join(tags)}\n"
 
     logger.info(f"Sending message to chat_id {chat_id}: {message}")
+    get_db().increment_metric("sent_transaction_messages")
     if message_id:
         # edit existing message
         try:

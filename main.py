@@ -86,6 +86,7 @@ from handlers.settings.general import (
     handle_settings_menu,
 )
 from web_server import run_web_server, update_bot_status, set_bot_instance
+from handlers.analytics import handle_analytics, handle_status
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s [%(name)s] %(levelname%s: %(message)s"
@@ -113,6 +114,8 @@ def setup_handlers(config):
     app.add_handler(CommandHandler("show_budget", handle_show_budget))
     app.add_handler(CommandHandler("clear_cache", clear_cache))
     app.add_handler(CommandHandler("settings", handle_settings))
+    app.add_handler(CommandHandler("analytics", handle_analytics))
+    app.add_handler(CommandHandler("status", handle_status))
     app.add_handler(
         CallbackQueryHandler(handle_settings_menu, pattern=r"^settingsMenu$")
     )

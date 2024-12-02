@@ -72,7 +72,7 @@ Respond with the ID of the category, and only the ID.
 These are the available categories (using the format `ID:Category Name`):
 
 {get_categories_input_variable(categories)}
-            
+
 Remember to ONLY RESPOND with the ID, and nothing else.
 
 DO NOT EXPLAIN YOURSELF. JUST RESPOND WITH THE ID or null.
@@ -93,9 +93,22 @@ def send_message_to_llm(content):
     }
 
     response = requests.post(url, headers=headers, json=data)
+    get_db().increment_metric("deepinfra_requests")
 
     if response.status_code == 200:
-        return response.json()["choices"][0]["message"]["content"]
+        response_json = response.json()
+        usage = response_json.get("usage", {})
+        get_db().increment_metric(
+            "deepinfra_prompt_tokens", usage.get("prompt_tokens", 0)
+        )
+        get_db().increment_metric(
+            "deepinfra_completion_tokens", usage.get("completion_tokens", 0)
+        )
+        get_db().increment_metric(
+            "deepinfra_estimated_cost", usage.get("estimated_cost", 0.0)
+        )
+
+        return response_json["choices"][0]["message"]["content"]
     else:
         response.raise_for_status()
 

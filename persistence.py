@@ -12,10 +12,12 @@ from sqlalchemy import (
     DateTime,
     update,
     delete,
+    func,
+    and_,
+    Float,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.sql import func
 
 from errors import NoLunchToken
 
@@ -93,6 +95,15 @@ class Settings(Base):
 
     # Indicates whether transactions should be automatically categorized after notes are added
     auto_categorize_after_notes = Column(Boolean, default=False, nullable=False)
+
+
+class Analytics(Base):
+    __tablename__ = "analytics"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    key = Column(String, nullable=False)
+    date = Column(DateTime, default=func.now(), nullable=False)
+    value = Column(Float, default=0.0, nullable=False)
 
 
 class Persistence:
@@ -316,6 +327,110 @@ class Persistence:
             )
             session.execute(stmt)
             session.commit()
+
+    def increment_metric(
+        self, key: str, increment: float = 1.0, date: Optional[datetime] = None
+    ):
+        if date is None:
+            date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        else:
+            date = date.replace(hour=0, minute=0, second=0, microsecond=0)
+
+        with self.Session() as session:
+            metric = session.query(Analytics).filter_by(key=key, date=date).first()
+            if metric:
+                metric.value += increment
+            else:
+                metric = Analytics(key=key, date=date, value=increment)
+                session.add(metric)
+            session.commit()
+
+    def get_metric(self, key: str, start_date: datetime, end_date: datetime) -> float:
+        with self.Session() as session:
+            result = (
+                session.query(func.sum(Analytics.value))
+                .filter(
+                    and_(
+                        Analytics.key == key,
+                        Analytics.date
+                        >= start_date.replace(
+                            hour=0, minute=0, second=0, microsecond=0
+                        ),
+                        Analytics.date
+                        <= end_date.replace(
+                            hour=23, minute=59, second=59, microsecond=999999
+                        ),
+                    )
+                )
+                .scalar()
+            )
+            return result or 0.0
+
+    def get_all_metrics(self, start_date: datetime, end_date: datetime) -> dict:
+        with self.Session() as session:
+            results = (
+                session.query(Analytics.key, Analytics.date, Analytics.value)
+                .filter(
+                    and_(
+                        Analytics.date
+                        >= start_date.replace(
+                            hour=0, minute=0, second=0, microsecond=0
+                        ),
+                        Analytics.date
+                        <= end_date.replace(
+                            hour=23, minute=59, second=59, microsecond=999999
+                        ),
+                    )
+                )
+                .all()
+            )
+            metrics = {}
+            for key, date, value in results:
+                date = date.replace(hour=0, minute=0, second=0, microsecond=0)
+                if date not in metrics:
+                    metrics[date] = {}
+                metrics[date][key] = value
+            return metrics
+
+    def get_specific_metrics(
+        self, key: str, start_date: datetime, end_date: datetime
+    ) -> dict:
+        with self.Session() as session:
+            results = (
+                session.query(Analytics.key, Analytics.date, Analytics.value)
+                .filter(
+                    and_(
+                        Analytics.key == key,
+                        Analytics.date
+                        >= start_date.replace(
+                            hour=0, minute=0, second=0, microsecond=0
+                        ),
+                        Analytics.date
+                        <= end_date.replace(
+                            hour=23, minute=59, second=59, microsecond=999999
+                        ),
+                    )
+                )
+                .all()
+            )
+            metrics = {}
+            for key, date, value in results:
+                date = date.replace(hour=0, minute=0, second=0, microsecond=0)
+                if date not in metrics:
+                    metrics[date] = {}
+                metrics[date][key] = value
+            return metrics
+
+    def get_user_count(self) -> int:
+        with self.Session() as session:
+            return session.query(Settings).count()
+
+    def get_db_size(self) -> int:
+        return os.path.getsize(self.engine.url.database)
+
+    def get_sent_message_count(self) -> int:
+        with self.Session() as session:
+            return session.query(Transaction).count()
 
 
 db = None
