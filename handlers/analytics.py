@@ -7,8 +7,8 @@ from persistence import get_db
 
 
 async def handle_analytics(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    admin_user_id = int(os.getenv("ADMIN_USER_ID"))
-    if update.effective_user.id != admin_user_id:
+    admin_user_id = os.getenv("ADMIN_USER_ID")
+    if not admin_user_id or update.effective_user.id != int(admin_user_id):
         await update.message.reply_text("You are not authorized to use this command.")
         return
 
@@ -59,8 +59,8 @@ async def handle_analytics(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def handle_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    admin_user_id = int(os.getenv("ADMIN_USER_ID"))
-    if update.effective_user.id != admin_user_id:
+    admin_user_id = os.getenv("ADMIN_USER_ID")
+    if not admin_user_id or update.effective_user.id != int(admin_user_id):
         await update.message.reply_text("You are not authorized to use this command.")
         return
 
