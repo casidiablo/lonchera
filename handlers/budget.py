@@ -11,6 +11,7 @@ from budget_messaging import (
     show_bugdget_for_category,
 )
 from lunch import get_lunch_client_for_chat_id
+from persistence import get_db
 
 logger = logging.getLogger("budget_handler")
 
@@ -65,13 +66,14 @@ async def handle_show_budget(update: Update, context: ContextTypes.DEFAULT_TYPE)
         budget_date, budget_end_date = get_default_budget_range()
 
     lunch = get_lunch_client_for_chat_id(update.effective_chat.id)
-    logger.info("Pulling budget...")
+    logger.info(f"Pulling budget for chat id {update.effective_chat.id}...")
 
     budget = lunch.get_budgets(start_date=budget_date, end_date=budget_end_date)
     await send_budget(update, context, budget, budget_date, message_id)
 
     # delete command message
-    await update.message.delete()
+    if update.message:
+        await update.message.delete()
 
 
 async def handle_btn_show_budget_categories(
@@ -129,8 +131,13 @@ async def handle_btn_show_budget_for_category(
         if budget_item.category_id in children_categories_ids:
             sub_budget.append(budget_item)
 
+    settings = get_db().get_current_settings(update.effective_chat.id)
+    tagging = settings.tagging if settings else True
+
     await update.callback_query.answer()
-    await show_bugdget_for_category(update, all_budget, sub_budget, budget_date)
+    await show_bugdget_for_category(
+        update, all_budget, sub_budget, budget_date, tagging
+    )
 
 
 async def handle_done_budget(update: Update, context: ContextTypes.DEFAULT_TYPE):

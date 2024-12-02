@@ -93,18 +93,16 @@ def send_message_to_llm(content):
     }
 
     response = requests.post(url, headers=headers, json=data)
-    get_db().increment_metric("deepinfra_requests")
+    get_db().inc_metric("deepinfra_requests")
 
     if response.status_code == 200:
         response_json = response.json()
         usage = response_json.get("usage", {})
-        get_db().increment_metric(
-            "deepinfra_prompt_tokens", usage.get("prompt_tokens", 0)
-        )
-        get_db().increment_metric(
+        get_db().inc_metric("deepinfra_prompt_tokens", usage.get("prompt_tokens", 0))
+        get_db().inc_metric(
             "deepinfra_completion_tokens", usage.get("completion_tokens", 0)
         )
-        get_db().increment_metric(
+        get_db().inc_metric(
             "deepinfra_estimated_cost", usage.get("estimated_cost", 0.0)
         )
 

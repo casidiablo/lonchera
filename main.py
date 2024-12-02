@@ -377,7 +377,6 @@ if __name__ == "__main__":
     asyncio.run(main())
 
 # TODO
-# - Add some settings to disable part of the add manual transaction flow
 # - Have the bot pin a message containing important info:
 #  - Current networth
 #  - current debt

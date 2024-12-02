@@ -63,7 +63,7 @@ async def handle_start(update: Update, _: ContextTypes.DEFAULT_TYPE):
 
 async def handle_errors(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Log Errors caused by Updates."""
-    get_db().record_metric("errors_handled")
+    get_db().inc_metric("errors_handled")
     if update is None:
         logger.error("Update is None", exc_info=context.error)
         return

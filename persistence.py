@@ -328,7 +328,7 @@ class Persistence:
             session.execute(stmt)
             session.commit()
 
-    def increment_metric(
+    def inc_metric(
         self, key: str, increment: float = 1.0, date: Optional[datetime] = None
     ):
         if date is None:

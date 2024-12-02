@@ -75,22 +75,34 @@ def build_budget_message(
     budget: List[BudgetObject], budget_date: datetime, tagging: bool = True
 ):
     msg = ""
-    total_budget = 0
+    total_expenses_budget = 0
+    total_income_budget = 0
+    total_income = 0
     total_spent = 0
+    net_spent = 0
     for budget_item in budget:
         if (
             budget_item.category_group_name is None
             and budget_item.category_id is not None
         ):
             _, budget_data = next(iter(budget_item.data.items()))
-            spent_already = budget_data.spending_to_base
+            spending_to_base = budget_data.spending_to_base
             budgeted = budget_data.budget_to_base
             if budgeted is None or budgeted == 0:
                 print(f"No budget data for: {budget_item}")
                 continue
-            total_budget += budgeted
-            total_spent += spent_already
-            pct = spent_already * 100 / budgeted
+            total_spent += spending_to_base
+            if budget_item.is_income:
+                spending_to_base = -spending_to_base
+                print(
+                    f"income before {total_income_budget} + {budgeted} = {total_income_budget + budgeted}"
+                )
+                total_income_budget += budgeted
+                total_income += spending_to_base
+            else:
+                total_expenses_budget += budgeted
+                net_spent += spending_to_base
+            pct = spending_to_base * 100 / budgeted
 
             # number of blocks to draw (max 10)
             blocks = int(pct / 10)
@@ -101,17 +113,38 @@ def build_budget_message(
                 bar = "█" * 10
                 extra = "▓" * (blocks - 10)
 
-            # split the category group into two: the first emoji and the rest of the string
-            emoji, cat_name = budget_item.category_name.split(" ", 1)
-            cat_name = make_tag(cat_name, tagging=tagging)
+            cat_name = make_tag(budget_item.category_name, tagging=tagging)
 
-            msg += f"{emoji} `[{bar}]{extra}`\n"
-            msg += f"{cat_name} - `{spent_already:.1f}` of `{budgeted:.1f}`"
-            msg += f" {budget_data.budget_currency} (`{pct:.1f}%`)\n\n"
+            msg += f"`[{bar}]{extra}`\n"
+            msg += f"{cat_name}: `{spending_to_base:,.1f}` of `{budgeted:,.1f}`"
+            msg += f" {budget_data.budget_currency.upper()} (`{pct:,.1f}%`)"
+            if budget_item.is_income:
+                msg += "\n_This is income_"
+            msg += "\n\n"
 
-    msg = f"*Budget for {budget_date.strftime('%B %Y')}*\n\n{msg}"
-    msg += f"\n\nTotal spent: `{total_spent:.1f}` of `{total_budget:.1f}`"
-    msg += f" {budget_data.budget_currency} (`{total_spent*100/total_budget:.1f}%`)"
+    header = f"*Budget for {budget_date.strftime('%B %Y')}*\n\n"
+    header += "_This shows the summary for each category group for which there is a budget set._ "
+    header += "_To see the budget for a subcategory hit the_ `Details` _button._"
+
+    msg = f"{header}\n\n{msg}"
+    msg += f"\n*Total spent*: `{net_spent:,.1f}` of `{total_expenses_budget:,.1f}`"
+    currency = (
+        budget_data.budget_currency.upper() if budget_data.budget_currency else ""
+    )
+    msg += f" {currency} budgeted"
+
+    data_from_this_month = budget_date.month == datetime.now().month
+
+    if total_spent > 0 and not data_from_this_month:
+        msg += f"\n*You saved*: `{-net_spent:,.1f}` of `{total_expenses_budget:,.1f}` budgeted"
+        msg += f" (`{-total_spent*100/total_expenses_budget:,.1f}%`)"
+
+    if total_income > 0:
+        msg += (
+            f"\n*Total income*: `{total_income:,.1f}` of `{total_income_budget:,.1f}` "
+        )
+        msg += f" {budget_data.budget_currency.upper()} proyected"
+
     return msg
 
 
@@ -184,10 +217,13 @@ async def show_bugdget_for_category(
     all_budget: List[BudgetObject],
     category_budget: List[BudgetObject],
     budget_date: datetime,
+    tagging: bool = True,
 ) -> None:
     msg = ""
     total_budget = 0
     total_spent = 0
+    total_income = 0
+    total_income_budget = 0
 
     category_group_name = ""
 
@@ -203,8 +239,14 @@ async def show_bugdget_for_category(
 
         category_group_name = budget_item.category_group_name
 
-        total_budget += budgeted
-        total_spent += spent_already
+        if budget_item.is_income:
+            spent_already = -spent_already
+            total_income += spent_already
+            total_income_budget += budgeted
+        else:
+            total_budget += budgeted
+            total_spent += spent_already
+
         pct = spent_already * 100 / budgeted
 
         # number of blocks to draw (max 10)
@@ -217,10 +259,8 @@ async def show_bugdget_for_category(
             extra = "▓" * (blocks - 10)
 
         msg += f"`[{bar}]{extra}`\n"
-        msg += (
-            f"*{budget_item.category_name}* - `{spent_already:.1f}` of `{budgeted:.1f}`"
-        )
-        msg += f" {budget_data.budget_currency} (`{pct:.1f}%`)\n"
+        msg += f"{make_tag(budget_item.category_name, title=True, tagging=tagging)}: `{spent_already:,.1f}` of `{budgeted:,.1f}`"
+        msg += f" {budget_data.budget_currency} (`{pct:,.1f}%`)\n"
 
         # show transactions list
         if budget_data.num_transactions > 0:
@@ -231,10 +271,13 @@ async def show_bugdget_for_category(
         else:
             msg += "\n"
 
-    if total_budget > 0:
+    if total_budget > 0 or total_income_budget > 0:
         msg = f"*{category_group_name} budget for {budget_date.strftime('%B %Y')}*\n\n{msg}"
-        msg += f"Total spent: `{total_spent:.1f}` of `{total_budget:.1f}`"
-        msg += f" {budget_data.budget_currency} (`{total_spent*100/total_budget:.1f}%`)"
+        if total_budget > 0:
+            msg += f"*Total spent*: `{total_spent:,.1f}` of `{total_budget:,.1f}`"
+            msg += f" {budget_data.budget_currency} budgeted (`{total_spent*100/total_budget:,.1f}%`)\n"
+        if total_income_budget > 0:
+            msg += f"*Total income*: `{total_income:,.1f}` of `{total_income_budget:,.1f}` proyected"
     else:
         msg = "This category seems to have a global budget, not a per subcategory one"
 

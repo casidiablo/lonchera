@@ -44,7 +44,7 @@ async def check_posted_transactions_and_telegram_them(
         end_date=now,
     )
 
-    logger.info(f"Found {len(transactions)} unreviewed transactions")
+    logger.info(f"Found {len(transactions)} unreviewed transactions for chat {chat_id}")
 
     settings = get_db().get_current_settings(chat_id)
     for transaction in transactions:
@@ -55,9 +55,9 @@ async def check_posted_transactions_and_telegram_them(
             transaction.status = "cleared"
 
         if get_db().was_already_sent(transaction.id):
-            # TODO: for debugging purposes, sometimes it would be useful
-            # to at least send a message with a reply to the message already sent
-            # and potentially udpate its state
+            logger.debug(
+                f"Skipping already sent transaction {transaction.id} in chat {chat_id}"
+            )
             continue
 
         # check if the current transaction is related to a previously sent one
