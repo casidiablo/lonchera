@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 
 from telegram import InlineKeyboardMarkup, Update
@@ -267,7 +267,16 @@ async def show_bugdget_for_category(
             plural = ""
             if budget_data.num_transactions > 1:
                 plural = "s"
-            msg += f"    _{budget_data.num_transactions} transaction{plural}_\n\n"
+            start_date = budget_date.replace(day=1).strftime("%Y-%m-%d")
+            end_date = (budget_date.replace(day=1) + timedelta(days=32)).replace(
+                day=1
+            ) - timedelta(days=1)
+            end_date = end_date.strftime("%Y-%m-%d")
+            link = "https://my.lunchmoney.app/transactions"
+            link += f"?category={budget_item.category_id}&start_date={start_date}&end_date={end_date}&match=all&time=custom"
+            msg += (
+                f"    [{budget_data.num_transactions} transaction{plural}]({link})\n\n"
+            )
         else:
             msg += "\n"
 
@@ -277,7 +286,10 @@ async def show_bugdget_for_category(
             msg += f"*Total spent*: `{total_spent:,.1f}` of `{total_budget:,.1f}`"
             msg += f" {budget_data.budget_currency} budgeted (`{total_spent*100/total_budget:,.1f}%`)\n"
         if total_income_budget > 0:
-            msg += f"*Total income*: `{total_income:,.1f}` of `{total_income_budget:,.1f}` proyected"
+            msg += (
+                f"*Total income*: `{total_income:,.1f}` of `{total_income_budget:,.1f}`"
+            )
+            msg += f"{budget_data.budget_currency} proyected"
     else:
         msg = "This category seems to have a global budget, not a per subcategory one"
 
@@ -293,4 +305,5 @@ async def show_bugdget_for_category(
         text=msg,
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=get_budget_category_buttons(categories, budget_date),
+        disable_web_page_preview=True,
     )
