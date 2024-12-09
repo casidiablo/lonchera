@@ -452,7 +452,7 @@ async def poll_transactions_on_schedule(context: ContextTypes.DEFAULT_TYPE):
             logger.error(f"No settings found for chat {chat_id}!")
             continue
 
-        if settings.api_token is None:
+        if settings.token is None:
             logger.info(
                 f"Skipping chat {chat_id} because there is no API token or it was revoked."
             )
@@ -489,7 +489,7 @@ async def poll_transactions_on_schedule(context: ContextTypes.DEFAULT_TYPE):
                     if "Access token does not exist" in str(e):
                         get_db().set_api_token(chat_id, None)
                         logger.error(
-                            "User has revoked access to the app. Setting API token to None."
+                            f"User in chat {chat_id} has revoked access to the app. Setting API token to None."
                         )
             get_db().update_last_poll_at(chat_id, datetime.now().isoformat())
 
