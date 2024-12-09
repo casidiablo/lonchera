@@ -19,8 +19,8 @@ async def handle_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     db = get_db()
     today = datetime.now()
-    start_of_week = today - timedelta(days=today.weekday())
-    end_of_week = start_of_week + timedelta(days=6)
+    start_of_week = today - timedelta(days=6)
+    end_of_week = today
 
     metric_name = context.args[0] if context.args else None
     if metric_name:
@@ -28,7 +28,7 @@ async def handle_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         metrics = db.get_all_metrics(start_of_week, end_of_week)
 
-    message = "Analytics for the current week:\n\n"
+    message = "Analytics for the last 7 days:\n\n"
     has_data = False
     all_metrics = {}
 
