@@ -47,7 +47,9 @@ async def handle_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         total_sum = sum(float(value) for value in values.values())
         if int(total_sum) == total_sum:
             total_sum = int(total_sum)
-        message += f"`{metric_name}` (Total: {total_sum:.4f})\n"
+            message += f"`{metric_name}` (Total: {total_sum})\n"
+        else:
+            message += f"`{metric_name}` (Total: {total_sum:.4f})\n"
         for date, value in values.items():
             if int(value) == value:
                 value = int(value)

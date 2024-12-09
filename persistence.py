@@ -328,6 +328,14 @@ class Persistence:
             session.execute(stmt)
             session.commit()
 
+    def set_api_token(self, chat_id: int, token: Optional[str]) -> None:
+        with self.Session() as session:
+            stmt = (
+                update(Settings).where(Settings.chat_id == chat_id).values(token=token)
+            )
+            session.execute(stmt)
+            session.commit()
+
     def inc_metric(
         self, key: str, increment: float = 1.0, date: Optional[datetime] = None
     ):

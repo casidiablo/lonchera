@@ -452,6 +452,12 @@ async def poll_transactions_on_schedule(context: ContextTypes.DEFAULT_TYPE):
             logger.error(f"No settings found for chat {chat_id}!")
             continue
 
+        if settings.api_token is None:
+            logger.info(
+                f"Skipping chat {chat_id} because there is no API token or it was revoked."
+            )
+            continue
+
         # this is the last time we polled, saved as a string using:
         # datetime.now().isoformat()
         last_poll_at = settings.last_poll_at
@@ -471,9 +477,20 @@ async def poll_transactions_on_schedule(context: ContextTypes.DEFAULT_TYPE):
                     context, chat_id=chat_id
                 )
             else:
-                await check_posted_transactions_and_telegram_them(
-                    context, chat_id=chat_id
-                )
+                try:
+                    await check_posted_transactions_and_telegram_them(
+                        context, chat_id=chat_id
+                    )
+                except Exception as e:
+                    # check if the error message is lunchable.exceptions.LunchMoneyHTTPError
+                    # and the message is: Access token does not exist, which means the user
+                    # has revoked the access to the app.
+                    # If that is the case, we should set the API token to None.
+                    if "Access token does not exist" in str(e):
+                        get_db().set_api_token(chat_id, None)
+                        logger.error(
+                            "User has revoked access to the app. Setting API token to None."
+                        )
             get_db().update_last_poll_at(chat_id, datetime.now().isoformat())
 
 
