@@ -39,7 +39,7 @@ docker run -d \
     -v "${DATA_DIR}:/data" \
     -e DB_PATH=/data/lonchera.db \
     -e TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN}" \
-    -e DEEPINFRA_API_KEY="${DEEPINFRA_API_KEY}" \
+    ${DEEPINFRA_API_KEY:+-e DEEPINFRA_API_KEY="${DEEPINFRA_API_KEY}"} \
     --name "${IMAGE_NAME}" \
     "${FULL_IMAGE_NAME}"
 

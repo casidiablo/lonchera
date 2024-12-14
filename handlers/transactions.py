@@ -443,7 +443,7 @@ async def poll_transactions_on_schedule(context: ContextTypes.DEFAULT_TYPE):
     """
     chat_ids = get_db().get_all_registered_chats()
     if len(chat_ids) is None:
-        logger.info("No chats registered yet")
+        logger.warning("No chats registered yet")
 
     for chat_id in chat_ids:
         settings = get_db().get_current_settings(chat_id)
