@@ -110,6 +110,7 @@ def get_amazon_transactions_summary(file_path: str):
     """Just return a summary of the transactions in the CSV file."""
     logger.info("Getting summary of transactions in %s", file_path)
     summary = defaultdict(int)
+    summary["total_transactions"] = 0
     date_ranges = {"start_date": None, "end_date": None}
     with open(file_path, mode="r", newline="") as csvfile:
         reader = csv.DictReader(csvfile)
@@ -132,14 +133,19 @@ def process_amazon_transactions(
     dry_run: bool,
     allow_days: int,
     auto_categorize: True,
+    lunch_money_token: str = None,
 ) -> dict:
+    logger.info(
+        f"Processing Amazon transactions in {file_path} with {days_back} days back and {allow_days} days threshold"
+    )
     load_dotenv()
-    token = os.getenv("LUNCH_MONEY_TOKEN")
-    if not token:
-        logger.error("LUNCH_MONEY_TOKEN environment variable not set")
-        sys.exit(1)
+    if not lunch_money_token:
+        lunch_money_token = os.getenv("LUNCH_MONEY_TOKEN")
+        if not lunch_money_token:
+            logger.error("LUNCH_MONEY_TOKEN environment variable not set")
+            sys.exit(1)
 
-    lunch = get_lunch_client(token)
+    lunch = get_lunch_client(lunch_money_token)
     categories = lunch.get_categories()
     today = datetime.now()
     today = today.replace(hour=0, minute=0, second=0, microsecond=0)

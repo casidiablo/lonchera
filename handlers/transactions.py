@@ -453,7 +453,7 @@ async def poll_transactions_on_schedule(context: ContextTypes.DEFAULT_TYPE):
             continue
 
         if settings.token == "revoked":
-            logger.info(f"Skipping chat {chat_id} because API token was revoked.")
+            logger.debug(f"Skipping chat {chat_id} because API token was revoked.")
             continue
 
         # this is the last time we polled, saved as a string using:

@@ -9,6 +9,7 @@ from telegram.constants import ParseMode
 
 from amazon import get_amazon_transactions_summary, process_amazon_transactions
 from handlers.expectations import AMAZON_EXPORT, clear_expectation, set_expectation
+from lunch import get_lunch_money_token_for_chat_id
 from utils import Keyboard
 from persistence import get_db
 
@@ -162,6 +163,10 @@ async def handle_amazon_export(update: Update, context: ContextTypes.DEFAULT_TYP
         os.makedirs(extract_to, exist_ok=True)
         with zipfile.ZipFile(download_path, "r") as zip_ref:
             zip_ref.extractall(extract_to)
+            # remove the zip file
+            if os.path.exists(download_path):
+                os.remove(download_path)
+
         # find the csv file
         csv_file_path = None
         for root, dirs, files in os.walk(extract_to):
@@ -195,10 +200,6 @@ async def handle_amazon_export(update: Update, context: ContextTypes.DEFAULT_TYP
             )
     except Exception as e:
         await update.message.reply_text(f"Error processing the file: {e}")
-        return
-    finally:
-        if os.path.exists(download_path):
-            os.remove(download_path)
 
 
 async def handle_update_amz_settings(
@@ -242,12 +243,16 @@ async def handle_preview_process_amazon_transactions(
         await query.edit_message_text(
             "⏳ Processing transactions. This might take a while. Be patient."
         )
+
+        lunch_money_token = get_lunch_money_token_for_chat_id(update.effective_chat.id)
+
         result = process_amazon_transactions(
             file_path=export_file,
             days_back=60,
             dry_run=True,
             allow_days=5,
             auto_categorize=ai_categorization_enabled,
+            lunch_money_token=lunch_money_token,
         )
 
         processed_transactions = result["processed_transactions"]
@@ -344,12 +349,16 @@ async def handle_process_amazon_transactions(
         msg = await query.edit_message_text(
             "⏳ Processing transactions. This might take a while. Be patient."
         )
+
+        lunch_money_token = get_lunch_money_token_for_chat_id(update.effective_chat.id)
+
         result = process_amazon_transactions(
             file_path=export_file,
             days_back=60,
             dry_run=False,
             allow_days=5,
             auto_categorize=ai_categorization_enabled,
+            lunch_money_token=lunch_money_token,
         )
 
         processed_transactions = result["processed_transactions"]

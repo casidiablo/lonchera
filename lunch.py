@@ -22,3 +22,10 @@ def get_lunch_client_for_chat_id(chat_id: int) -> LunchMoney:
 
     lunch_clients_cache[chat_id] = get_lunch_client(token)
     return lunch_clients_cache[chat_id]
+
+
+def get_lunch_money_token_for_chat_id(chat_id: int) -> str:
+    token = get_db().get_token(chat_id)
+    if token is None:
+        raise NoLunchToken("No token registered for this chat")
+    return token

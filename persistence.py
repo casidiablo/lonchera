@@ -431,7 +431,7 @@ class Persistence:
 
     def get_user_count(self) -> int:
         with self.Session() as session:
-            return session.query(Settings).count()
+            return session.query(Settings).filter(Settings.token != "revoked").count()
 
     def get_db_size(self) -> int:
         return os.path.getsize(self.engine.url.database)
