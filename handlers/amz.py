@@ -22,19 +22,21 @@ async def handle_amazon_sync(update: Update, context: ContextTypes.DEFAULT_TYPE)
             and set notes and categories for the transactions that match.
 
             To start, please upload the Amazon transaction history file, which you can get
-            your Amazon transaction history by following these steps:
+            by following these steps:
 
-            1. Go to the Amazon website and log in.
-            2. Click on the "Account & Lists" dropdown menu.
-            3. Scroll down to the "Manage your data" section and click on "Request your data".
-            4. Go to your email inbox and confirm.
-            5. Wait an hour or so for them to email you a link to download your data.
-            6. Download the zip file and upload it here.
+            1. Go to the [Amazon](https://www.amazon.com/) website and log in.
+            2. Click on the ["Account & Lists"](https://www.amazon.com/gp/css/homepage.html) dropdown menu.
+            3. Scroll down to the "Manage your data" section and click on
+            ["Request your data"](https://www.amazon.com/hz/privacy-central/data-requests/preview.html).
+            5. Select "Your Orders" and click "Submit Request".
+            6. Go to your email inbox and confirm.
+            7. Wait an hour or so for them to email you a link to download your data.
+            8. Download the zip file and upload it here.
 
             You can upload the whole zip file or just the CSV with the purchase history, which is found in the
             `Retail.OrderHistory.1/` folder.
 
-            _*Note*: this is a very experimental feature and may not work as expected.
+            *Note*: _this is a very experimental feature and may not work as expected.
             It is also a little brittle because the data provided by Amazon does not include gift card
             transactions data, or information when you pay part with your credit card and part with a balance._
 
@@ -46,6 +48,7 @@ async def handle_amazon_sync(update: Update, context: ContextTypes.DEFAULT_TYPE)
         ),
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=Keyboard.build_from(("Nevermind", "cancel")),
+        disable_web_page_preview=True,
     )
 
     set_expectation(
@@ -97,7 +100,7 @@ async def pre_processing_amazon_transactions(
         f"""
         I got the Amazon export. It contains {summary['total_transactions']} transactions from {summary['start_date']} to {summary['end_date']}.
 
-        Since this is a time-intensive process, I will only process transactions from the last 30 days.
+        Since this is a time-intensive process, I will only process transactions from the last 60 days.
 
         I can also do a dry run to show you what transactions will be updated, without actually updating them.
 
@@ -206,10 +209,7 @@ async def handle_update_amz_settings(
     export_file = context.user_data.get("amazon_export_file")
     msg_id = query.message.message_id
 
-    if ai_categorization_enabled:
-        context.user_data["ai_categorization_enabled"] = True
-    else:
-        context.user_data["ai_categorization_enabled"] = False
+    context.user_data["ai_categorization_enabled"] = ai_categorization_enabled
 
     if export_file is None:
         await query.edit_message_text(
@@ -244,7 +244,7 @@ async def handle_preview_process_amazon_transactions(
         )
         result = process_amazon_transactions(
             file_path=export_file,
-            days_back=30,
+            days_back=60,
             dry_run=True,
             allow_days=5,
             auto_categorize=ai_categorization_enabled,
@@ -346,7 +346,7 @@ async def handle_process_amazon_transactions(
         )
         result = process_amazon_transactions(
             file_path=export_file,
-            days_back=30,
+            days_back=60,
             dry_run=False,
             allow_days=5,
             auto_categorize=ai_categorization_enabled,

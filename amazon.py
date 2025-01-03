@@ -108,6 +108,7 @@ def parse_csv_and_filter(
 
 def get_amazon_transactions_summary(file_path: str):
     """Just return a summary of the transactions in the CSV file."""
+    logger.info("Getting summary of transactions in %s", file_path)
     summary = defaultdict(int)
     date_ranges = {"start_date": None, "end_date": None}
     with open(file_path, mode="r", newline="") as csvfile:
