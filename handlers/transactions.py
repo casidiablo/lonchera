@@ -494,6 +494,7 @@ async def poll_transactions_on_schedule(context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_expand_tx_options(update: Update, _: ContextTypes.DEFAULT_TYPE):
     transaction_id = int(update.callback_query.data.split("_")[1])
+    logger.info("Expanding transaction options for tx %s", transaction_id)
     await update.callback_query.answer()
     await update.callback_query.edit_message_reply_markup(
         reply_markup=get_tx_buttons(transaction_id, collapsed=False)
