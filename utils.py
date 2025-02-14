@@ -11,9 +11,8 @@ def is_emoji(char):
 
 
 def make_tag(t: str, title=False, tagging=True, no_emojis=False) -> str:
-    result = ""
+    result = result = "".join([char for char in t if char not in emoji.EMOJI_DATA])
     if tagging:
-        result = "".join([char for char in t if char not in emoji.EMOJI_DATA])
         result = (
             result.title()
             .replace(" ", "")
