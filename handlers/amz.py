@@ -158,6 +158,7 @@ async def handle_amazon_export(update: Update, context: ContextTypes.DEFAULT_TYP
     download_path = (
         f"{downloads_path}/{current_time_path}_{update.effective_chat.id}_{file_name}"
     )
+    logger.info(f"Downloading file to {download_path}")
     await file.download_to_drive(custom_path=download_path)
 
     # if zip, extract and find the csv file inside the Retail.OrderHistory.1/ folder
@@ -166,6 +167,7 @@ async def handle_amazon_export(update: Update, context: ContextTypes.DEFAULT_TYP
         # extract the zip file
         extract_to = f"{downloads_path}/{update.effective_chat.id}_{current_time_path}"
         os.makedirs(extract_to, exist_ok=True)
+        logger.info(f"Extracting zip file to {extract_to}")
         with zipfile.ZipFile(download_path, "r") as zip_ref:
             zip_ref.extractall(extract_to)
             # remove the zip file
