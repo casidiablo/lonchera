@@ -12,9 +12,14 @@ from handlers.expectations import AMAZON_EXPORT, clear_expectation, set_expectat
 from lunch import get_lunch_money_token_for_chat_id
 from utils import Keyboard
 from persistence import get_db
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("amz")
 
 
 async def handle_amazon_sync(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.info("Handling /amazon_sync command")
     msg = await update.message.reply_text(
         text=dedent(
             """

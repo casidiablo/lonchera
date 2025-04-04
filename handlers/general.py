@@ -280,7 +280,14 @@ async def handle_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_file_upload(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Generic handler for file uploads"""
     expectation = get_expectation(update.effective_chat.id)
+    logger.info(f"Expectation for chat {update.effective_chat.id}: {expectation}")
     if expectation and expectation["expectation"] == AMAZON_EXPORT:
+        # React to the file attachment
+        await context.bot.set_message_reaction(
+            chat_id=update.effective_chat.id,
+            message_id=update.message.message_id,
+            reaction=ReactionEmoji.CLAPPING_HANDS,
+        )
         await handle_amazon_export(update, context)
     else:
         await context.bot.send_message(
