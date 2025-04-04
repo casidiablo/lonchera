@@ -124,6 +124,12 @@ def get_amazon_transactions_summary(file_path: str):
             date_ranges["end_date"] = max(dates).strftime("%Y-%m-%d")
 
     summary.update(date_ranges)
+    logger.info(
+        "Found %d transactions from %s to %s",
+        summary["total_transactions"],
+        summary["start_date"],
+        summary["end_date"],
+    )
     return summary
 
 
