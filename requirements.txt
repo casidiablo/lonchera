@@ -22,7 +22,7 @@ h11==0.14.0
 httpcore==1.0.5
 httpx==0.27.0
 identify==2.5.36
-idna==3.7
+idna==3.10
 importlib_metadata==7.2.1
 libcst==1.4.0
 lunchable==1.4.2
