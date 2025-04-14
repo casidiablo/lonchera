@@ -15,7 +15,7 @@ click-plugins==1.1.1
 distlib==0.3.8
 emoji==2.14.1
 exceptiongroup==1.2.2
-filelock==3.15.4
+filelock==3.18.0
 frozenlist==1.5.0
 greenlet==3.0.3
 h11==0.14.0
