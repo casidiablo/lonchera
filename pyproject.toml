@@ -1,0 +1,16 @@
+[project]
+name = "lonchera"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "aiohttp>=3.11.16",
+    "dotenv>=0.9.9",
+    "emoji>=2.14.1",
+    "lunchable>=1.4.2",
+    "python-telegram-bot[job-queue]>=22.0",
+    "pytz>=2025.2",
+    "requests>=2.32.3",
+    "sqlalchemy>=2.0.40",
+]
