@@ -84,4 +84,4 @@ This project is licensed under the [MIT License](LICENSE.md).
 
 ---
 
-🍱 Happy expense tracking! 🎉
+🍱 Happy expense tracking! 🎉foo
