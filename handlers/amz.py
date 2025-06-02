@@ -93,7 +93,7 @@ async def pre_processing_amazon_transactions(
 ):
     export_file = context.user_data.get("amazon_export_file")
     ai_categorization_enabled = context.user_data.get(
-        "ai_categorization_enabled", False
+        "ai_categorization_enabled", True
     )
 
     summary = get_amazon_transactions_summary(export_file)
@@ -196,7 +196,7 @@ async def handle_amazon_export(update: Update, context: ContextTypes.DEFAULT_TYP
     # get summary of the csv file
     try:
         context.user_data["amazon_export_file"] = download_path
-        context.user_data["ai_categorization_enabled"] = False
+        context.user_data["ai_categorization_enabled"] = True
         await pre_processing_amazon_transactions(update, context)
 
         # clear expectation and delete that initial message
