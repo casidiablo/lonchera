@@ -12,6 +12,9 @@ from utils import remove_emojis
 
 logger = logging.getLogger(__name__)
 
+# Constants
+HTTP_OK = 200
+
 
 def get_transaction_input_variable(transaction: TransactionObject, override_notes: str | None = None) -> str:
     tx_input_variable = dedent(
@@ -92,7 +95,7 @@ def send_message_to_llm(content):
     response = requests.post(url, headers=headers, json=data)
     get_db().inc_metric("deepinfra_requests")
 
-    if response.status_code == 200:
+    if response.status_code == HTTP_OK:
         response_json = response.json()
         usage = response_json.get("usage", {})
         get_db().inc_metric("deepinfra_prompt_tokens", usage.get("prompt_tokens", 0))

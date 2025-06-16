@@ -9,6 +9,9 @@ from telegram import InlineKeyboardMarkup, Update
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
+# Constants
+MAX_PREVIEW_UPDATES = 3
+
 from amazon import get_amazon_transactions_summary, process_amazon_transactions
 from handlers.expectations import AMAZON_EXPORT, clear_expectation, set_expectation
 from lunch import get_lunch_money_token_for_chat_id
@@ -230,9 +233,9 @@ async def handle_preview_process_amazon_transactions(update: Update, context: Co
         will_update_transactions = result["will_update_transactions"]
 
         update_details = ""
-        updates = result["updates"][:3]
+        updates = result["updates"][:MAX_PREVIEW_UPDATES]
         if updates:
-            first_n = 3 if len(updates) >= 3 else len(updates)
+            first_n = MAX_PREVIEW_UPDATES if len(updates) >= MAX_PREVIEW_UPDATES else len(updates)
             update_details = f"Here are the first {first_n} transactions that will be updated:\n\n"
             update_details += "\n".join(
                 [

@@ -11,10 +11,14 @@ from persistence import get_db
 
 logger = logging.getLogger("budget_handler")
 
+# Constants
+DECEMBER_MONTH = 12
+
+
 
 def end_of_month_for(d: datetime) -> datetime:
     # Determine the first day of the next month
-    if d.month == 12:  # December
+    if d.month == DECEMBER_MONTH:  # December
         d = datetime(d.year + 1, 1, 1)
     else:
         d = datetime(d.year, d.month + 1, 1)

@@ -96,12 +96,12 @@ def build_budget_message(budget: list[BudgetObject], budget_date: datetime, tagg
 
             # number of blocks to draw (max 10)
             blocks = int(pct / 10)
-            empty = 10 - blocks
+            empty = MAX_PROGRESS_BAR_BLOCKS - blocks
             bar = "█" * blocks + "░" * empty
             extra = ""
-            if blocks > 10:
-                bar = "█" * 10
-                extra = "▓" * (blocks - 10)
+            if blocks > MAX_PROGRESS_BAR_BLOCKS:
+                bar = "█" * MAX_PROGRESS_BAR_BLOCKS
+                extra = "▓" * (blocks - MAX_PROGRESS_BAR_BLOCKS)
 
             cat_name = make_tag(budget_item.category_name, tagging=tagging)
 
@@ -228,12 +228,12 @@ async def show_bugdget_for_category(
 
         # number of blocks to draw (max 10)
         blocks = int(pct / 10)
-        empty = 10 - blocks
+        empty = MAX_PROGRESS_BAR_BLOCKS - blocks
         bar = "█" * blocks + "░" * empty
         extra = ""
-        if blocks > 10:
-            bar = "█" * 10
-            extra = "▓" * (blocks - 10)
+        if blocks > MAX_PROGRESS_BAR_BLOCKS:
+            bar = "█" * MAX_PROGRESS_BAR_BLOCKS
+            extra = "▓" * (blocks - MAX_PROGRESS_BAR_BLOCKS)
 
         msg += f"`[{bar}]{extra}`\n"
         msg += f"{make_tag(budget_item.category_name, title=True, tagging=tagging)}: `{spent_already:,.1f}` of `{budgeted:,.1f}`"
