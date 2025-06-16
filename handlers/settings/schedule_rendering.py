@@ -10,6 +10,12 @@ from handlers.expectations import EXPECTING_TIME_ZONE, set_expectation
 from persistence import Settings, get_db
 from utils import Keyboard
 
+# Time constants in seconds
+SECONDS_PER_MINUTE = 60
+SECONDS_PER_HOUR = 3600
+SECONDS_PER_DAY = 86400
+
+
 
 def get_schedule_rendering_text(chat_id: int) -> str | None:
     settings = get_db().get_current_settings(chat_id)
@@ -21,17 +27,17 @@ def get_schedule_rendering_text(chat_id: int) -> str | None:
     if poll_interval is None or poll_interval == 0:
         poll_interval = "Disabled"
     else:
-        if poll_interval < 3600:
-            poll_interval = f"`{poll_interval // 60} minutes`"
-        elif poll_interval < 86400:
-            if poll_interval // 3600 == 1:
+        if poll_interval < SECONDS_PER_HOUR:
+            poll_interval = f"`{poll_interval // SECONDS_PER_MINUTE} minutes`"
+        elif poll_interval < SECONDS_PER_DAY:
+            if poll_interval // SECONDS_PER_HOUR == 1:
                 poll_interval = "`1 hour`"
             else:
-                poll_interval = f"`{poll_interval // 3600} hours`"
-        elif poll_interval // 86400 == 1:
+                poll_interval = f"`{poll_interval // SECONDS_PER_HOUR} hours`"
+        elif poll_interval // SECONDS_PER_DAY == 1:
             poll_interval = "`1 day`"
         else:
-            poll_interval = f"`{poll_interval // 86400} days`"
+            poll_interval = f"`{poll_interval // SECONDS_PER_DAY} days`"
 
         last_poll = settings.last_poll_at
         if last_poll:
