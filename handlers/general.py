@@ -92,121 +92,13 @@ async def handle_generic_message(update: Update, context: ContextTypes.DEFAULT_T
         return True
     # if waiting for a time zone, persist it
     elif expectation and expectation["expectation"] == EXPECTING_TIME_ZONE:
-        await context.bot.delete_message(chat_id=update.message.chat_id, message_id=update.message.message_id)
-
-        # validate the time zone
-        if update.message.text not in pytz.all_timezones:
-            await context.bot.send_message(
-                chat_id=update.effective_chat.id,
-                text=f"`{update.message.text}` is an invalid timezone. Please try again.",
-                parse_mode=ParseMode.MARKDOWN,
-            )
-            return True
-
-        clear_expectation(update.effective_chat.id)
-
-        # save the time zone
-        get_db().update_timezone(update.effective_chat.id, update.message.text)
-
-        settings = get_db().get_current_settings(update.effective_chat.id)
-        await context.bot.edit_message_text(
-            message_id=expectation["msg_id"],
-            text=get_schedule_rendering_text(update.effective_chat.id),
-            chat_id=update.effective_chat.id,
-            reply_markup=get_schedule_rendering_buttons(settings),
-            parse_mode=ParseMode.MARKDOWN_V2,
-        )
-        return True
+        return await handle_timezone_setting(update, context, expectation)
     elif expectation and expectation["expectation"] == RENAME_PAYEE:
-        clear_expectation(update.effective_chat.id)
-
-        # updates the transaction with the new payee
-        lunch = get_lunch_client_for_chat_id(update.effective_chat.id)
-        transaction_id = int(expectation["transaction_id"])
-        lunch.update_transaction(transaction_id, TransactionUpdateObject(payee=update.message.text))
-
-        # edit the message to reflect the new payee
-        updated_transaction = lunch.get_transaction(transaction_id)
-        msg_id = int(expectation["msg_id"])
-        await send_transaction_message(
-            context=context, transaction=updated_transaction, chat_id=update.effective_chat.id, message_id=msg_id
-        )
-
-        # react to the message
-        await context.bot.set_message_reaction(
-            chat_id=update.message.chat_id, message_id=update.message.message_id, reaction=ReactionEmoji.WRITING_HAND
-        )
-        return True
+        return await handle_rename_payee(update, context, expectation)
     elif expectation and expectation["expectation"] == EDIT_NOTES:
-        clear_expectation(update.effective_chat.id)
-
-        # updates the transaction with the new notes
-        lunch = get_lunch_client_for_chat_id(update.effective_chat.id)
-        transaction_id = int(expectation["transaction_id"])
-        notes = update.message.text
-        if len(notes) > NOTES_MAX_LENGTH:
-            notes = notes[:NOTES_MAX_LENGTH]
-        lunch.update_transaction(transaction_id, TransactionUpdateObject(notes=notes))
-
-        # edit the message to reflect the new notes
-        updated_transaction = lunch.get_transaction(transaction_id)
-        msg_id = int(expectation["msg_id"])
-        await send_transaction_message(
-            context=context, transaction=updated_transaction, chat_id=update.effective_chat.id, message_id=msg_id
-        )
-
-        settings = get_db().get_current_settings(update.effective_chat.id)
-        if settings.auto_categorize_after_notes:
-            await ai_categorize_transaction(transaction_id, update.effective_chat.id, context)
-
-        # react to the message
-        await context.bot.set_message_reaction(
-            chat_id=update.message.chat_id, message_id=update.message.message_id, reaction=ReactionEmoji.WRITING_HAND
-        )
-        return True
+        return await handle_edit_notes(update, context, expectation)
     elif expectation and expectation["expectation"] == SET_TAGS:
-        # make sure they look like tags
-        message_are_tags = True
-        for word in update.message.text.split(" "):
-            if not word.startswith("#"):
-                message_are_tags = False
-                break
-
-        if not message_are_tags:
-            await context.bot.send_message(
-                chat_id=update.effective_chat.id,
-                text=dedent(
-                    """
-                    The message should only contain words suffixed with a hashtag `#`.
-                    For example: `#tag1 #tag2 #tag3`
-                    """
-                ),
-                parse_mode=ParseMode.MARKDOWN,
-            )
-            return True
-
-        clear_expectation(update.effective_chat.id)
-
-        # updates the transaction with the new notes
-        lunch = get_lunch_client_for_chat_id(update.effective_chat.id)
-        transaction_id = int(expectation["transaction_id"])
-
-        tags_without_hashtag = [tag[1:] for tag in update.message.text.split(" ") if tag.startswith("#")]
-        logger.info(f"Setting tags to transaction ({transaction_id}): {tags_without_hashtag}")
-        lunch.update_transaction(transaction_id, TransactionUpdateObject(tags=tags_without_hashtag))
-
-        # edit the message to reflect the new notes
-        updated_transaction = lunch.get_transaction(transaction_id)
-        msg_id = int(expectation["msg_id"])
-        await send_transaction_message(
-            context=context, transaction=updated_transaction, chat_id=update.effective_chat.id, message_id=msg_id
-        )
-
-        # react to the message
-        await context.bot.set_message_reaction(
-            chat_id=update.message.chat_id, message_id=update.message.message_id, reaction=ReactionEmoji.WRITING_HAND
-        )
-        return True
+        return await handle_set_tags(update, context, expectation)
 
     return False
 
@@ -223,6 +115,134 @@ async def handle_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=query.message.message_id)
+
+
+async def handle_rename_payee(update: Update, context: ContextTypes.DEFAULT_TYPE, expectation: dict) -> bool:
+    """Handle renaming a payee for a transaction."""
+    clear_expectation(update.effective_chat.id)
+
+    # updates the transaction with the new payee
+    lunch = get_lunch_client_for_chat_id(update.effective_chat.id)
+    transaction_id = int(expectation["transaction_id"])
+    lunch.update_transaction(transaction_id, TransactionUpdateObject(payee=update.message.text))
+
+    # edit the message to reflect the new payee
+    updated_transaction = lunch.get_transaction(transaction_id)
+    msg_id = int(expectation["msg_id"])
+    await send_transaction_message(
+        context=context, transaction=updated_transaction, chat_id=update.effective_chat.id, message_id=msg_id
+    )
+
+    # react to the message
+    await context.bot.set_message_reaction(
+        chat_id=update.message.chat_id, message_id=update.message.message_id, reaction=ReactionEmoji.WRITING_HAND
+    )
+    return True
+
+
+async def handle_edit_notes(update: Update, context: ContextTypes.DEFAULT_TYPE, expectation: dict) -> bool:
+    """Handle editing notes for a transaction."""
+    clear_expectation(update.effective_chat.id)
+
+    # updates the transaction with the new notes
+    lunch = get_lunch_client_for_chat_id(update.effective_chat.id)
+    transaction_id = int(expectation["transaction_id"])
+    notes = update.message.text
+    if len(notes) > NOTES_MAX_LENGTH:
+        notes = notes[:NOTES_MAX_LENGTH]
+    lunch.update_transaction(transaction_id, TransactionUpdateObject(notes=notes))
+
+    # edit the message to reflect the new notes
+    updated_transaction = lunch.get_transaction(transaction_id)
+    msg_id = int(expectation["msg_id"])
+    await send_transaction_message(
+        context=context, transaction=updated_transaction, chat_id=update.effective_chat.id, message_id=msg_id
+    )
+
+    settings = get_db().get_current_settings(update.effective_chat.id)
+    if settings.auto_categorize_after_notes:
+        await ai_categorize_transaction(transaction_id, update.effective_chat.id, context)
+
+    # react to the message
+    await context.bot.set_message_reaction(
+        chat_id=update.message.chat_id, message_id=update.message.message_id, reaction=ReactionEmoji.WRITING_HAND
+    )
+    return True
+
+
+async def handle_timezone_setting(update: Update, context: ContextTypes.DEFAULT_TYPE, expectation: dict) -> bool:
+    """Handle setting the timezone for a user."""
+    await context.bot.delete_message(chat_id=update.message.chat_id, message_id=update.message.message_id)
+
+    # validate the time zone
+    if update.message.text not in pytz.all_timezones:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=f"`{update.message.text}` is an invalid timezone. Please try again.",
+            parse_mode=ParseMode.MARKDOWN,
+        )
+        return True
+
+    clear_expectation(update.effective_chat.id)
+
+    # save the time zone
+    get_db().update_timezone(update.effective_chat.id, update.message.text)
+
+    settings = get_db().get_current_settings(update.effective_chat.id)
+    await context.bot.edit_message_text(
+        message_id=expectation["msg_id"],
+        text=get_schedule_rendering_text(update.effective_chat.id),
+        chat_id=update.effective_chat.id,
+        reply_markup=get_schedule_rendering_buttons(settings),
+        parse_mode=ParseMode.MARKDOWN_V2,
+    )
+    return True
+
+
+async def handle_set_tags(update: Update, context: ContextTypes.DEFAULT_TYPE, expectation: dict) -> bool:
+    """Handle setting tags for a transaction."""
+    # make sure they look like tags
+    message_are_tags = True
+    for word in update.message.text.split(" "):
+        if not word.startswith("#"):
+            message_are_tags = False
+            break
+
+    if not message_are_tags:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=dedent(
+                """
+                The message should only contain words suffixed with a hashtag `#`.
+                For example: `#tag1 #tag2 #tag3`
+                """
+            ),
+            parse_mode=ParseMode.MARKDOWN,
+        )
+        return True
+
+    clear_expectation(update.effective_chat.id)
+
+    # updates the transaction with the new notes
+    lunch = get_lunch_client_for_chat_id(update.effective_chat.id)
+    transaction_id = int(expectation["transaction_id"])
+
+    tags_without_hashtag = [tag[1:] for tag in update.message.text.split(" ") if tag.startswith("#")]
+    logger.info(f"Setting tags to transaction ({transaction_id}): {tags_without_hashtag}")
+    lunch.update_transaction(transaction_id, TransactionUpdateObject(tags=tags_without_hashtag))
+
+    # edit the message to reflect the new notes
+    updated_transaction = lunch.get_transaction(transaction_id)
+    msg_id = int(expectation["msg_id"])
+    await send_transaction_message(
+        context=context, transaction=updated_transaction, chat_id=update.effective_chat.id, message_id=msg_id
+    )
+
+    # react to the message
+    await context.bot.set_message_reaction(
+        chat_id=update.message.chat_id, message_id=update.message.message_id, reaction=ReactionEmoji.WRITING_HAND
+    )
+    return True
 
 
 async def handle_file_upload(update: Update, context: ContextTypes.DEFAULT_TYPE):
