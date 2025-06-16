@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from lunchable import TransactionUpdateObject
 
+from constants import NOTES_MAX_LENGTH
 from deepinfra import get_suggested_category_id
 from lunch import get_lunch_client
 
@@ -177,8 +178,8 @@ def process_amazon_transactions(
                     category_id = cat_id
 
             if not dry_run:
-                if len(product_name) > 350:
-                    product_name = product_name[:350]
+                if len(product_name) > NOTES_MAX_LENGTH:
+                    product_name = product_name[:NOTES_MAX_LENGTH]
 
                 logger.info(
                     lunch.update_transaction(a.id, TransactionUpdateObject(notes=product_name, category_id=category_id))

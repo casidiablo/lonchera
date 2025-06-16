@@ -9,6 +9,7 @@ from telegram import Update
 from telegram.constants import ParseMode, ReactionEmoji
 from telegram.ext import ContextTypes
 
+from constants import NOTES_MAX_LENGTH
 from errors import NoLunchTokenError
 from handlers.amz import handle_amazon_export
 from handlers.categorization import ai_categorize_transaction
@@ -143,8 +144,8 @@ async def handle_generic_message(update: Update, context: ContextTypes.DEFAULT_T
         lunch = get_lunch_client_for_chat_id(update.effective_chat.id)
         transaction_id = int(expectation["transaction_id"])
         notes = update.message.text
-        if len(notes) > 350:
-            notes = notes[:350]
+        if len(notes) > NOTES_MAX_LENGTH:
+            notes = notes[:NOTES_MAX_LENGTH]
         lunch.update_transaction(transaction_id, TransactionUpdateObject(notes=notes))
 
         # edit the message to reflect the new notes

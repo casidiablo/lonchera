@@ -8,6 +8,7 @@ from telegram import ForceReply, Update
 from telegram.constants import ParseMode, ReactionEmoji
 from telegram.ext import ContextTypes
 
+from constants import NOTES_MAX_LENGTH
 from deepinfra import auto_categorize
 from handlers.categorization import ai_categorize_transaction
 from handlers.expectations import EDIT_NOTES, RENAME_PAYEE, SET_TAGS, set_expectation
@@ -296,9 +297,8 @@ async def handle_set_tx_notes_or_tags(update: Update, context: ContextTypes.DEFA
         lunch.update_transaction(tx_id, TransactionUpdateObject(tags=tags_without_hashtag))
     else:
         notes = msg_text
-        note_length_limit = 350
-        if len(notes) > note_length_limit:
-            notes = notes[:note_length_limit]
+        if len(notes) > NOTES_MAX_LENGTH:
+            notes = notes[:NOTES_MAX_LENGTH]
         logger.info(f"Setting notes to transaction ({tx_id}): {notes}")
         lunch.update_transaction(tx_id, TransactionUpdateObject(notes=notes))
 
