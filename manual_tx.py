@@ -1,14 +1,13 @@
+import datetime
 import json
 import logging
 import os
 from textwrap import dedent
+
 from lunchable import TransactionInsertObject
 from telegram import KeyboardButton, ReplyKeyboardMarkup, Update, WebAppInfo
-from telegram.ext import (
-    ContextTypes,
-)
 from telegram.constants import ParseMode
-import datetime
+from telegram.ext import ContextTypes
 
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db

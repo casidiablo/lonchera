@@ -1,13 +1,14 @@
 from textwrap import dedent
-from typing import Optional
+
 from telegram import InlineKeyboardMarkup, Update
-from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
-from utils import Keyboard
+from telegram.ext import ContextTypes
+
 from persistence import Settings, get_db
+from utils import Keyboard
 
 
-def get_transactions_handling_text(chat_id: int) -> Optional[str]:
+def get_transactions_handling_text(chat_id: int) -> str | None:
     settings = get_db().get_current_settings(chat_id)
     if settings is None:
         return None

@@ -1,21 +1,17 @@
 import logging
 import os
-from textwrap import dedent
 import traceback
+from textwrap import dedent
+
+import pytz
 from lunchable import TransactionUpdateObject
 from telegram import Update
+from telegram.constants import ParseMode, ReactionEmoji
 from telegram.ext import ContextTypes
-from telegram.constants import ParseMode
+
+from errors import NoLunchTokenError
 from handlers.amz import handle_amazon_export
 from handlers.categorization import ai_categorize_transaction
-from handlers.settings.schedule_rendering import (
-    get_schedule_rendering_buttons,
-    get_schedule_rendering_text,
-)
-from telegram.constants import ReactionEmoji
-
-from handlers.settings.session import handle_register_token
-from lunch import get_lunch_client_for_chat_id
 from handlers.expectations import (
     AMAZON_EXPORT,
     EDIT_NOTES,
@@ -27,11 +23,11 @@ from handlers.expectations import (
     get_expectation,
     set_expectation,
 )
+from handlers.settings.schedule_rendering import get_schedule_rendering_buttons, get_schedule_rendering_text
+from handlers.settings.session import handle_register_token
+from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
 from tx_messaging import send_transaction_message
-import pytz
-
-from errors import NoLunchToken
 
 logger = logging.getLogger("handlers")
 
@@ -69,7 +65,7 @@ async def handle_errors(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update is None:
         logger.error("Update is None", exc_info=context.error)
         return
-    if isinstance(context.error, NoLunchToken):
+    if isinstance(context.error, NoLunchTokenError):
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text="No Lunch Money API token found. Please register a token using /start",

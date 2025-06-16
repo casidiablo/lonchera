@@ -1,6 +1,6 @@
-from typing import List, Optional
-from lunchable.models import TransactionObject
+
 import emoji
+from lunchable.models import TransactionObject
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 
 from persistence import Settings, get_db
@@ -11,7 +11,7 @@ def is_emoji(char):
 
 
 def make_tag(t: str, title=False, tagging=True, no_emojis=False) -> str:
-    result = result = "".join([char for char in t if char not in emoji.EMOJI_DATA])
+    result = "".join([char for char in t if char not in emoji.EMOJI_DATA])
     if tagging:
         result = (
             result.title()
@@ -45,8 +45,8 @@ def remove_emojis(text: str) -> str:
 
 
 def find_related_tx(
-    tx: TransactionObject, txs: List[TransactionObject]
-) -> Optional[TransactionObject]:
+    tx: TransactionObject, txs: list[TransactionObject]
+) -> TransactionObject | None:
     for t in txs:
         if t.amount == -tx.amount and (t.date == tx.date or t.payee == t.payee):
             return t

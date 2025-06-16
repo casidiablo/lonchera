@@ -1,25 +1,12 @@
 import logging
 import os
-from typing import List, Optional, Union
 from datetime import datetime
 
-from sqlalchemy import (
-    create_engine,
-    Column,
-    Integer,
-    String,
-    Boolean,
-    DateTime,
-    update,
-    delete,
-    func,
-    and_,
-    Float,
-)
+from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String, and_, create_engine, delete, func, update
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-from errors import NoLunchToken
+from errors import NoLunchTokenError
 
 logger = logging.getLogger("db")
 
@@ -123,12 +110,12 @@ class Persistence:
                 session.add(new_setting)
             session.commit()
 
-    def get_token(self, chat_id) -> Union[str, None]:
+    def get_token(self, chat_id) -> str | None:
         with self.Session() as session:
             setting = session.query(Settings).filter_by(chat_id=chat_id).first()
             return setting.token if setting else None
 
-    def get_all_registered_chats(self) -> List[int]:
+    def get_all_registered_chats(self) -> list[int]:
         with self.Session() as session:
             return [chat.chat_id for chat in session.query(Settings.chat_id).all()]
 
@@ -146,10 +133,10 @@ class Persistence:
         tx_id: int,
         chat_id: int,
         message_id: int,
-        recurring_type: Optional[str],
+        recurring_type: str | None,
         pending=False,
         reviewed=False,
-        plaid_id: Optional[str] = None,
+        plaid_id: str | None = None,
     ) -> None:
         logger.info(f"Marking transaction {tx_id} as sent with message ID {message_id}")
         with self.Session() as session:
@@ -165,7 +152,7 @@ class Persistence:
             session.add(new_transaction)
             session.commit()
 
-    def get_tx_associated_with(self, message_id: int, chat_id: int) -> Optional[int]:
+    def get_tx_associated_with(self, message_id: int, chat_id: int) -> int | None:
         with self.Session() as session:
             transaction = (
                 session.query(Transaction.tx_id)
@@ -174,15 +161,15 @@ class Persistence:
             )
             return transaction.tx_id if transaction else None
 
-    def get_tx_by_id(self, tx_id: int) -> Optional[Transaction]:
+    def get_tx_by_id(self, tx_id: int) -> Transaction | None:
         with self.Session() as session:
             return session.query(Transaction).filter_by(tx_id=tx_id).first()
 
-    def get_all_tx_by_chat_id(self, chat_id: int) -> List[Transaction]:
+    def get_all_tx_by_chat_id(self, chat_id: int) -> list[Transaction]:
         with self.Session() as session:
             return session.query(Transaction).filter_by(chat_id=chat_id).all()
 
-    def get_message_id_associated_with(self, tx_id: int, chat_id: int) -> Optional[int]:
+    def get_message_id_associated_with(self, tx_id: int, chat_id: int) -> int | None:
         with self.Session() as session:
             transaction = (
                 session.query(Transaction)
@@ -229,7 +216,7 @@ class Persistence:
         with self.Session() as session:
             settings = session.query(Settings).filter_by(chat_id=chat_id).first()
             if settings is None:
-                raise NoLunchToken("No settings found for this chat")
+                raise NoLunchTokenError("No settings found for this chat")
             return settings
 
     def update_poll_interval(self, chat_id: int, interval: int) -> None:
@@ -328,7 +315,7 @@ class Persistence:
             session.execute(stmt)
             session.commit()
 
-    def set_api_token(self, chat_id: int, token: Optional[str]) -> None:
+    def set_api_token(self, chat_id: int, token: str | None) -> None:
         with self.Session() as session:
             stmt = (
                 update(Settings).where(Settings.chat_id == chat_id).values(token=token)
@@ -337,7 +324,7 @@ class Persistence:
             session.commit()
 
     def inc_metric(
-        self, key: str, increment: float = 1.0, date: Optional[datetime] = None
+        self, key: str, increment: float = 1.0, date: datetime | None = None
     ):
         if date is None:
             date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)

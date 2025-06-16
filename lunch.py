@@ -1,11 +1,10 @@
-from typing import Dict
+
 from lunchable import LunchMoney
 
-from errors import NoLunchToken
+from errors import NoLunchTokenError
 from persistence import get_db
 
-
-lunch_clients_cache: Dict[int, LunchMoney] = {}
+lunch_clients_cache: dict[int, LunchMoney] = {}
 
 
 def get_lunch_client(token: str) -> LunchMoney:
@@ -18,7 +17,7 @@ def get_lunch_client_for_chat_id(chat_id: int) -> LunchMoney:
 
     token = get_db().get_token(chat_id)
     if token is None:
-        raise NoLunchToken("No token registered for this chat")
+        raise NoLunchTokenError("No token registered for this chat")
 
     lunch_clients_cache[chat_id] = get_lunch_client(token)
     return lunch_clients_cache[chat_id]
@@ -27,5 +26,5 @@ def get_lunch_client_for_chat_id(chat_id: int) -> LunchMoney:
 def get_lunch_money_token_for_chat_id(chat_id: int) -> str:
     token = get_db().get_token(chat_id)
     if token is None:
-        raise NoLunchToken("No token registered for this chat")
+        raise NoLunchTokenError("No token registered for this chat")
     return token

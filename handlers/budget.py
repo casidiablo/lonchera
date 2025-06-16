@@ -1,15 +1,11 @@
-from datetime import datetime, timedelta
 import logging
+from datetime import datetime, timedelta
+
 from lunchable import LunchMoney
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from budget_messaging import (
-    hide_budget_categories,
-    send_budget,
-    show_budget_categories,
-    show_bugdget_for_category,
-)
+from budget_messaging import hide_budget_categories, send_budget, show_budget_categories, show_bugdget_for_category
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
 

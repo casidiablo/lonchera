@@ -1,14 +1,10 @@
 import logging
 import os
-from typing import Optional
-from lunchable import LunchMoney, TransactionUpdateObject
-import requests
-
 from textwrap import dedent
-from lunchable.models import (
-    TransactionObject,
-    CategoriesObject,
-)
+
+import requests
+from lunchable import LunchMoney, TransactionUpdateObject
+from lunchable.models import CategoriesObject, TransactionObject
 
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
@@ -18,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_transaction_input_variable(
-    transaction: TransactionObject, override_notes: Optional[str] = None
+    transaction: TransactionObject, override_notes: str | None = None
 ) -> str:
     tx_input_variable = dedent(
         f"""
@@ -63,7 +59,7 @@ def get_categories_input_variable(categories: list[CategoriesObject]) -> str:
 def build_prompt(
     transaction: TransactionObject,
     categories: list[CategoriesObject],
-    override_notes: Optional[str] = None,
+    override_notes: str | None = None,
 ) -> str:
     logger.info(get_transaction_input_variable(transaction))
     return dedent(
@@ -151,7 +147,7 @@ def auto_categorize(tx_id: int, chat_id: int) -> str:
 
 
 def get_suggested_category_id(
-    tx_id: int, lunch: LunchMoney, override_notes: Optional[str] = None
+    tx_id: int, lunch: LunchMoney, override_notes: str | None = None
 ) -> tuple[TransactionObject, int]:
     tx = lunch.get_transaction(tx_id)
     categories = lunch.get_categories()

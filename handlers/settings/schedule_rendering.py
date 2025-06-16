@@ -1,16 +1,17 @@
 from datetime import timedelta
-import pytz
 from textwrap import dedent
+
+import pytz
 from telegram import InlineKeyboardMarkup, LinkPreviewOptions, Update
-from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
+from telegram.ext import ContextTypes
+
 from handlers.expectations import EXPECTING_TIME_ZONE, set_expectation
-from utils import Keyboard
 from persistence import Settings, get_db
-from typing import Optional
+from utils import Keyboard
 
 
-def get_schedule_rendering_text(chat_id: int) -> Optional[str]:
+def get_schedule_rendering_text(chat_id: int) -> str | None:
     settings = get_db().get_current_settings(chat_id)
     if settings is None:
         return None
@@ -27,11 +28,10 @@ def get_schedule_rendering_text(chat_id: int) -> Optional[str]:
                 poll_interval = "`1 hour`"
             else:
                 poll_interval = f"`{poll_interval // 3600} hours`"
+        elif poll_interval // 86400 == 1:
+            poll_interval = "`1 day`"
         else:
-            if poll_interval // 86400 == 1:
-                poll_interval = "`1 day`"
-            else:
-                poll_interval = f"`{poll_interval // 86400} days`"
+            poll_interval = f"`{poll_interval // 86400} days`"
 
         last_poll = settings.last_poll_at
         if last_poll:

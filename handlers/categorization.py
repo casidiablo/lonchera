@@ -1,5 +1,7 @@
 import logging
+
 from telegram.ext import ContextTypes
+
 from deepinfra import auto_categorize
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db

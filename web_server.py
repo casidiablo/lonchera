@@ -1,13 +1,13 @@
+import hashlib
+import hmac
+import logging
 import os
 import time
-import logging
-from typing import Optional
-from aiohttp import web
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-import hashlib
 from urllib.parse import unquote
-import hmac
+
+from aiohttp import web
 
 from lunch import get_lunch_client_for_chat_id
 
@@ -19,7 +19,7 @@ logging.basicConfig(level=logging.INFO)
 @dataclass
 class BotStatus:
     last_error: str = ""
-    last_error_time: Optional[datetime] = None
+    last_error_time: datetime | None = None
     is_running: bool = False
 
 
@@ -47,7 +47,7 @@ async def get_bot_info():
             bot_info_cache = f"{link} ({bot_data.first_name})"
             return bot_info_cache
         except Exception as e:
-            return f"Error getting bot info: {str(e)}"
+            return f"Error getting bot info: {e!s}"
     return "Bot instance not available. Did you set the token?"
 
 
@@ -219,7 +219,7 @@ async def handle_manual_tx_endpoint(request):
         category_options += f'<option value="{category.id}">{category.name}</option>'
 
     html_path = os.path.join(os.path.dirname(__file__), "manual_tx.html")
-    with open(html_path, "r") as file:
+    with open(html_path) as file:
         response = file.read().replace("{chat_id}", chat_id)
         response = response.replace("{account_options}", account_options)
         response = response.replace("{category_options}", category_options)
@@ -245,7 +245,7 @@ def validate_init_data(init_data: str, bot_token: str):
         f"{k}={v}" for k, v in sorted(vals.items()) if k != "hash"
     )
     secret_key = hmac.new(
-        "WebAppData".encode(), bot_token.encode(), hashlib.sha256
+        b"WebAppData", bot_token.encode(), hashlib.sha256
     ).digest()
     h = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256)
     return h.hexdigest() == vals["hash"]

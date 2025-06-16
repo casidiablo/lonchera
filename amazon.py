@@ -1,11 +1,10 @@
-import csv
-from datetime import datetime, timedelta
-import os
-from typing import Dict
-from collections import defaultdict
-import logging
 import argparse
+import csv
+import logging
+import os
 import sys
+from collections import defaultdict
+from datetime import datetime, timedelta
 
 from dotenv import load_dotenv
 from lunchable import TransactionUpdateObject
@@ -30,7 +29,7 @@ def parse_csv_and_filter(
     target_price: float,
     target_currency: str,
     allow_days: int,
-) -> Dict[str, str]:
+) -> dict[str, str]:
     # Convert target_date string to a datetime object
     target_date = datetime.strptime(target_date, "%Y-%m-%d")
 
@@ -47,7 +46,7 @@ def parse_csv_and_filter(
     margin_of_error = 0.5
 
     # Read and parse the CSV file
-    with open(file_path, mode="r", newline="") as csvfile:
+    with open(file_path, newline="") as csvfile:
         reader = csv.DictReader(csvfile)
 
         for row in reader:
@@ -112,7 +111,7 @@ def get_amazon_transactions_summary(file_path: str):
     summary = defaultdict(int)
     summary["total_transactions"] = 0
     date_ranges = {"start_date": None, "end_date": None}
-    with open(file_path, mode="r", newline="") as csvfile:
+    with open(file_path, newline="") as csvfile:
         reader = csv.DictReader(csvfile)
 
         transactions = list(reader)
@@ -138,8 +137,8 @@ def process_amazon_transactions(
     days_back: int,
     dry_run: bool,
     allow_days: int,
-    auto_categorize: True,
-    lunch_money_token: str = None,
+    auto_categorize: bool = True,
+    lunch_money_token: str | None = None,
 ) -> dict:
     logger.info(
         f"Processing Amazon transactions in {file_path} with {days_back} days back and {allow_days} days threshold"

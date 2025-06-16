@@ -1,17 +1,12 @@
-from typing import List, Optional, Union
+
+from lunchable.models import AssetsObject, CryptoObject, PlaidAccountObject
 from telegram import InlineKeyboardMarkup, Update
-from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
+from telegram.ext import ContextTypes
 
 from lunch import get_lunch_client_for_chat_id
-from lunchable.models import PlaidAccountObject, AssetsObject, CryptoObject
 from persistence import get_db
-from utils import (
-    Keyboard,
-    get_crypto_symbol,
-    get_emoji_for_account_type,
-    make_tag,
-)
+from utils import Keyboard, get_crypto_symbol, get_emoji_for_account_type, make_tag
 
 # Constants for button states
 SHOW_DETAILS = 1 << 0
@@ -122,7 +117,7 @@ def get_crypto_summary_text(acct: CryptoObject, show_details: bool) -> str:
 
 
 def get_accounts_summary_text(
-    accts: List[Union[PlaidAccountObject, AssetsObject, CryptoObject]],
+    accts: list[PlaidAccountObject | AssetsObject | CryptoObject],
     show_details: bool,
     tagging: bool = True,
 ) -> str:
@@ -156,7 +151,7 @@ async def handle_show_balances(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
     mask: int = SHOW_BALANCES,
-    message_id: Optional[int] = None,
+    message_id: int | None = None,
 ):
     """Shows all the Plaid accounts and its balances to the user."""
     lunch = get_lunch_client_for_chat_id(update.effective_chat.id)

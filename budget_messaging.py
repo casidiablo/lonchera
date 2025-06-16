@@ -1,12 +1,10 @@
-from datetime import datetime, timedelta
 import logging
+from datetime import datetime, timedelta
 
-from telegram import InlineKeyboardMarkup, Update
-from telegram.ext import ContextTypes
-from telegram.constants import ParseMode
 from lunchable.models import BudgetObject
-
-from typing import List, Optional
+from telegram import InlineKeyboardMarkup, Update
+from telegram.constants import ParseMode
+from telegram.ext import ContextTypes
 
 from persistence import get_db
 from utils import Keyboard, make_tag
@@ -57,7 +55,7 @@ def get_bugdet_buttons(current_budget_date: datetime) -> InlineKeyboardMarkup:
 
 
 def get_budget_category_buttons(
-    budget_items: List[BudgetObject], budget_date: datetime
+    budget_items: list[BudgetObject], budget_date: datetime
 ) -> InlineKeyboardMarkup:
     kbd = Keyboard()
     for budget_item in budget_items:
@@ -72,7 +70,7 @@ def get_budget_category_buttons(
 
 
 def build_budget_message(
-    budget: List[BudgetObject], budget_date: datetime, tagging: bool = True
+    budget: list[BudgetObject], budget_date: datetime, tagging: bool = True
 ):
     msg = ""
     total_expenses_budget = 0
@@ -177,9 +175,9 @@ def build_budget_message(
 async def send_budget(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
-    budget: List[BudgetObject],
+    budget: list[BudgetObject],
     first_day_of_budget: datetime,
-    message_id: Optional[int],
+    message_id: int | None,
 ) -> None:
     settings = get_db().get_current_settings(update.effective_chat.id)
     tagging = settings.tagging if settings else True
@@ -206,7 +204,7 @@ async def send_budget(
 async def show_budget_categories(
     update: Update,
     _: ContextTypes.DEFAULT_TYPE,
-    budget: List[BudgetObject],
+    budget: list[BudgetObject],
     budget_date: datetime,
 ) -> None:
     categories = []
@@ -225,7 +223,7 @@ async def show_budget_categories(
 
 
 async def hide_budget_categories(
-    update: Update, budget: List[BudgetObject], budget_date: datetime
+    update: Update, budget: list[BudgetObject], budget_date: datetime
 ) -> None:
     settings = get_db().get_current_settings(update.effective_chat.id)
     tagging = settings.tagging if settings else True
@@ -241,8 +239,8 @@ async def hide_budget_categories(
 
 async def show_bugdget_for_category(
     update: Update,
-    all_budget: List[BudgetObject],
-    category_budget: List[BudgetObject],
+    all_budget: list[BudgetObject],
+    category_budget: list[BudgetObject],
     budget_date: datetime,
     tagging: bool = True,
 ) -> None:

@@ -1,6 +1,7 @@
 from telegram import InlineKeyboardMarkup, Update
-from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
+from telegram.ext import ContextTypes
+
 from utils import Keyboard, ensure_token
 
 

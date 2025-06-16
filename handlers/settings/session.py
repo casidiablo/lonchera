@@ -1,16 +1,17 @@
 import re
 from textwrap import dedent
-from typing import Optional
+
 from telegram import InlineKeyboardMarkup, Update
-from telegram.ext import ContextTypes
 from telegram.constants import ParseMode, ReactionEmoji
+from telegram.ext import ContextTypes
+
 from handlers.expectations import EXPECTING_TOKEN, clear_expectation, set_expectation
-from utils import Keyboard
-from persistence import Settings, get_db
 from lunch import get_lunch_client, get_lunch_client_for_chat_id
+from persistence import Settings, get_db
+from utils import Keyboard
 
 
-def get_session_text(chat_id: int) -> Optional[str]:
+def get_session_text(chat_id: int) -> str | None:
     settings = get_db().get_current_settings(chat_id)
     if settings is None:
         return None
@@ -197,7 +198,6 @@ async def handle_register_token(
         if "Access token does not exist." in str(e):
             await context.bot.send_message(
                 chat_id=update.message.chat_id,
-                # noqa: E501
                 text=dedent(
                     f"""
                     Failed to register token `{token}`:

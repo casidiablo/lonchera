@@ -1,18 +1,19 @@
-from datetime import datetime
+import logging
 import os
-from textwrap import dedent
-import zipfile
 import random
+import zipfile
+from datetime import datetime
+from textwrap import dedent
+
 from telegram import InlineKeyboardMarkup, Update
-from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
+from telegram.ext import ContextTypes
 
 from amazon import get_amazon_transactions_summary, process_amazon_transactions
 from handlers.expectations import AMAZON_EXPORT, clear_expectation, set_expectation
 from lunch import get_lunch_money_token_for_chat_id
-from utils import Keyboard
 from persistence import get_db
-import logging
+from utils import Keyboard
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("amz")
@@ -89,7 +90,7 @@ def get_process_amazon_tx_buttons(
 
 
 async def pre_processing_amazon_transactions(
-    update: Update, context: ContextTypes.DEFAULT_TYPE, msg_id: int = None
+    update: Update, context: ContextTypes.DEFAULT_TYPE, msg_id: int | None = None
 ):
     export_file = context.user_data.get("amazon_export_file")
     ai_categorization_enabled = context.user_data.get(
@@ -176,7 +177,7 @@ async def handle_amazon_export(update: Update, context: ContextTypes.DEFAULT_TYP
 
         # find the csv file
         csv_file_path = None
-        for root, dirs, files in os.walk(extract_to):
+        for root, _dirs, files in os.walk(extract_to):
             for file in files:
                 if file.lower().endswith(".csv") and "Retail.OrderHistory.1" in root:
                     csv_file_path = os.path.join(root, file)

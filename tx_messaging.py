@@ -1,24 +1,22 @@
-from datetime import datetime
 import logging
-from typing import Optional, Union
-import pytz
 import os
+from datetime import datetime
 
-from telegram import CallbackQuery, InlineKeyboardMarkup
-from telegram.ext import ContextTypes
-from telegram.constants import ParseMode
+import pytz
 from lunchable.models import TransactionObject
+from telegram import CallbackQuery, InlineKeyboardMarkup
+from telegram.constants import ParseMode
+from telegram.ext import ContextTypes
 
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
 from utils import Keyboard, clean_md, make_tag
 
-
 logger = logging.getLogger("messaging")
 
 
 def get_tx_buttons(
-    transaction: Union[TransactionObject, int],
+    transaction: TransactionObject | int,
     collapsed=True,
 ) -> InlineKeyboardMarkup:
     """Returns a list of buttons to be displayed for a transaction."""
@@ -79,9 +77,9 @@ def get_tx_buttons(
 async def send_transaction_message(
     context: ContextTypes.DEFAULT_TYPE,
     transaction: TransactionObject,
-    chat_id: Union[str, int],
-    message_id: Optional[int] = None,
-    reply_to_message_id: Optional[int] = None,
+    chat_id: str | int,
+    message_id: int | None = None,
+    reply_to_message_id: int | None = None,
 ) -> int:
     """Sends a message to the chat_id with the details of a transaction.
     If message_id is provided, edits the existing"""

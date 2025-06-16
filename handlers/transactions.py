@@ -1,24 +1,18 @@
-from datetime import datetime, timedelta
 import logging
+from datetime import datetime, timedelta
 from textwrap import dedent
-from typing import List
+
 from lunchable import TransactionUpdateObject
+from lunchable.models import TransactionObject
 from telegram import ForceReply, Update
+from telegram.constants import ParseMode, ReactionEmoji
 from telegram.ext import ContextTypes
-from telegram.constants import ReactionEmoji, ParseMode
 
 from deepinfra import auto_categorize
 from handlers.categorization import ai_categorize_transaction
-from handlers.expectations import (
-    EDIT_NOTES,
-    RENAME_PAYEE,
-    SET_TAGS,
-    set_expectation,
-)
+from handlers.expectations import EDIT_NOTES, RENAME_PAYEE, SET_TAGS, set_expectation
 from handlers.general import handle_generic_message
 from lunch import get_lunch_client_for_chat_id
-from lunchable.models import TransactionObject
-
 from persistence import get_db
 from tx_messaging import get_tx_buttons, send_plaid_details, send_transaction_message
 from utils import Keyboard, ensure_token, find_related_tx
@@ -28,7 +22,7 @@ logger = logging.getLogger("tx_handler")
 
 async def check_posted_transactions_and_telegram_them(
     context: ContextTypes.DEFAULT_TYPE, chat_id: int
-) -> List[TransactionObject]:
+) -> list[TransactionObject]:
     # get date from 30 days ago
     two_weeks_ago = datetime.now().replace(
         hour=0, minute=0, second=0, microsecond=0
@@ -93,7 +87,7 @@ async def check_posted_transactions_and_telegram_them(
 async def check_pending_transactions_and_telegram_them(
     context: ContextTypes.DEFAULT_TYPE,
     chat_id: int,
-) -> List[TransactionObject]:
+) -> list[TransactionObject]:
     # get date from 15 days ago
     two_weeks_ago = datetime.now().replace(
         hour=0, minute=0, second=0, microsecond=0
@@ -162,7 +156,6 @@ async def check_pending_transactions(
 
     if not transactions:
         await update.message.reply_text("No pending transactions found.")
-    return
 
 
 async def handle_btn_skip_transaction(update: Update, _: ContextTypes.DEFAULT_TYPE):
@@ -312,7 +305,7 @@ async def handle_btn_mark_tx_as_reviewed(
         await query.answer()
     except Exception as e:
         await query.answer(
-            text=f"Error marking transaction as reviewed: {str(e)}", show_alert=True
+            text=f"Error marking transaction as reviewed: {e!s}", show_alert=True
         )
 
 
@@ -341,7 +334,7 @@ async def handle_btn_mark_tx_as_unreviewed(
         await query.answer()
     except Exception as e:
         await query.answer(
-            text=f"Error marking transaction as reviewed: {str(e)}", show_alert=True
+            text=f"Error marking transaction as reviewed: {e!s}", show_alert=True
         )
 
 

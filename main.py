@@ -1,52 +1,58 @@
+import asyncio
 import logging
 import os
-import asyncio
 import signal
 
 from dotenv import load_dotenv
 from telegram import Update
-from telegram.error import TelegramError, Conflict
-from telegram.ext import (
-    Application,
-    CommandHandler,
-    CallbackQueryHandler,
-    ContextTypes,
-    MessageHandler,
-    filters,
-)
-
+from telegram.error import Conflict, TelegramError
+from telegram.ext import Application, CallbackQueryHandler, CommandHandler, ContextTypes, MessageHandler, filters
 
 from handlers.amz import (
     handle_amazon_sync,
+    handle_preview_process_amazon_transactions,
     handle_process_amazon_transactions,
     handle_update_amz_settings,
-    handle_preview_process_amazon_transactions,
 )
-from handlers.balances import (
-    handle_btn_accounts_balances,
-    handle_show_balances,
-    handle_done_balances,
-)
+from handlers.analytics import handle_stats, handle_status
+from handlers.balances import handle_btn_accounts_balances, handle_done_balances, handle_show_balances
 from handlers.budget import (
     handle_btn_hide_budget_categories,
     handle_btn_show_budget_categories,
     handle_btn_show_budget_for_category,
-    handle_show_budget,
     handle_done_budget,
+    handle_show_budget,
 )
-from handlers.general import (
-    clear_cache,
-    handle_errors,
-    handle_file_upload,
-    handle_generic_message,
-    handle_start,
-    handle_cancel,
+from handlers.general import clear_cache, handle_cancel, handle_errors, handle_file_upload, handle_generic_message, handle_start
+from handlers.settings.general import handle_btn_done_settings, handle_settings, handle_settings_menu
+from handlers.settings.schedule_rendering import (
+    handle_btn_cancel_poll_interval_change,
+    handle_btn_change_poll_interval,
+    handle_btn_change_timezone,
+    handle_btn_toggle_poll_pending,
+    handle_btn_toggle_show_datetime,
+    handle_btn_toggle_tagging,
+    handle_schedule_rendering_settings,
+)
+from handlers.settings.session import (
+    handle_btn_set_token_from_button,
+    handle_btn_trigger_plaid_refresh,
+    handle_logout,
+    handle_logout_cancel,
+    handle_logout_confirm,
+    handle_session_settings,
+)
+from handlers.settings.transactions_handling import (
+    handle_btn_toggle_auto_categorize_after_notes,
+    handle_btn_toggle_auto_mark_reviewed,
+    handle_btn_toggle_mark_reviewed_after_categorized,
+    handle_transactions_handling_settings,
 )
 from handlers.syncing import handle_resync
 from handlers.transactions import (
     check_pending_transactions,
-    handle_btn_apply_category,
     handle_btn_ai_categorize,
+    handle_btn_apply_category,
     handle_btn_cancel_categorization,
     handle_btn_collapse_transaction,
     handle_btn_dump_plaid_details,
@@ -64,36 +70,7 @@ from handlers.transactions import (
     poll_transactions_on_schedule,
 )
 from manual_tx import handle_manual_tx, handle_web_app_data
-from handlers.settings.schedule_rendering import (
-    handle_btn_cancel_poll_interval_change,
-    handle_btn_change_poll_interval,
-    handle_btn_change_timezone,
-    handle_btn_toggle_poll_pending,
-    handle_btn_toggle_show_datetime,
-    handle_btn_toggle_tagging,
-    handle_schedule_rendering_settings,
-)
-from handlers.settings.transactions_handling import (
-    handle_btn_toggle_auto_categorize_after_notes,
-    handle_btn_toggle_auto_mark_reviewed,
-    handle_btn_toggle_mark_reviewed_after_categorized,
-    handle_transactions_handling_settings,
-)
-from handlers.settings.session import (
-    handle_btn_trigger_plaid_refresh,
-    handle_logout,
-    handle_logout_cancel,
-    handle_logout_confirm,
-    handle_btn_set_token_from_button,
-    handle_session_settings,
-)
-from handlers.settings.general import (
-    handle_btn_done_settings,
-    handle_settings,
-    handle_settings_menu,
-)
-from web_server import run_web_server, update_bot_status, set_bot_instance
-from handlers.analytics import handle_stats, handle_status
+from web_server import run_web_server, set_bot_instance, update_bot_status
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s [%(name)s] %(levelname%s: %(message)s"
