@@ -162,8 +162,8 @@ async def send_transaction_message(
     If message_id is provided, edits the existing"""
     settings = get_db().get_current_settings(chat_id)
     # Ensure settings fields are bool, not SQLAlchemy Columns
-    show_datetime = bool(getattr(settings, "show_datetime", True)) if settings else True
-    tagging = bool(getattr(settings, "tagging", True)) if settings else True
+    show_datetime = settings.show_datetime if settings else True
+    tagging = settings.tagging if settings else True
 
     message = format_transaction_message(transaction, tagging, show_datetime)
 

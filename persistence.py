@@ -2,9 +2,9 @@ import logging
 import os
 from datetime import datetime
 
-from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String, and_, create_engine, delete, func, update
+from sqlalchemy import Boolean, DateTime, Float, Integer, String, and_, create_engine, delete, func, update
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Mapped, mapped_column, sessionmaker
 
 from errors import NoLunchTokenError
 
@@ -17,80 +17,80 @@ class Transaction(Base):
     __tablename__ = "transactions"
 
     # The unique identifier for the transaction in the database
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
     # The message ID of the Telegram message associated with this transaction
-    message_id = Column(Integer, nullable=False)
+    message_id: Mapped[int] = mapped_column(Integer, nullable=False)
 
     # The ID of the transaction in the Lunch Money API
-    tx_id = Column(Integer, nullable=False)
+    tx_id: Mapped[int] = mapped_column(Integer, nullable=False)
 
     # The ID of the Telegram chat where the transaction was sent
-    chat_id = Column(Integer, nullable=False)
+    chat_id: Mapped[int] = mapped_column(Integer, nullable=False)
 
     # Indicates whether the transaction is pending or not
-    pending = Column(Boolean, default=False, nullable=False)
+    pending: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # The timestamp when the transaction was created in the database
-    created_at = Column(DateTime, default=func.now(), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), nullable=False)
 
     # The timestamp when the transaction was marked as reviewed, if applicable
-    reviewed_at = Column(DateTime)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime)
 
     # The type of recurring transaction, if applicable (e.g., cleared, suggested, dismissed)
-    recurring_type = Column(String)
+    recurring_type: Mapped[str | None] = mapped_column(String)
 
     # The Plaid transaction ID associated with this transaction, if available
-    plaid_id = Column(String, default=None, nullable=True)
+    plaid_id: Mapped[str | None] = mapped_column(String, default=None, nullable=True)
 
 
 class Settings(Base):
     __tablename__ = "settings"
 
     # The unique identifier for the Telegram chat
-    chat_id = Column(Integer, primary_key=True)
+    chat_id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
     # The Lunch Money API token associated with the chat
-    token = Column(String, nullable=False)
+    token: Mapped[str] = mapped_column(String, nullable=False)
 
     # The interval (in seconds) at which the bot polls for new transactions
-    poll_interval_secs = Column(Integer, default=3600, nullable=False)
+    poll_interval_secs: Mapped[int] = mapped_column(Integer, default=3600, nullable=False)
 
     # The timestamp when the settings were created
-    created_at = Column(DateTime, default=func.now(), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), nullable=False)
 
     # The timestamp of the last time the bot polled for transactions
-    last_poll_at = Column(DateTime)
+    last_poll_at: Mapped[datetime | None] = mapped_column(DateTime)
 
     # Indicates whether transactions should be automatically marked as reviewed
-    auto_mark_reviewed = Column(Boolean, default=False, nullable=False)
+    auto_mark_reviewed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Indicates whether the bot should poll for pending transactions
-    poll_pending = Column(Boolean, default=False, nullable=False)
+    poll_pending: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Whether to show full date/time for transactions or just the date
-    show_datetime = Column(Boolean, default=True, nullable=False)
+    show_datetime: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     # Whether to create tags using the make_tag function
-    tagging = Column(Boolean, default=True, nullable=False)
+    tagging: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     # Indicates whether transactions should be marked as reviewed after categorization
-    mark_reviewed_after_categorized = Column(Boolean, default=False, nullable=False)
+    mark_reviewed_after_categorized: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # The timezone for displaying dates and times
-    timezone = Column(String, default="UTC", nullable=False)
+    timezone: Mapped[str] = mapped_column(String, default="UTC", nullable=False)
 
     # Indicates whether transactions should be automatically categorized after notes are added
-    auto_categorize_after_notes = Column(Boolean, default=False, nullable=False)
+    auto_categorize_after_notes: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
 
 class Analytics(Base):
     __tablename__ = "analytics"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    key = Column(String, nullable=False)
-    date = Column(DateTime, default=func.now(), nullable=False)
-    value = Column(Float, default=0.0, nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    key: Mapped[str] = mapped_column(String, nullable=False)
+    date: Mapped[datetime] = mapped_column(DateTime, default=func.now(), nullable=False)
+    value: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
 
 
 class Persistence:
@@ -281,7 +281,7 @@ class Persistence:
         with self.Session() as session:
             metric = session.query(Analytics).filter_by(key=key, date=date).first()
             if metric:
-                metric.value += increment
+                metric.value = metric.value + increment
             else:
                 metric = Analytics(key=key, date=date, value=increment)
                 session.add(metric)
@@ -348,7 +348,10 @@ class Persistence:
             return session.query(Settings).filter(Settings.token != "revoked").count()
 
     def get_db_size(self) -> int:
-        return os.path.getsize(self.engine.url.database)
+        db_path = self.engine.url.database
+        if db_path is not None:
+            return os.path.getsize(db_path)
+        return 0
 
     def get_sent_message_count(self) -> int:
         with self.Session() as session:
