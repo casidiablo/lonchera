@@ -189,6 +189,44 @@ async def hide_budget_categories(update: Update, budget: list[BudgetObject], bud
     await query.edit_message_text(text=msg, parse_mode=ParseMode.MARKDOWN, reply_markup=get_bugdet_buttons(budget_date))
 
 
+def _create_progress_bar(spent_already: float, budgeted: float) -> tuple[str, float]:
+    """Create a visual progress bar based on spending percentage."""
+    pct = spent_already * 100 / budgeted
+    blocks = int(pct / 10)
+    empty = MAX_PROGRESS_BAR_BLOCKS - blocks
+    bar = "█" * blocks + "░" * empty
+    extra = ""
+    if blocks > MAX_PROGRESS_BAR_BLOCKS:
+        bar = "█" * MAX_PROGRESS_BAR_BLOCKS
+        extra = "▓" * (blocks - MAX_PROGRESS_BAR_BLOCKS)
+    return f"`[{bar}]{extra}`", pct
+
+
+def _format_transaction_link(budget_item: BudgetObject, budget_data, budget_date: datetime) -> str:
+    """Format transaction link message for budget item."""
+    if budget_data.num_transactions <= 0:
+        return "\n"
+
+    plural = "s" if budget_data.num_transactions > 1 else ""
+    start_date = budget_date.replace(day=1).strftime("%Y-%m-%d")
+    end_date = (budget_date.replace(day=1) + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+    end_date = end_date.strftime("%Y-%m-%d")
+    link = "https://my.lunchmoney.app/transactions"
+    link += (
+        f"?category={budget_item.category_id}&start_date={start_date}&end_date={end_date}&match=all&time=custom"
+    )
+    return f"    [{budget_data.num_transactions} transaction{plural}]({link})\n\n"
+
+
+def _get_filtered_categories(all_budget: list[BudgetObject]) -> list[BudgetObject]:
+    """Extract categories for the budget category buttons."""
+    categories = []
+    for budget_item in all_budget:
+        if budget_item.category_group_name is None and budget_item.category_id is not None:
+            categories.append(budget_item)
+    return categories
+
+
 async def show_bugdget_for_category(
     update: Update,
     all_budget: list[BudgetObject],
@@ -201,8 +239,8 @@ async def show_bugdget_for_category(
     total_spent = 0
     total_income = 0
     total_income_budget = 0
-
     category_group_name = ""
+    budget_currency = ""
 
     # convert datetime to date
     budget_date_key = datetime.date(budget_date)
@@ -215,7 +253,9 @@ async def show_bugdget_for_category(
             continue
 
         category_group_name = budget_item.category_group_name
+        budget_currency = budget_data.budget_currency
 
+        # Track financials
         if budget_item.is_income:
             spent_already = -spent_already
             total_income += spent_already
@@ -224,52 +264,26 @@ async def show_bugdget_for_category(
             total_budget += budgeted
             total_spent += spent_already
 
-        pct = spent_already * 100 / budgeted
-
-        # number of blocks to draw (max 10)
-        blocks = int(pct / 10)
-        empty = MAX_PROGRESS_BAR_BLOCKS - blocks
-        bar = "█" * blocks + "░" * empty
-        extra = ""
-        if blocks > MAX_PROGRESS_BAR_BLOCKS:
-            bar = "█" * MAX_PROGRESS_BAR_BLOCKS
-            extra = "▓" * (blocks - MAX_PROGRESS_BAR_BLOCKS)
-
-        msg += f"`[{bar}]{extra}`\n"
+        # Create progress bar and format item message
+        progress_bar, pct = _create_progress_bar(spent_already, budgeted)
+        msg += f"{progress_bar}\n"
         msg += f"{make_tag(budget_item.category_name, title=True, tagging=tagging)}: `{spent_already:,.1f}` of `{budgeted:,.1f}`"
-        msg += f" {budget_data.budget_currency} (`{pct:,.1f}%`)\n"
+        msg += f" {budget_currency} (`{pct:,.1f}%`)\n"
+        msg += _format_transaction_link(budget_item, budget_data, budget_date)
 
-        # show transactions list
-        if budget_data.num_transactions > 0:
-            plural = ""
-            if budget_data.num_transactions > 1:
-                plural = "s"
-            start_date = budget_date.replace(day=1).strftime("%Y-%m-%d")
-            end_date = (budget_date.replace(day=1) + timedelta(days=32)).replace(day=1) - timedelta(days=1)
-            end_date = end_date.strftime("%Y-%m-%d")
-            link = "https://my.lunchmoney.app/transactions"
-            link += (
-                f"?category={budget_item.category_id}&start_date={start_date}&end_date={end_date}&match=all&time=custom"
-            )
-            msg += f"    [{budget_data.num_transactions} transaction{plural}]({link})\n\n"
-        else:
-            msg += "\n"
-
+    # Format the summary message
     if total_budget > 0 or total_income_budget > 0:
         msg = f"*{category_group_name} budget for {budget_date.strftime('%B %Y')}*\n\n{msg}"
         if total_budget > 0:
             msg += f"*Total spent*: `{total_spent:,.1f}` of `{total_budget:,.1f}`"
-            msg += f" {budget_data.budget_currency} budgeted (`{total_spent * 100 / total_budget:,.1f}%`)\n"
+            msg += f" {budget_currency} budgeted (`{total_spent * 100 / total_budget:,.1f}%`)\n"
         if total_income_budget > 0:
             msg += f"*Total income*: `{total_income:,.1f}` of `{total_income_budget:,.1f}`"
-            msg += f"{budget_data.budget_currency} proyected"
+            msg += f" {budget_currency} proyected"
     else:
         msg = "This category seems to have a global budget, not a per subcategory one"
 
-    categories = []
-    for budget_item in all_budget:
-        if budget_item.category_group_name is None and budget_item.category_id is not None:
-            categories.append(budget_item)
+    categories = _get_filtered_categories(all_budget)
 
     await update.callback_query.edit_message_text(
         text=msg,
