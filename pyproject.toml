@@ -43,17 +43,18 @@ select = [
 ]
 # Same ignores as in your flake8 configuration
 ignore = [
-    "E231",   # Missing whitespace after ','
-    "E203",   # Whitespace before ':'
-    "E221",   # Multiple spaces before operator
-    "E222",   # Multiple spaces after operator
-    "E241",   # Multiple spaces after ','
-    "E402",   # Module level import not at top of file
-    "ISC001", # Implicitly concatenated string literals on one line
-    "W191",   # Indentation contains tabs
-    "E226",   # Missing whitespace around arithmetic operator
-    "RUF001", # String contains ambiguous char
-    "E501",   # Line too long
+    "E231",    # Missing whitespace after ','
+    "E203",    # Whitespace before ':'
+    "E221",    # Multiple spaces before operator
+    "E222",    # Multiple spaces after operator
+    "E241",    # Multiple spaces after ','
+    "E402",    # Module level import not at top of file
+    "ISC001",  # Implicitly concatenated string literals on one line
+    "W191",    # Indentation contains tabs
+    "E226",    # Missing whitespace around arithmetic operator
+    "RUF001",  # String contains ambiguous char
+    "E501",    # Line too long
+    "PLW0603", # Global statement not allowed
 ]
 # Automatically fix errors where possible
 fixable = ["ALL"]

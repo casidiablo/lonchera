@@ -75,15 +75,15 @@ def format_relative_time(seconds):
     )
 
     result = []
+    max_time_components = 2
 
     for name, count in intervals:
         value = seconds // count
         if value:
             seconds -= value * count
-            if value == 1:
-                name = name.rstrip("s")
-            result.append(f"{int(value)} {name}")
-        if len(result) == 2:
+            display_name = name.rstrip("s") if value == 1 else name
+            result.append(f"{int(value)} {display_name}")
+        if len(result) == max_time_components:
             break
 
     if not result:
@@ -95,9 +95,11 @@ def format_relative_time(seconds):
 start_time = time.time()
 
 
+MASKED_TOKEN_MIN_LENGTH = 8
+
 def get_masked_token():
     token = os.getenv("TELEGRAM_BOT_TOKEN", "")
-    if len(token) > 8:
+    if len(token) > MASKED_TOKEN_MIN_LENGTH:
         return f"{token[:4]}..."
     return "not set"
 
@@ -175,7 +177,7 @@ async def handle_manual_tx_endpoint(request):
     lunch = get_lunch_client_for_chat_id(int(chat_id))
     account_options = "<option value=''>Select account...</option>"
     assets = lunch.get_assets()
-    only_accounts = [asset for asset in assets if asset.type_name == "credit" or asset.type_name == "cash"]
+    only_accounts = [asset for asset in assets if asset.type_name in {"credit", "cash"}]
     if only_accounts:
         account_options += "<option disabled>Manually-managed accounts</option>"
         for asset in only_accounts:
