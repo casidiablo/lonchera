@@ -38,7 +38,7 @@ select = [
     "C4",  # flake8-comprehensions
     "TID", # flake8-tidy-imports
     "PIE", # flake8-pie
-    # "PL",  # pylint
+    "PL",  # pylint
     "RUF", # ruff-specific rules
 ]
 # Same ignores as in your flake8 configuration

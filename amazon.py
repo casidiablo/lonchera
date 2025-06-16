@@ -12,9 +12,6 @@ from lunchable import TransactionUpdateObject
 from deepinfra import get_suggested_category_id
 from lunch import get_lunch_client
 
-# Constants
-MAX_NOTE_LENGTH = 350
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("amz")
 
@@ -180,8 +177,8 @@ def process_amazon_transactions(
                     category_id = cat_id
 
             if not dry_run:
-                if len(product_name) > MAX_NOTE_LENGTH:
-                    product_name = product_name[:MAX_NOTE_LENGTH]
+                if len(product_name) > 350:
+                    product_name = product_name[:350]
 
                 logger.info(
                     lunch.update_transaction(a.id, TransactionUpdateObject(notes=product_name, category_id=category_id))

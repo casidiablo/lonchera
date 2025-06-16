@@ -11,6 +11,10 @@ from utils import Keyboard, make_tag
 
 logger = logging.getLogger("messaging")
 
+# Constants
+DECEMBER_MONTH = 12
+MAX_PROGRESS_BAR_BLOCKS = 10
+
 
 def get_bugdet_buttons(current_budget_date: datetime) -> InlineKeyboardMarkup:
     if current_budget_date.month == 1:
@@ -22,7 +26,7 @@ def get_bugdet_buttons(current_budget_date: datetime) -> InlineKeyboardMarkup:
 
     next_month = None
     if current_budget_date < first_day_current_month:
-        if current_budget_date.month == 12:
+        if current_budget_date.month == DECEMBER_MONTH:
             next_month = current_budget_date.replace(month=1, year=current_budget_date.year + 1)
         else:
             next_month = current_budget_date.replace(month=current_budget_date.month + 1)
