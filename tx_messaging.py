@@ -91,20 +91,8 @@ def format_transaction_datetime(transaction: TransactionObject, show_datetime: b
         return transaction.date.strftime("%a, %b %d")
 
 
-async def send_transaction_message(
-    context: ContextTypes.DEFAULT_TYPE,
-    transaction: TransactionObject,
-    chat_id: str | int,
-    message_id: int | None = None,
-    reply_to_message_id: int | None = None,
-) -> int:
-    """Sends a message to the chat_id with the details of a transaction.
-    If message_id is provided, edits the existing"""
-    settings = get_db().get_current_settings(chat_id)
-    # Ensure settings fields are bool, not SQLAlchemy Columns
-    show_datetime = bool(getattr(settings, "show_datetime", True)) if settings else True
-    tagging = bool(getattr(settings, "tagging", True)) if settings else True
-
+def format_transaction_message(transaction: TransactionObject, tagging: bool, show_datetime: bool) -> str:
+    """Format the message string for a transaction."""
     formatted_date_time = format_transaction_datetime(transaction, show_datetime)
 
     recurring = ""
@@ -160,6 +148,24 @@ async def send_transaction_message(
     if transaction.tags:
         tags = [f"{make_tag(tag.name)}" for tag in transaction.tags]
         message += f"*Tags*: {', '.join(tags)}\n"
+
+    return message
+
+async def send_transaction_message(
+    context: ContextTypes.DEFAULT_TYPE,
+    transaction: TransactionObject,
+    chat_id: str | int,
+    message_id: int | None = None,
+    reply_to_message_id: int | None = None,
+) -> int:
+    """Sends a message to the chat_id with the details of a transaction.
+    If message_id is provided, edits the existing"""
+    settings = get_db().get_current_settings(chat_id)
+    # Ensure settings fields are bool, not SQLAlchemy Columns
+    show_datetime = bool(getattr(settings, "show_datetime", True)) if settings else True
+    tagging = bool(getattr(settings, "tagging", True)) if settings else True
+
+    message = format_transaction_message(transaction, tagging, show_datetime)
 
     logger.info(f"Sending message to chat_id {chat_id}: {message}")
     get_db().inc_metric("sent_transaction_messages")
