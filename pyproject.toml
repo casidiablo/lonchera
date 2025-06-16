@@ -14,3 +14,59 @@ dependencies = [
     "requests>=2.32.4",
     "sqlalchemy>=2.0.41",
 ]
+
+[project.optional-dependencies]
+dev = ["ruff>=0.11.13", "pre-commit>=3.7.0"]
+
+[tool.ruff]
+# Line length matching your flake8 configuration
+line-length = 150
+# Target Python version from your project
+target-version = "py313"
+
+[tool.ruff.lint]
+# Enable linter rules
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "N",   # pep8-naming
+    "W",   # pycodestyle warnings
+    "C90", # mccabe complexity
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "TID", # flake8-tidy-imports
+    "PIE", # flake8-pie
+    "PL",  # pylint
+    "RUF", # ruff-specific rules
+]
+# Same ignores as in your flake8 configuration
+ignore = [
+    "E231",   # Missing whitespace after ','
+    "E203",   # Whitespace before ':'
+    "E221",   # Multiple spaces before operator
+    "E222",   # Multiple spaces after operator
+    "E241",   # Multiple spaces after ','
+    "E402",   # Module level import not at top of file
+    "ISC001", # Implicitly concatenated string literals on one line
+    "W191",   # Indentation contains tabs
+    "E226",   # Missing whitespace around arithmetic operator
+]
+# Automatically fix errors where possible
+fixable = ["ALL"]
+# Unused imports will be automatically removed (like pycln)
+unfixable = []
+
+[tool.ruff.lint.isort]
+# Compatibility with formatter
+split-on-trailing-comma = false
+
+[tool.ruff.format]
+# Use double quotes for strings
+quote-style = "double"
+# Indent with 4 spaces
+indent-style = "space"
+line-ending = "auto"
+# Preserve indentation for function parameters
+skip-magic-trailing-comma = true
