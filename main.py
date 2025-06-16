@@ -103,6 +103,7 @@ def add_command_handlers(app):
     app.add_handler(CommandHandler("resync", handle_resync))
     app.add_handler(CommandHandler("balances", handle_show_balances))
 
+
 def add_callback_query_handlers(app):
     app.add_handler(CallbackQueryHandler(handle_settings_menu, pattern=r"^settingsMenu$"))
     app.add_handler(CallbackQueryHandler(handle_schedule_rendering_settings, pattern=r"^scheduleRenderingSettings$"))
@@ -166,7 +167,9 @@ def add_callback_query_handlers(app):
     async def handle_unknown_btn(update: Update, _: ContextTypes.DEFAULT_TYPE):
         query = update.callback_query
         await query.answer(text=f"Unknown command {query.data}", show_alert=True)
+
     app.add_handler(CallbackQueryHandler(handle_unknown_btn))
+
 
 def setup_handlers(config):
     app = Application.builder().token(config["TELEGRAM_BOT_TOKEN"]).build()

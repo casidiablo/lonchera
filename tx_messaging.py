@@ -151,6 +151,7 @@ def format_transaction_message(transaction: TransactionObject, tagging: bool, sh
 
     return message
 
+
 async def send_transaction_message(
     context: ContextTypes.DEFAULT_TYPE,
     transaction: TransactionObject,

@@ -16,7 +16,6 @@ SECONDS_PER_HOUR = 3600
 SECONDS_PER_DAY = 86400
 
 
-
 def get_schedule_rendering_text(chat_id: int) -> str | None:
     settings = get_db().get_current_settings(chat_id)
     if settings is None:

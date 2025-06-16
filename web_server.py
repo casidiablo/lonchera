@@ -97,6 +97,7 @@ start_time = time.time()
 
 MASKED_TOKEN_MIN_LENGTH = 8
 
+
 def get_masked_token():
     token = os.getenv("TELEGRAM_BOT_TOKEN", "")
     if len(token) > MASKED_TOKEN_MIN_LENGTH:

@@ -15,7 +15,6 @@ logger = logging.getLogger("budget_handler")
 DECEMBER_MONTH = 12
 
 
-
 def end_of_month_for(d: datetime) -> datetime:
     # Determine the first day of the next month
     if d.month == DECEMBER_MONTH:  # December

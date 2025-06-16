@@ -110,10 +110,10 @@ def get_accounts_summary_text(
             by_group.setdefault("cryptocurrency", []).append(acct)
 
     txt = ""
-    for acct_type, accts in by_group.items():
+    for acct_type, accounts in by_group.items():
         txt += f"{get_emoji_for_account_type(acct_type)} {make_tag(acct_type, title=True, tagging=tagging)}\n\n"
 
-        for acct in accts:
+        for acct in accounts:
             if isinstance(acct, PlaidAccountObject):
                 txt += get_plaid_account_summary_text(acct, show_details)
             elif isinstance(acct, AssetsObject):
