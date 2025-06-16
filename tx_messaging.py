@@ -71,6 +71,26 @@ def get_tx_buttons(transaction: TransactionObject | int, collapsed=True) -> Inli
     return kbd.build()
 
 
+def format_transaction_datetime(transaction: TransactionObject, show_datetime: bool) -> str:
+    """Format the transaction's date/time string for display."""
+    if transaction.plaid_metadata:
+        authorized_datetime = transaction.plaid_metadata.get("authorized_datetime", None)
+        if authorized_datetime:
+            date_time = datetime.fromisoformat(authorized_datetime.replace("Z", "-02:00"))
+            pst_tz = pytz.timezone("US/Pacific")
+            pst_date_time = date_time.astimezone(pst_tz)
+            if show_datetime:
+                return pst_date_time.strftime("%a, %b %d at %I:%M %p PST")
+            else:
+                return transaction.date.strftime("%a, %b %d")
+        else:
+            return transaction.plaid_metadata.get("date")
+    elif show_datetime:
+        return transaction.date.strftime("%a, %b %d at %I:%M %p")
+    else:
+        return transaction.date.strftime("%a, %b %d")
+
+
 async def send_transaction_message(
     context: ContextTypes.DEFAULT_TYPE,
     transaction: TransactionObject,
@@ -81,26 +101,11 @@ async def send_transaction_message(
     """Sends a message to the chat_id with the details of a transaction.
     If message_id is provided, edits the existing"""
     settings = get_db().get_current_settings(chat_id)
-    show_datetime = settings.show_datetime if settings else True
-    tagging = settings.tagging if settings else True
+    # Ensure settings fields are bool, not SQLAlchemy Columns
+    show_datetime = bool(getattr(settings, "show_datetime", True)) if settings else True
+    tagging = bool(getattr(settings, "tagging", True)) if settings else True
 
-    # Get the datetime from plaid_metadata
-    if transaction.plaid_metadata:
-        authorized_datetime = transaction.plaid_metadata.get("authorized_datetime", None)
-        if authorized_datetime:
-            date_time = datetime.fromisoformat(authorized_datetime.replace("Z", "-02:00"))
-            pst_tz = pytz.timezone("US/Pacific")
-            pst_date_time = date_time.astimezone(pst_tz)
-            if show_datetime:
-                formatted_date_time = pst_date_time.strftime("%a, %b %d at %I:%M %p PST")
-            else:
-                formatted_date_time = transaction.date.strftime("%a, %b %d")
-        else:
-            formatted_date_time = transaction.plaid_metadata.get("date")
-    elif show_datetime:
-        formatted_date_time = transaction.date.strftime("%a, %b %d at %I:%M %p")
-    else:
-        formatted_date_time = transaction.date.strftime("%a, %b %d")
+    formatted_date_time = format_transaction_datetime(transaction, show_datetime)
 
     recurring = ""
     if transaction.recurring_type:

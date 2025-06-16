@@ -195,7 +195,7 @@ class Persistence:
             session.execute(stmt)
             session.commit()
 
-    def get_current_settings(self, chat_id: int) -> Settings:
+    def get_current_settings(self, chat_id: str | int) -> Settings:
         with self.Session() as session:
             settings = session.query(Settings).filter_by(chat_id=chat_id).first()
             if settings is None:
