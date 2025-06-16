@@ -83,7 +83,7 @@ async def handle_manual_tx(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None
 
     # Check for manually managed accounts
     assets = lunch.get_assets()
-    manual_accounts = [asset for asset in assets if asset.type_name == "credit" or asset.type_name == "cash"]
+    manual_accounts = [asset for asset in assets if asset.type_name in {"credit", "cash"}]
 
     if not manual_accounts:
         await update.message.reply_text(

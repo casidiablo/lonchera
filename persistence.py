@@ -315,11 +315,11 @@ class Persistence:
                 .all()
             )
             metrics = {}
-            for key, date, value in results:
-                date = date.replace(hour=0, minute=0, second=0, microsecond=0)
-                if date not in metrics:
-                    metrics[date] = {}
-                metrics[date][key] = value
+            for metric_key, metric_date, value in results:
+                date_key = metric_date.replace(hour=0, minute=0, second=0, microsecond=0)
+                if date_key not in metrics:
+                    metrics[date_key] = {}
+                metrics[date_key][metric_key] = value
             return metrics
 
     def get_specific_metrics(self, key: str, start_date: datetime, end_date: datetime) -> dict:
@@ -336,11 +336,11 @@ class Persistence:
                 .all()
             )
             metrics = {}
-            for key, date, value in results:
-                date = date.replace(hour=0, minute=0, second=0, microsecond=0)
-                if date not in metrics:
-                    metrics[date] = {}
-                metrics[date][key] = value
+            for metric_key, metric_date, value in results:
+                date_key = metric_date.replace(hour=0, minute=0, second=0, microsecond=0)
+                if date_key not in metrics:
+                    metrics[date_key] = {}
+                metrics[date_key][metric_key] = value
             return metrics
 
     def get_user_count(self) -> int:

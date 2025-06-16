@@ -55,6 +55,7 @@ ignore = [
     "RUF001",  # String contains ambiguous char
     "E501",    # Line too long
     "PLW0603", # Global statement not allowed
+    "PLR0913", # Too many arguments in function definition
 ]
 # Automatically fix errors where possible
 fixable = ["ALL"]
