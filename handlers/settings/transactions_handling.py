@@ -35,41 +35,24 @@ def get_transactions_handling_text(chat_id: int) -> str | None:
 
 def get_transactions_handling_buttons(settings: Settings) -> InlineKeyboardMarkup:
     kbd = Keyboard()
-    kbd += (
-        "➊ Auto-mark reviewed?",
-        f"toggleAutoMarkReviewed_{settings.auto_mark_reviewed}",
-    )
-    kbd += (
-        "➋ Mark reviewed after categorization?",
-        "toggleMarkReviewedAfterCategorized",
-    )
-    kbd += (
-        "➌ Auto-categorize after notes?",
-        f"toggleAutoCategorizeAfterNotes_{settings.auto_categorize_after_notes}",
-    )
+    kbd += ("➊ Auto-mark reviewed?", f"toggleAutoMarkReviewed_{settings.auto_mark_reviewed}")
+    kbd += ("➋ Mark reviewed after categorization?", "toggleMarkReviewedAfterCategorized")
+    kbd += ("➌ Auto-categorize after notes?", f"toggleAutoCategorizeAfterNotes_{settings.auto_categorize_after_notes}")
     kbd += ("Back", "settingsMenu")
     return kbd.build()
 
 
-async def handle_transactions_handling_settings(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-):
+async def handle_transactions_handling_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     settings_text = get_transactions_handling_text(update.effective_chat.id)
     settings = get_db().get_current_settings(update.effective_chat.id)
     await update.callback_query.edit_message_text(
-        text=settings_text,
-        reply_markup=get_transactions_handling_buttons(settings),
-        parse_mode=ParseMode.MARKDOWN_V2,
+        text=settings_text, reply_markup=get_transactions_handling_buttons(settings), parse_mode=ParseMode.MARKDOWN_V2
     )
 
 
-async def handle_btn_toggle_auto_mark_reviewed(
-    update: Update, _: ContextTypes.DEFAULT_TYPE
-):
+async def handle_btn_toggle_auto_mark_reviewed(update: Update, _: ContextTypes.DEFAULT_TYPE):
     settings = get_db().get_current_settings(update.effective_chat.id)
-    get_db().update_auto_mark_reviewed(
-        update.effective_chat.id, not settings.auto_mark_reviewed
-    )
+    get_db().update_auto_mark_reviewed(update.effective_chat.id, not settings.auto_mark_reviewed)
 
     await update.callback_query.answer()
     await update.callback_query.edit_message_text(
@@ -79,9 +62,7 @@ async def handle_btn_toggle_auto_mark_reviewed(
     )
 
 
-async def handle_btn_toggle_mark_reviewed_after_categorized(
-    update: Update, _: ContextTypes.DEFAULT_TYPE
-):
+async def handle_btn_toggle_mark_reviewed_after_categorized(update: Update, _: ContextTypes.DEFAULT_TYPE):
     settings = get_db().get_current_settings(update.effective_chat.id)
     get_db().update_mark_reviewed_after_categorized(
         update.effective_chat.id, not settings.mark_reviewed_after_categorized
@@ -95,13 +76,9 @@ async def handle_btn_toggle_mark_reviewed_after_categorized(
     )
 
 
-async def handle_btn_toggle_auto_categorize_after_notes(
-    update: Update, _: ContextTypes.DEFAULT_TYPE
-):
+async def handle_btn_toggle_auto_categorize_after_notes(update: Update, _: ContextTypes.DEFAULT_TYPE):
     settings = get_db().get_current_settings(update.effective_chat.id)
-    get_db().update_auto_categorize_after_notes(
-        update.effective_chat.id, not settings.auto_categorize_after_notes
-    )
+    get_db().update_auto_categorize_after_notes(update.effective_chat.id, not settings.auto_categorize_after_notes)
 
     await update.callback_query.answer()
     await update.callback_query.edit_message_text(

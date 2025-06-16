@@ -14,39 +14,23 @@ logger = logging.getLogger("messaging")
 
 def get_bugdet_buttons(current_budget_date: datetime) -> InlineKeyboardMarkup:
     if current_budget_date.month == 1:
-        previous_month = current_budget_date.replace(
-            month=12, year=current_budget_date.year - 1
-        )
+        previous_month = current_budget_date.replace(month=12, year=current_budget_date.year - 1)
     else:
-        previous_month = current_budget_date.replace(
-            month=current_budget_date.month - 1
-        )
+        previous_month = current_budget_date.replace(month=current_budget_date.month - 1)
 
-    first_day_current_month = datetime.now().replace(
-        day=1, hour=0, minute=0, second=0, microsecond=0
-    )
+    first_day_current_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
     next_month = None
     if current_budget_date < first_day_current_month:
         if current_budget_date.month == 12:
-            next_month = current_budget_date.replace(
-                month=1, year=current_budget_date.year + 1
-            )
+            next_month = current_budget_date.replace(month=1, year=current_budget_date.year + 1)
         else:
-            next_month = current_budget_date.replace(
-                month=current_budget_date.month + 1
-            )
+            next_month = current_budget_date.replace(month=current_budget_date.month + 1)
 
     kbd = Keyboard()
-    kbd += (
-        f"⏮️ {previous_month.strftime('%B %Y')}",
-        f"showBudget_{previous_month.isoformat()}",
-    )
+    kbd += (f"⏮️ {previous_month.strftime('%B %Y')}", f"showBudget_{previous_month.isoformat()}")
     if next_month:
-        kbd += (
-            f"{next_month.strftime('%B %Y')} ⏭️",
-            f"showBudget_{next_month.isoformat()}",
-        )
+        kbd += (f"{next_month.strftime('%B %Y')} ⏭️", f"showBudget_{next_month.isoformat()}")
 
     kbd += ("Details", f"showBudgetCategories_{current_budget_date.isoformat()}")
     kbd += ("Done", "doneBudget")
@@ -54,24 +38,17 @@ def get_bugdet_buttons(current_budget_date: datetime) -> InlineKeyboardMarkup:
     return kbd.build()
 
 
-def get_budget_category_buttons(
-    budget_items: list[BudgetObject], budget_date: datetime
-) -> InlineKeyboardMarkup:
+def get_budget_category_buttons(budget_items: list[BudgetObject], budget_date: datetime) -> InlineKeyboardMarkup:
     kbd = Keyboard()
     for budget_item in budget_items:
-        kbd += (
-            budget_item.category_name,
-            f"showBudgetDetails_{budget_date.isoformat()}_{budget_item.category_id}",
-        )
+        kbd += (budget_item.category_name, f"showBudgetDetails_{budget_date.isoformat()}_{budget_item.category_id}")
 
     kbd += ("Back", f"exitBudgetDetails_{budget_date}")
     kbd += ("Done", "doneBudget")
     return kbd.build(columns=2)
 
 
-def build_budget_message(
-    budget: list[BudgetObject], budget_date: datetime, tagging: bool = True
-):
+def build_budget_message(budget: list[BudgetObject], budget_date: datetime, tagging: bool = True):
     msg = ""
     total_expenses_budget = 0
     total_income_budget = 0
@@ -88,20 +65,14 @@ def build_budget_message(
             _, budget_data = next(iter(budget_item.data.items()))
             if budget_data.budget_to_base is not None:
                 total_budget_per_supercategory[budget_item.group_id] = (
-                    total_budget_per_supercategory.get(budget_item.group_id, 0)
-                    + budget_data.budget_to_base
+                    total_budget_per_supercategory.get(budget_item.group_id, 0) + budget_data.budget_to_base
                 )
             # just use the last one
             if budget_data.budget_currency:
-                budget_currency_per_supercategory[
-                    budget_item.group_id
-                ] = budget_data.budget_currency
+                budget_currency_per_supercategory[budget_item.group_id] = budget_data.budget_currency
 
     for budget_item in budget:
-        if (
-            budget_item.category_group_name is None
-            and budget_item.category_id is not None
-        ):
+        if budget_item.category_group_name is None and budget_item.category_id is not None:
             _, budget_data = next(iter(budget_item.data.items()))
             spending_to_base = budget_data.spending_to_base
             budgeted = total_budget_per_supercategory.get(budget_item.category_id, 0)
@@ -111,9 +82,7 @@ def build_budget_message(
             total_spent += spending_to_base
             if budget_item.is_income:
                 spending_to_base = -spending_to_base
-                print(
-                    f"income before {total_income_budget} + {budgeted} = {total_income_budget + budgeted}"
-                )
+                print(f"income before {total_income_budget} + {budgeted} = {total_income_budget + budgeted}")
                 total_income_budget += budgeted
                 total_income += spending_to_base
             else:
@@ -134,10 +103,7 @@ def build_budget_message(
 
             currency = budget_data.budget_currency
             if currency is None:
-                currency = (
-                    budget_currency_per_supercategory.get(budget_item.category_id)
-                    or "NOCURRENCY"
-                )
+                currency = budget_currency_per_supercategory.get(budget_item.category_id) or "NOCURRENCY"
 
             msg += f"`[{bar}]{extra}`\n"
             msg += f"{cat_name}: `{spending_to_base:,.1f}` of `{budgeted:,.1f}`"
@@ -152,21 +118,17 @@ def build_budget_message(
 
     msg = f"{header}\n\n{msg}"
     msg += f"\n*Total spent*: `{net_spent:,.1f}` of `{total_expenses_budget:,.1f}`"
-    currency = (
-        budget_data.budget_currency.upper() if budget_data.budget_currency else ""
-    )
+    currency = budget_data.budget_currency.upper() if budget_data.budget_currency else ""
     msg += f" {currency} budgeted"
 
     data_from_this_month = budget_date.month == datetime.now().month
 
     if total_spent > 0 and not data_from_this_month:
         msg += f"\n*You saved*: `{-net_spent:,.1f}` of `{total_expenses_budget:,.1f}` budgeted"
-        msg += f" (`{-total_spent*100/total_expenses_budget:,.1f}%`)"
+        msg += f" (`{-total_spent * 100 / total_expenses_budget:,.1f}%`)"
 
     if total_income > 0:
-        msg += (
-            f"\n*Total income*: `{total_income:,.1f}` of `{total_income_budget:,.1f}` "
-        )
+        msg += f"\n*Total income*: `{total_income:,.1f}` of `{total_income_budget:,.1f}` "
         msg += f" {budget_data.budget_currency.upper()} proyected"
 
     return msg
@@ -202,39 +164,25 @@ async def send_budget(
 
 
 async def show_budget_categories(
-    update: Update,
-    _: ContextTypes.DEFAULT_TYPE,
-    budget: list[BudgetObject],
-    budget_date: datetime,
+    update: Update, _: ContextTypes.DEFAULT_TYPE, budget: list[BudgetObject], budget_date: datetime
 ) -> None:
     categories = []
     for budget_item in budget:
-        if (
-            budget_item.category_group_name is None
-            and budget_item.category_id is not None
-        ):
+        if budget_item.category_group_name is None and budget_item.category_id is not None:
             categories.append(budget_item)
 
     query = update.callback_query
     # let the message intact
-    await query.edit_message_reply_markup(
-        reply_markup=get_budget_category_buttons(categories, budget_date)
-    )
+    await query.edit_message_reply_markup(reply_markup=get_budget_category_buttons(categories, budget_date))
 
 
-async def hide_budget_categories(
-    update: Update, budget: list[BudgetObject], budget_date: datetime
-) -> None:
+async def hide_budget_categories(update: Update, budget: list[BudgetObject], budget_date: datetime) -> None:
     settings = get_db().get_current_settings(update.effective_chat.id)
     tagging = settings.tagging if settings else True
 
     msg = build_budget_message(budget, budget_date, tagging=tagging)
     query = update.callback_query
-    await query.edit_message_text(
-        text=msg,
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=get_bugdet_buttons(budget_date),
-    )
+    await query.edit_message_text(text=msg, parse_mode=ParseMode.MARKDOWN, reply_markup=get_bugdet_buttons(budget_date))
 
 
 async def show_bugdget_for_category(
@@ -293,15 +241,13 @@ async def show_bugdget_for_category(
             if budget_data.num_transactions > 1:
                 plural = "s"
             start_date = budget_date.replace(day=1).strftime("%Y-%m-%d")
-            end_date = (budget_date.replace(day=1) + timedelta(days=32)).replace(
-                day=1
-            ) - timedelta(days=1)
+            end_date = (budget_date.replace(day=1) + timedelta(days=32)).replace(day=1) - timedelta(days=1)
             end_date = end_date.strftime("%Y-%m-%d")
             link = "https://my.lunchmoney.app/transactions"
-            link += f"?category={budget_item.category_id}&start_date={start_date}&end_date={end_date}&match=all&time=custom"
-            msg += (
-                f"    [{budget_data.num_transactions} transaction{plural}]({link})\n\n"
+            link += (
+                f"?category={budget_item.category_id}&start_date={start_date}&end_date={end_date}&match=all&time=custom"
             )
+            msg += f"    [{budget_data.num_transactions} transaction{plural}]({link})\n\n"
         else:
             msg += "\n"
 
@@ -309,21 +255,16 @@ async def show_bugdget_for_category(
         msg = f"*{category_group_name} budget for {budget_date.strftime('%B %Y')}*\n\n{msg}"
         if total_budget > 0:
             msg += f"*Total spent*: `{total_spent:,.1f}` of `{total_budget:,.1f}`"
-            msg += f" {budget_data.budget_currency} budgeted (`{total_spent*100/total_budget:,.1f}%`)\n"
+            msg += f" {budget_data.budget_currency} budgeted (`{total_spent * 100 / total_budget:,.1f}%`)\n"
         if total_income_budget > 0:
-            msg += (
-                f"*Total income*: `{total_income:,.1f}` of `{total_income_budget:,.1f}`"
-            )
+            msg += f"*Total income*: `{total_income:,.1f}` of `{total_income_budget:,.1f}`"
             msg += f"{budget_data.budget_currency} proyected"
     else:
         msg = "This category seems to have a global budget, not a per subcategory one"
 
     categories = []
     for budget_item in all_budget:
-        if (
-            budget_item.category_group_name is None
-            and budget_item.category_id is not None
-        ):
+        if budget_item.category_group_name is None and budget_item.category_id is not None:
             categories.append(budget_item)
 
     await update.callback_query.edit_message_text(

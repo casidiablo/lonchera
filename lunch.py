@@ -1,4 +1,3 @@
-
 from lunchable import LunchMoney
 
 from errors import NoLunchTokenError

@@ -41,9 +41,7 @@ async def get_bot_info():
             return bot_info_cache
         try:
             bot_data = await bot_instance.get_me()
-            link = (
-                f'<a href="https://t.me/{bot_data.username}">@{bot_data.username}</a>'
-            )
+            link = f'<a href="https://t.me/{bot_data.username}">@{bot_data.username}</a>'
             bot_info_cache = f"{link} ({bot_data.first_name})"
             return bot_info_cache
         except Exception as e:
@@ -121,20 +119,14 @@ async def handle_root(request):
     version_info = f"version: {version}" if version else ""
 
     commit = os.getenv("COMMIT")
-    commit_link = (
-        f'<a href="https://github.com/casidiablo/lonchera/commit/{commit}">{commit}</a>'
-        if commit
-        else ""
-    )
+    commit_link = f'<a href="https://github.com/casidiablo/lonchera/commit/{commit}">{commit}</a>' if commit else ""
     commit_info = f"commit: {commit_link}" if commit else ""
 
     status_details = ""
     if bot_status.last_error and bot_status.last_error_time:
         time_since_error = datetime.now() - bot_status.last_error_time
         if time_since_error < timedelta(minutes=1):
-            status_details = (
-                f"Last error ({time_since_error.seconds}s ago): {bot_status.last_error}"
-            )
+            status_details = f"Last error ({time_since_error.seconds}s ago): {bot_status.last_error}"
 
     bot_status_text = "running" if application_running() else "crashing"
     bot_token = get_masked_token()
@@ -183,26 +175,18 @@ async def handle_manual_tx_endpoint(request):
     lunch = get_lunch_client_for_chat_id(int(chat_id))
     account_options = "<option value=''>Select account...</option>"
     assets = lunch.get_assets()
-    only_accounts = [
-        asset
-        for asset in assets
-        if asset.type_name == "credit" or asset.type_name == "cash"
-    ]
+    only_accounts = [asset for asset in assets if asset.type_name == "credit" or asset.type_name == "cash"]
     if only_accounts:
         account_options += "<option disabled>Manually-managed accounts</option>"
         for asset in only_accounts:
             balance = f"{asset.balance:,.2f} {asset.currency.upper()}"
-            account_options += (
-                f'<option value="{asset.id}">└ {asset.name} (${balance})</option>'
-            )
+            account_options += f'<option value="{asset.id}">└ {asset.name} (${balance})</option>'
 
     # Generate category options
     categories = lunch.get_categories()
     super_categories = [cat for cat in categories if cat.is_group]
     subcategories = [cat for cat in categories if cat.group_id is not None]
-    standalone_categories = [
-        cat for cat in categories if not cat.is_group and cat.group_id is None
-    ]
+    standalone_categories = [cat for cat in categories if not cat.is_group and cat.group_id is None]
 
     category_options = """
         <option value=''>Select category...</option>
@@ -212,9 +196,7 @@ async def handle_manual_tx_endpoint(request):
         category_options += f"<option disabled>{super_category.name}</option>"
         for subcategory in subcategories:
             if subcategory.group_id == super_category.id:
-                category_options += (
-                    f'<option value="{subcategory.id}">└ {subcategory.name}</option>'
-                )
+                category_options += f'<option value="{subcategory.id}">└ {subcategory.name}</option>'
     for category in standalone_categories:
         category_options += f'<option value="{category.id}">{category.name}</option>'
 
@@ -241,12 +223,8 @@ def application_running():
 def validate_init_data(init_data: str, bot_token: str):
     print("REMOVE", init_data, bot_token)
     vals = {k: unquote(v) for k, v in [s.split("=", 1) for s in init_data.split("&")]}
-    data_check_string = "\n".join(
-        f"{k}={v}" for k, v in sorted(vals.items()) if k != "hash"
-    )
-    secret_key = hmac.new(
-        b"WebAppData", bot_token.encode(), hashlib.sha256
-    ).digest()
+    data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(vals.items()) if k != "hash")
+    secret_key = hmac.new(b"WebAppData", bot_token.encode(), hashlib.sha256).digest()
     h = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256)
     return h.hexdigest() == vals["hash"]
 

@@ -25,9 +25,7 @@ def end_of_month_for(d: datetime) -> datetime:
 def get_default_budget_range() -> tuple[datetime, datetime]:
     """Get the budget for the current month."""
     # get a datetime of the first day of the current month
-    first_day_current_month = datetime.now().replace(
-        day=1, hour=0, minute=0, second=0, microsecond=0
-    )
+    first_day_current_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     # get the end of the month
     end_of_month = end_of_month_for(first_day_current_month)
 
@@ -44,9 +42,7 @@ def get_default_budget(lunch: LunchMoney):
     # get a datetime of the first day of the current month
     first_day_current_month, final_day_current_month = get_default_budget_range()
 
-    return lunch.get_budgets(
-        start_date=first_day_current_month, end_date=final_day_current_month
-    )
+    return lunch.get_budgets(start_date=first_day_current_month, end_date=final_day_current_month)
 
 
 async def handle_show_budget(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -54,9 +50,7 @@ async def handle_show_budget(update: Update, context: ContextTypes.DEFAULT_TYPE)
     message_id = None
     if update.callback_query:
         budget_date = update.callback_query.data.split("_")[1]
-        budget_date, budget_end_date = get_budget_range_from(
-            datetime.fromisoformat(budget_date)
-        )
+        budget_date, budget_end_date = get_budget_range_from(datetime.fromisoformat(budget_date))
         message_id = update.callback_query.message.message_id
     else:
         budget_date, budget_end_date = get_default_budget_range()
@@ -72,9 +66,7 @@ async def handle_show_budget(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await update.message.delete()
 
 
-async def handle_btn_show_budget_categories(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-):
+async def handle_btn_show_budget_categories(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Updates the message to show the budget categories available."""
     budget_date = update.callback_query.data.split("_")[1]
     budget_date = datetime.fromisoformat(budget_date)
@@ -88,9 +80,7 @@ async def handle_btn_show_budget_categories(
     await show_budget_categories(update, context, budget, budget_date)
 
 
-async def handle_btn_hide_budget_categories(
-    update: Update, _: ContextTypes.DEFAULT_TYPE
-):
+async def handle_btn_hide_budget_categories(update: Update, _: ContextTypes.DEFAULT_TYPE):
     """Updates the message to hide the budget categories."""
     budget_date = update.callback_query.data.split("_")[1]
     budget_date = datetime.fromisoformat(budget_date)
@@ -104,9 +94,7 @@ async def handle_btn_hide_budget_categories(
     await hide_budget_categories(update, budget, budget_date)
 
 
-async def handle_btn_show_budget_for_category(
-    update: Update, _: ContextTypes.DEFAULT_TYPE
-):
+async def handle_btn_show_budget_for_category(update: Update, _: ContextTypes.DEFAULT_TYPE):
     """Updates the message to show the budget for a specific category"""
     parts = update.callback_query.data.split("_")
     budget_date = parts[1]
@@ -131,9 +119,7 @@ async def handle_btn_show_budget_for_category(
     tagging = settings.tagging if settings else True
 
     await update.callback_query.answer()
-    await show_bugdget_for_category(
-        update, all_budget, sub_budget, budget_date, tagging
-    )
+    await show_bugdget_for_category(update, all_budget, sub_budget, budget_date, tagging)
 
 
 async def handle_done_budget(update: Update, context: ContextTypes.DEFAULT_TYPE):

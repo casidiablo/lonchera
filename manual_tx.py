@@ -16,9 +16,7 @@ from tx_messaging import send_transaction_message
 logger = logging.getLogger("manual_tx")
 
 
-async def handle_web_app_data(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> bool:
+async def handle_web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     payload = update.effective_message.web_app_data.data
     payload = json.loads(payload)
     if payload["type"] == "manual_tx":
@@ -26,21 +24,15 @@ async def handle_web_app_data(
             await do_save_transaction(update, context, payload)
         except Exception as e:
             logger.error(f"Error saving transaction {payload}: {e}")
-            await context.bot.send_message(
-                chat_id=update.effective_chat.id,
-                text=f"Could not save transaction: {e}",
-            )
+            await context.bot.send_message(chat_id=update.effective_chat.id, text=f"Could not save transaction: {e}")
     else:
         await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text=f"Unknown web app data type: {payload['type']}",
+            chat_id=update.effective_chat.id, text=f"Unknown web app data type: {payload['type']}"
         )
         return
 
 
-async def do_save_transaction(
-    update: Update, context: ContextTypes.DEFAULT_TYPE, tx_data: dict
-):
+async def do_save_transaction(update: Update, context: ContextTypes.DEFAULT_TYPE, tx_data: dict):
     # received money must be sent as negative
     if tx_data["is_received"]:
         tx_data["amount"] = tx_data["amount"] * -1
@@ -49,9 +41,7 @@ async def do_save_transaction(
 
     # get currency for this type of account
     assets = lunch.get_assets()
-    account = next(
-        (asset for asset in assets if asset.id == int(tx_data["account_id"])), None
-    )
+    account = next((asset for asset in assets if asset.id == int(tx_data["account_id"])), None)
     if account:
         tx_data["currency"] = account.currency
 
@@ -76,11 +66,7 @@ async def do_save_transaction(
 
     logger.info(f"Transaction saved: {transaction}")
 
-    msg_id = await send_transaction_message(
-        context,
-        transaction=transaction,
-        chat_id=update.effective_chat.id,
-    )
+    msg_id = await send_transaction_message(context, transaction=transaction, chat_id=update.effective_chat.id)
     get_db().mark_as_sent(
         transaction.id,
         update.effective_chat.id,
@@ -97,11 +83,7 @@ async def handle_manual_tx(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None
 
     # Check for manually managed accounts
     assets = lunch.get_assets()
-    manual_accounts = [
-        asset
-        for asset in assets
-        if asset.type_name == "credit" or asset.type_name == "cash"
-    ]
+    manual_accounts = [asset for asset in assets if asset.type_name == "credit" or asset.type_name == "cash"]
 
     if not manual_accounts:
         await update.message.reply_text(
@@ -134,10 +116,6 @@ async def handle_manual_tx(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None
         parse_mode=ParseMode.MARKDOWN,
         disable_web_page_preview=True,
         reply_markup=ReplyKeyboardMarkup.from_button(
-            button=KeyboardButton(
-                text="Add manual transaction",
-                web_app=web_app,
-            ),
-            one_time_keyboard=True,
+            button=KeyboardButton(text="Add manual transaction", web_app=web_app), one_time_keyboard=True
         ),
     )

@@ -42,19 +42,9 @@ async def handle_session_settings(update: Update, context: ContextTypes.DEFAULT_
     )
 
 
-async def handle_btn_set_token_from_button(
-    update: Update, _: ContextTypes.DEFAULT_TYPE
-):
-    msg = await update.callback_query.edit_message_text(
-        text="Please provide a token to register",
-    )
-    set_expectation(
-        update.effective_chat.id,
-        {
-            "expectation": EXPECTING_TOKEN,
-            "msg_id": msg.message_id,
-        },
-    )
+async def handle_btn_set_token_from_button(update: Update, _: ContextTypes.DEFAULT_TYPE):
+    msg = await update.callback_query.edit_message_text(text="Please provide a token to register")
+    set_expectation(update.effective_chat.id, {"expectation": EXPECTING_TOKEN, "msg_id": msg.message_id})
 
 
 async def handle_logout(update: Update, _: ContextTypes.DEFAULT_TYPE):
@@ -91,15 +81,11 @@ async def handle_logout_cancel(update: Update, _: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.delete_message()
 
 
-async def handle_btn_trigger_plaid_refresh(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-):
+async def handle_btn_trigger_plaid_refresh(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lunch = get_lunch_client_for_chat_id(update.message.chat_id)
     lunch.trigger_fetch_from_plaid()
     await context.bot.set_message_reaction(
-        chat_id=update.message.chat_id,
-        message_id=update.message.message_id,
-        reaction=ReactionEmoji.HANDSHAKE,
+        chat_id=update.message.chat_id, message_id=update.message.message_id, reaction=ReactionEmoji.HANDSHAKE
     )
 
     settings_text = get_session_text(update.effective_chat.id)
@@ -124,12 +110,7 @@ def extract_api_token(input_string: str) -> str:
     return match.group(0) if match else None
 
 
-async def handle_register_token(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-    token_msg: str,
-    hello_msg_id: int,
-):
+async def handle_register_token(update: Update, context: ContextTypes.DEFAULT_TYPE, token_msg: str, hello_msg_id: int):
     # be forgiving and extract the token from the message, if possible
     token = extract_api_token(token_msg)
 
@@ -147,9 +128,7 @@ async def handle_register_token(
         return
 
     # delete the message with the token
-    await context.bot.delete_message(
-        chat_id=update.message.chat_id, message_id=update.message.message_id
-    )
+    await context.bot.delete_message(chat_id=update.message.chat_id, message_id=update.message.message_id)
 
     try:
         # make sure the token is valid
@@ -159,9 +138,7 @@ async def handle_register_token(
 
         clear_expectation(hello_msg_id)
 
-        await context.bot.delete_message(
-            chat_id=update.effective_chat.id, message_id=hello_msg_id
-        )
+        await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=hello_msg_id)
 
         await context.bot.send_message(
             chat_id=update.message.chat_id,

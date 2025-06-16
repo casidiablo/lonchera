@@ -20,7 +20,7 @@ dev = ["ruff>=0.11.13", "pre-commit>=3.7.0"]
 
 [tool.ruff]
 # Line length matching your flake8 configuration
-line-length = 150
+line-length = 120
 # Target Python version from your project
 target-version = "py313"
 
@@ -53,6 +53,7 @@ ignore = [
     "W191",   # Indentation contains tabs
     "E226",   # Missing whitespace around arithmetic operator
     "RUF001", # String contains ambiguous char
+    "E501",   # Line too long
 ]
 # Automatically fix errors where possible
 fixable = ["ALL"]

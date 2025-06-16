@@ -35,12 +35,8 @@ async def handle_resync(update: Update, context: ContextTypes.DEFAULT_TYPE):
         earliest_tx_date = latest_tx_date - timedelta(days=last_n_days)
 
     # get the txs within the bounds
-    logger.info(
-        f"Pulling transactions from lunch for range {earliest_tx_date} - {latest_tx_date}"
-    )
-    lunch_txs = lunch.get_transactions(
-        start_date=earliest_tx_date, end_date=latest_tx_date
-    )
+    logger.info(f"Pulling transactions from lunch for range {earliest_tx_date} - {latest_tx_date}")
+    lunch_txs = lunch.get_transactions(start_date=earliest_tx_date, end_date=latest_tx_date)
 
     # make a lookup map for the txs from lunch
     lunch_txs_map = {tx.id: tx for tx in lunch_txs}
@@ -58,9 +54,7 @@ async def handle_resync(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # for each transaction we must find the message that holds its information
             # and update it to reflect the new information, if any
             try:
-                await send_transaction_message(
-                    context, lunch_tx, chat_id, tx.message_id
-                )
+                await send_transaction_message(context, lunch_tx, chat_id, tx.message_id)
 
                 # update the tx in the db
                 if lunch_tx.status == "cleared":
@@ -68,23 +62,17 @@ async def handle_resync(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 else:
                     get_db().mark_as_unreviewed(tx.message_id, chat_id)
             except Exception as e:
-                logger.error(
-                    f"Error sending transaction message for tx_id {tx.tx_id}: {e}"
-                )
+                logger.error(f"Error sending transaction message for tx_id {tx.tx_id}: {e}")
                 errors += 1
         else:
             try:
                 lunch_tx = lunch.get_transaction(tx.tx_id)
-                await send_transaction_message(
-                    context, lunch_tx, chat_id, tx.message_id
-                )
+                await send_transaction_message(context, lunch_tx, chat_id, tx.message_id)
             except Exception as e:
                 logger.error(f"Error fetching transaction {tx.tx_id}: {e}")
                 missing += 1
 
-    logger.info(
-        f"Resynced {len(chat_txs) - errors - missing} transactions, {errors} errors, {missing} missing"
-    )
+    logger.info(f"Resynced {len(chat_txs) - errors - missing} transactions, {errors} errors, {missing} missing")
     # send a message showing the results
     await context.bot.send_message(
         chat_id=chat_id,

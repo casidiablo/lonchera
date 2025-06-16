@@ -13,9 +13,7 @@ from utils import remove_emojis
 logger = logging.getLogger(__name__)
 
 
-def get_transaction_input_variable(
-    transaction: TransactionObject, override_notes: str | None = None
-) -> str:
+def get_transaction_input_variable(transaction: TransactionObject, override_notes: str | None = None) -> str:
     tx_input_variable = dedent(
         f"""
     Payee: {transaction.payee}
@@ -24,8 +22,8 @@ def get_transaction_input_variable(
     if transaction.plaid_metadata is not None:
         tx_input_variable += dedent(
             f"""
-        merchant_name: {transaction.plaid_metadata['merchant_name']}
-        name: {transaction.plaid_metadata['name']}"""
+        merchant_name: {transaction.plaid_metadata["merchant_name"]}
+        name: {transaction.plaid_metadata["name"]}"""
         )
 
     if transaction.notes or override_notes:
@@ -57,9 +55,7 @@ def get_categories_input_variable(categories: list[CategoriesObject]) -> str:
 
 
 def build_prompt(
-    transaction: TransactionObject,
-    categories: list[CategoriesObject],
-    override_notes: str | None = None,
+    transaction: TransactionObject, categories: list[CategoriesObject], override_notes: str | None = None
 ) -> str:
     logger.info(get_transaction_input_variable(transaction))
     return dedent(
@@ -86,10 +82,7 @@ DO NOT EXPLAIN YOURSELF. JUST RESPOND WITH THE ID or null.
 
 def send_message_to_llm(content):
     url = "https://api.deepinfra.com/v1/openai/chat/completions"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + os.getenv("DEEPINFRA_API_KEY"),
-    }
+    headers = {"Content-Type": "application/json", "Authorization": "Bearer " + os.getenv("DEEPINFRA_API_KEY")}
     data = {
         "model": "meta-llama/Meta-Llama-3.1-405B-Instruct",
         "temperature": 0.0,
@@ -103,12 +96,8 @@ def send_message_to_llm(content):
         response_json = response.json()
         usage = response_json.get("usage", {})
         get_db().inc_metric("deepinfra_prompt_tokens", usage.get("prompt_tokens", 0))
-        get_db().inc_metric(
-            "deepinfra_completion_tokens", usage.get("completion_tokens", 0)
-        )
-        get_db().inc_metric(
-            "deepinfra_estimated_cost", usage.get("estimated_cost", 0.0)
-        )
+        get_db().inc_metric("deepinfra_completion_tokens", usage.get("completion_tokens", 0))
+        get_db().inc_metric("deepinfra_estimated_cost", usage.get("estimated_cost", 0.0))
 
         return response_json["choices"][0]["message"]["content"]
     else:
@@ -130,14 +119,9 @@ def auto_categorize(tx_id: int, chat_id: int) -> str:
             if cat.id == int(category_id):
                 settings = get_db().get_current_settings(chat_id)
                 if settings.mark_reviewed_after_categorized:
-                    lunch.update_transaction(
-                        tx_id,
-                        TransactionUpdateObject(category_id=cat.id, status="cleared"),
-                    )
+                    lunch.update_transaction(tx_id, TransactionUpdateObject(category_id=cat.id, status="cleared"))
                 else:
-                    lunch.update_transaction(
-                        tx_id, TransactionUpdateObject(category_id=cat.id)
-                    )
+                    lunch.update_transaction(tx_id, TransactionUpdateObject(category_id=cat.id))
                 return f"Transaction recategorized to {cat.name}"
 
         return "AI failed to categorize the transaction"

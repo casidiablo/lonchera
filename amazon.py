@@ -24,11 +24,7 @@ def parse_date_time(d: str) -> datetime:
 
 
 def parse_csv_and_filter(
-    file_path: str,
-    target_date: str,
-    target_price: float,
-    target_currency: str,
-    allow_days: int,
+    file_path: str, target_date: str, target_price: float, target_currency: str, allow_days: int
 ) -> dict[str, str]:
     # Convert target_date string to a datetime object
     target_date = datetime.strptime(target_date, "%Y-%m-%d")
@@ -39,9 +35,7 @@ def parse_csv_and_filter(
 
     closest_result = None
     closest_date_diff = timedelta.max
-    order_data = defaultdict(
-        lambda: {"total_owed": 0.0, "currency": "", "product_names": [], "rows": []}
-    )
+    order_data = defaultdict(lambda: {"total_owed": 0.0, "currency": "", "product_names": [], "rows": []})
 
     margin_of_error = 0.5
 
@@ -72,9 +66,7 @@ def parse_csv_and_filter(
             abs(data["total_owed"] - target_price) <= margin_of_error
             and data["currency"].lower() == target_currency.lower()
         ):
-            date_diff = abs(
-                target_date - parse_date_time(data["rows"][0]["Order Date"])
-            )
+            date_diff = abs(target_date - parse_date_time(data["rows"][0]["Order Date"]))
             if date_diff < closest_date_diff:
                 closest_date_diff = date_diff
                 closest_result = {
@@ -88,10 +80,7 @@ def parse_csv_and_filter(
             for row in data["rows"]:
                 total_owed = float(row["Total Owed"].replace(",", ""))
                 currency = row["Currency"]
-                if (
-                    abs(total_owed - target_price) <= margin_of_error
-                    and currency.lower() == target_currency.lower()
-                ):
+                if abs(total_owed - target_price) <= margin_of_error and currency.lower() == target_currency.lower():
                     date_diff = abs(target_date - parse_date_time(row["Order Date"]))
                     if date_diff < closest_date_diff:
                         closest_date_diff = date_diff
@@ -124,10 +113,7 @@ def get_amazon_transactions_summary(file_path: str):
 
     summary.update(date_ranges)
     logger.info(
-        "Found %d transactions from %s to %s",
-        summary["total_transactions"],
-        summary["start_date"],
-        summary["end_date"],
+        "Found %d transactions from %s to %s", summary["total_transactions"], summary["start_date"], summary["end_date"]
     )
     return summary
 
@@ -159,25 +145,15 @@ def process_amazon_transactions(
     start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
     amz = lunch.get_transactions(start_date=start_date, end_date=today)
 
-    logger.info(
-        "Pulled transactions for range %s to %s, got %d transactions",
-        start_date,
-        today,
-        len(amz),
-    )
+    logger.info("Pulled transactions for range %s to %s, got %d transactions", start_date, today, len(amz))
     amz = [a for a in amz if a.payee == "Amazon" and a.amount > 0]
 
     amz_cnt = len(amz)
     found_cnt = 0
     will_update = 0
-    report = {
-        "processed_transactions": amz_cnt,
-        "updates": [],
-    }
+    report = {"processed_transactions": amz_cnt, "updates": []}
     for a in amz:
-        found = parse_csv_and_filter(
-            file_path, a.date.strftime("%Y-%m-%d"), a.amount, a.currency, allow_days
-        )
+        found = parse_csv_and_filter(file_path, a.date.strftime("%Y-%m-%d"), a.amount, a.currency, allow_days)
         if not found:
             a.plaid_metadata = None
             logger.info("🚫 Amazon transaction not found for %s", a)
@@ -185,26 +161,15 @@ def process_amazon_transactions(
 
         found_cnt += 1
         if a.notes is None:
-            logger.info(
-                "Will update tx %s %s %s %s with %s",
-                a.date,
-                a.amount,
-                a.currency,
-                a.notes,
-                found,
-            )
+            logger.info("Will update tx %s %s %s %s with %s", a.date, a.amount, a.currency, a.notes, found)
 
             category_id = a.category_id
             previous_category_name = [c.name for c in categories if c.id == category_id]
-            previous_category_name = (
-                previous_category_name[0] if previous_category_name else None
-            )
+            previous_category_name = previous_category_name[0] if previous_category_name else None
 
             product_name = found["Product Name"]
             if auto_categorize:
-                _, cat_id = get_suggested_category_id(
-                    tx_id=a.id, lunch=lunch, override_notes=product_name
-                )
+                _, cat_id = get_suggested_category_id(tx_id=a.id, lunch=lunch, override_notes=product_name)
                 # make sure the category exists, since LLMs hallucinate
                 if cat_id not in [c.id for c in categories]:
                     category_id = a.category_id  # just leave it as is
@@ -216,12 +181,7 @@ def process_amazon_transactions(
                     product_name = product_name[:350]
 
                 logger.info(
-                    lunch.update_transaction(
-                        a.id,
-                        TransactionUpdateObject(
-                            notes=product_name, category_id=category_id
-                        ),
-                    )
+                    lunch.update_transaction(a.id, TransactionUpdateObject(notes=product_name, category_id=category_id))
                 )
             category_name = [c.name for c in categories if c.id == category_id]
             category_name = category_name[0] if category_name else None
@@ -240,13 +200,7 @@ def process_amazon_transactions(
             )
             will_update += 1
         else:
-            logger.info(
-                "Already has notes for %s %s %s %s",
-                a.date,
-                a.amount,
-                a.currency,
-                a.notes,
-            )
+            logger.info("Already has notes for %s %s %s %s", a.date, a.amount, a.currency, a.notes)
 
     logger.info("Processed %d Amazon transactions", amz_cnt)
     logger.info("Will update %d Amazon transactions out of %d", will_update, found_cnt)
@@ -259,34 +213,19 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process Amazon transactions.")
     parser.add_argument("file_path", type=str, help="Path to the orders CSV file")
     parser.add_argument(
-        "--days-back",
-        type=int,
-        default=365,
-        help="Number of days back to pull transactions (default: 365)",
+        "--days-back", type=int, default=365, help="Number of days back to pull transactions (default: 365)"
     )
     parser.add_argument(
-        "--allow-days",
-        type=int,
-        default=5,
-        help="Number of days threshold for matching against the CSV (default: 5)",
+        "--allow-days", type=int, default=5, help="Number of days threshold for matching against the CSV (default: 5)"
     )
     parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Show transactions to be updated without actually updating",
+        "--dry-run", action="store_true", help="Show transactions to be updated without actually updating"
     )
     parser.add_argument(
-        "--auto-categorize",
-        action="store_true",
-        help="Automatically categorize transactions using AI",
-        default=False,
+        "--auto-categorize", action="store_true", help="Automatically categorize transactions using AI", default=False
     )
     args = parser.parse_args()
     result = process_amazon_transactions(
-        args.file_path,
-        args.days_back,
-        args.dry_run,
-        args.allow_days,
-        args.auto_categorize,
+        args.file_path, args.days_back, args.dry_run, args.allow_days, args.auto_categorize
     )
     print(result)

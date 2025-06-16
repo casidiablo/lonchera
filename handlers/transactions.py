@@ -24,34 +24,23 @@ async def check_posted_transactions_and_telegram_them(
     context: ContextTypes.DEFAULT_TYPE, chat_id: int
 ) -> list[TransactionObject]:
     # get date from 30 days ago
-    two_weeks_ago = datetime.now().replace(
-        hour=0, minute=0, second=0, microsecond=0
-    ) - timedelta(days=30)
+    two_weeks_ago = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=30)
     now = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     logger.info(f"Polling for new transactions from {two_weeks_ago} to {now}...")
 
     lunch = get_lunch_client_for_chat_id(chat_id)
-    transactions = lunch.get_transactions(
-        status="uncleared",
-        pending=False,
-        start_date=two_weeks_ago,
-        end_date=now,
-    )
+    transactions = lunch.get_transactions(status="uncleared", pending=False, start_date=two_weeks_ago, end_date=now)
 
     logger.info(f"Found {len(transactions)} unreviewed transactions for chat {chat_id}")
 
     settings = get_db().get_current_settings(chat_id)
     for transaction in transactions:
         if settings.auto_mark_reviewed:
-            lunch.update_transaction(
-                transaction.id, TransactionUpdateObject(status="cleared")
-            )
+            lunch.update_transaction(transaction.id, TransactionUpdateObject(status="cleared"))
             transaction.status = "cleared"
 
         if get_db().was_already_sent(transaction.id):
-            logger.debug(
-                f"Skipping already sent transaction {transaction.id} in chat {chat_id}"
-            )
+            logger.debug(f"Skipping already sent transaction {transaction.id} in chat {chat_id}")
             continue
 
         # check if the current transaction is related to a previously sent one
@@ -59,46 +48,31 @@ async def check_posted_transactions_and_telegram_them(
         related_tx = find_related_tx(transaction, transactions)
         reply_msg_id = None
         if related_tx:
-            logger.info(
-                f"Found related transaction {related_tx.id} for {transaction.id}"
-            )
-            reply_msg_id = get_db().get_message_id_associated_with(
-                related_tx.id, chat_id
-            )
+            logger.info(f"Found related transaction {related_tx.id} for {transaction.id}")
+            reply_msg_id = get_db().get_message_id_associated_with(related_tx.id, chat_id)
 
-        msg_id = await send_transaction_message(
-            context, transaction, chat_id, reply_to_message_id=reply_msg_id
-        )
+        msg_id = await send_transaction_message(context, transaction, chat_id, reply_to_message_id=reply_msg_id)
         get_db().mark_as_sent(
             transaction.id,
             chat_id,
             msg_id,
             transaction.recurring_type,
-            plaid_id=(
-                transaction.plaid_metadata.get("transaction_id", None)
-                if transaction.plaid_metadata
-                else None
-            ),
+            plaid_id=(transaction.plaid_metadata.get("transaction_id", None) if transaction.plaid_metadata else None),
         )
 
     return transactions
 
 
 async def check_pending_transactions_and_telegram_them(
-    context: ContextTypes.DEFAULT_TYPE,
-    chat_id: int,
+    context: ContextTypes.DEFAULT_TYPE, chat_id: int
 ) -> list[TransactionObject]:
     # get date from 15 days ago
-    two_weeks_ago = datetime.now().replace(
-        hour=0, minute=0, second=0, microsecond=0
-    ) - timedelta(days=15)
+    two_weeks_ago = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=15)
     now = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     logger.info(f"Polling for new transactions from {two_weeks_ago} to {now}...")
 
     lunch = get_lunch_client_for_chat_id(chat_id)
-    transactions = lunch.get_transactions(
-        pending=True, start_date=two_weeks_ago, end_date=now
-    )
+    transactions = lunch.get_transactions(pending=True, start_date=two_weeks_ago, end_date=now)
     logger.info(f"Found {len(transactions)} pending transactions")
     transactions = [tx for tx in transactions if tx.is_pending and tx.notes is None]
 
@@ -115,29 +89,19 @@ async def check_pending_transactions_and_telegram_them(
             msg_id,
             transaction.recurring_type,
             pending=True,
-            plaid_id=(
-                transaction.plaid_metadata.get("transaction_id", None)
-                if transaction.plaid_metadata
-                else None
-            ),
+            plaid_id=(transaction.plaid_metadata.get("transaction_id", None) if transaction.plaid_metadata else None),
         )
 
     return transactions
 
 
-async def handle_check_transactions(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> None:
+async def handle_check_transactions(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     settings = ensure_token(update)
 
     if settings.poll_pending:
-        transactions = await check_pending_transactions_and_telegram_them(
-            context, chat_id=update.effective_chat.id
-        )
+        transactions = await check_pending_transactions_and_telegram_them(context, chat_id=update.effective_chat.id)
     else:
-        transactions = await check_posted_transactions_and_telegram_them(
-            context, chat_id=update.message.chat_id
-        )
+        transactions = await check_posted_transactions_and_telegram_them(context, chat_id=update.message.chat_id)
 
     get_db().update_last_poll_at(update.effective_chat.id, datetime.now().isoformat())
 
@@ -146,13 +110,8 @@ async def handle_check_transactions(
         return
 
 
-async def check_pending_transactions(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> None:
-    transactions = await check_pending_transactions_and_telegram_them(
-        context,
-        chat_id=update.effective_chat.id,
-    )
+async def check_pending_transactions(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    transactions = await check_pending_transactions_and_telegram_them(context, chat_id=update.effective_chat.id)
 
     if not transactions:
         await update.message.reply_text("No pending transactions found.")
@@ -161,23 +120,18 @@ async def check_pending_transactions(
 async def handle_btn_skip_transaction(update: Update, _: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.edit_message_reply_markup(reply_markup=None)
     await update.callback_query.answer(
-        text="Transaction was left intact. You must review it manually from lunchmoney.app",
-        show_alert=True,
+        text="Transaction was left intact. You must review it manually from lunchmoney.app", show_alert=True
     )
 
 
 async def handle_btn_collapse_transaction(update: Update, _: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.edit_message_reply_markup(
-        reply_markup=get_tx_buttons(
-            int(update.callback_query.data.split("_")[1]), collapsed=True
-        )
+        reply_markup=get_tx_buttons(int(update.callback_query.data.split("_")[1]), collapsed=True)
     )
     await update.callback_query.answer()
 
 
-async def handle_btn_cancel_categorization(
-    update: Update, _: ContextTypes.DEFAULT_TYPE
-):
+async def handle_btn_cancel_categorization(update: Update, _: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     transaction_id = int(query.data.split("_")[1])
     await query.edit_message_reply_markup(reply_markup=get_tx_buttons(transaction_id))
@@ -196,10 +150,7 @@ async def handle_btn_show_categories(update: Update, _: ContextTypes.DEFAULT_TYP
     for category in categories:
         if category.group_id is None:
             if category.children:
-                kbd += (
-                    f"📂 {category.name}",
-                    f"subcategorize_{transaction_id}_{category.id}",
-                )
+                kbd += (f"📂 {category.name}", f"subcategorize_{transaction_id}_{category.id}")
             else:
                 kbd += (category.name, f"applyCategory_{transaction_id}_{category.id}")
 
@@ -220,10 +171,7 @@ async def handle_btn_show_subcategories(update: Update, _: ContextTypes.DEFAULT_
     kbd = Keyboard()
     for subcategory in subcategories:
         if str(subcategory.group_id) == str(category_id):
-            kbd += (
-                subcategory.name,
-                f"applyCategory_{transaction_id}_{subcategory.id}",
-            )
+            kbd += (subcategory.name, f"applyCategory_{transaction_id}_{subcategory.id}")
     kbd += ("Cancel", f"cancelCategorization_{transaction_id}")
 
     await query.edit_message_reply_markup(reply_markup=kbd.build(columns=2))
@@ -240,28 +188,18 @@ async def handle_btn_apply_category(update: Update, context: ContextTypes.DEFAUL
 
     settings = get_db().get_current_settings(chat_id)
     if settings.mark_reviewed_after_categorized:
-        lunch.update_transaction(
-            transaction_id,
-            TransactionUpdateObject(category_id=category_id, status="cleared"),
-        )
+        lunch.update_transaction(transaction_id, TransactionUpdateObject(category_id=category_id, status="cleared"))
         get_db().mark_as_reviewed(query.message.message_id, chat_id)
     else:
-        lunch.update_transaction(
-            transaction_id,
-            TransactionUpdateObject(category_id=category_id),
-        )
+        lunch.update_transaction(transaction_id, TransactionUpdateObject(category_id=category_id))
     logger.info(f"Changed category for tx {transaction_id} to {category_id}")
 
     updated_transaction = lunch.get_transaction(transaction_id)
-    await send_transaction_message(
-        context, updated_transaction, chat_id, query.message.message_id
-    )
+    await send_transaction_message(context, updated_transaction, chat_id, query.message.message_id)
     await query.answer()
 
 
-async def handle_btn_dump_plaid_details(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-):
+async def handle_btn_dump_plaid_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Sends a new message with the plaid metadata of the transaction."""
     query = update.callback_query
     transaction_id = int(query.data.split("_")[1])
@@ -281,37 +219,27 @@ async def handle_btn_dump_plaid_details(
     await send_plaid_details(query, context, chat_id, transaction_id, plaid_details)
 
 
-async def handle_btn_mark_tx_as_reviewed(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-):
+async def handle_btn_mark_tx_as_reviewed(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Updates the transaction status to reviewed."""
     query = update.callback_query
     chat_id = query.message.chat.id
     lunch = get_lunch_client_for_chat_id(chat_id)
     transaction_id = int(query.data.split("_")[1])
     try:
-        lunch.update_transaction(
-            transaction_id, TransactionUpdateObject(status="cleared")
-        )
+        lunch.update_transaction(transaction_id, TransactionUpdateObject(status="cleared"))
 
         # update message to show the right buttons
         updated_tx = lunch.get_transaction(transaction_id)
         msg_id = get_db().get_message_id_associated_with(transaction_id, chat_id)
-        await send_transaction_message(
-            context, transaction=updated_tx, chat_id=chat_id, message_id=msg_id
-        )
+        await send_transaction_message(context, transaction=updated_tx, chat_id=chat_id, message_id=msg_id)
 
         get_db().mark_as_reviewed(query.message.message_id, chat_id)
         await query.answer()
     except Exception as e:
-        await query.answer(
-            text=f"Error marking transaction as reviewed: {e!s}", show_alert=True
-        )
+        await query.answer(text=f"Error marking transaction as reviewed: {e!s}", show_alert=True)
 
 
-async def handle_btn_mark_tx_as_unreviewed(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-):
+async def handle_btn_mark_tx_as_unreviewed(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Updates the transaction status to unreviewed."""
     query = update.callback_query
     chat_id = query.message.chat.id
@@ -319,29 +247,20 @@ async def handle_btn_mark_tx_as_unreviewed(
     transaction_id = int(query.data.split("_")[1])
     try:
         logger.info(f"Marking transaction {transaction_id} as unreviewed")
-        lunch.update_transaction(
-            transaction_id, TransactionUpdateObject(status="uncleared")
-        )
+        lunch.update_transaction(transaction_id, TransactionUpdateObject(status="uncleared"))
 
         # update message to show the right buttons
         updated_tx = lunch.get_transaction(transaction_id)
         msg_id = get_db().get_message_id_associated_with(transaction_id, chat_id)
-        await send_transaction_message(
-            context, transaction=updated_tx, chat_id=chat_id, message_id=msg_id
-        )
+        await send_transaction_message(context, transaction=updated_tx, chat_id=chat_id, message_id=msg_id)
 
         get_db().mark_as_unreviewed(query.message.message_id, chat_id)
         await query.answer()
     except Exception as e:
-        await query.answer(
-            text=f"Error marking transaction as reviewed: {e!s}", show_alert=True
-        )
+        await query.answer(text=f"Error marking transaction as reviewed: {e!s}", show_alert=True)
 
 
-async def handle_set_tx_notes_or_tags(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-):
+async def handle_set_tx_notes_or_tags(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Updates the transaction notes."""
     handled = await handle_generic_message(update, context)
     if handled:
@@ -372,13 +291,9 @@ async def handle_set_tx_notes_or_tags(
 
     lunch = get_lunch_client_for_chat_id(update.message.chat_id)
     if message_are_tags:
-        tags_without_hashtag = [
-            tag[1:] for tag in msg_text.split(" ") if tag.startswith("#")
-        ]
+        tags_without_hashtag = [tag[1:] for tag in msg_text.split(" ") if tag.startswith("#")]
         logger.info(f"Setting tags to transaction ({tx_id}): {tags_without_hashtag}")
-        lunch.update_transaction(
-            tx_id, TransactionUpdateObject(tags=tags_without_hashtag)
-        )
+        lunch.update_transaction(tx_id, TransactionUpdateObject(tags=tags_without_hashtag))
     else:
         notes = msg_text
         if len(notes) > 350:
@@ -389,10 +304,7 @@ async def handle_set_tx_notes_or_tags(
     # update the transaction message to show the new notes
     updated_tx = lunch.get_transaction(tx_id)
     await send_transaction_message(
-        context,
-        transaction=updated_tx,
-        chat_id=update.message.chat_id,
-        message_id=replying_to_msg_id,
+        context, transaction=updated_tx, chat_id=update.message.chat_id, message_id=replying_to_msg_id
     )
 
     settings = get_db().get_current_settings(update.message.chat_id)
@@ -400,9 +312,7 @@ async def handle_set_tx_notes_or_tags(
         await ai_categorize_transaction(tx_id, update.message.chat_id, context)
 
     await context.bot.set_message_reaction(
-        chat_id=update.message.chat_id,
-        message_id=update.message.message_id,
-        reaction=ReactionEmoji.WRITING_HAND,
+        chat_id=update.message.chat_id, message_id=update.message.message_id, reaction=ReactionEmoji.WRITING_HAND
     )
 
 
@@ -412,19 +322,13 @@ async def handle_btn_ai_categorize(update: Update, context: ContextTypes.DEFAULT
 
     chat_id = query.message.chat.id
     response = auto_categorize(tx_id, chat_id)
-    await update.callback_query.answer(
-        text=response,
-        show_alert=True,
-    )
+    await update.callback_query.answer(text=response, show_alert=True)
 
     # update the transaction message to show the new notes
     lunch = get_lunch_client_for_chat_id(chat_id)
     updated_tx = lunch.get_transaction(tx_id)
     await send_transaction_message(
-        context,
-        transaction=updated_tx,
-        chat_id=chat_id,
-        message_id=update.callback_query.message.message_id,
+        context, transaction=updated_tx, chat_id=chat_id, message_id=update.callback_query.message.message_id
     )
 
 
@@ -464,14 +368,10 @@ async def poll_transactions_on_schedule(context: ContextTypes.DEFAULT_TYPE):
 
         if should_poll:
             if settings.poll_pending:
-                await check_pending_transactions_and_telegram_them(
-                    context, chat_id=chat_id
-                )
+                await check_pending_transactions_and_telegram_them(context, chat_id=chat_id)
             else:
                 try:
-                    await check_posted_transactions_and_telegram_them(
-                        context, chat_id=chat_id
-                    )
+                    await check_posted_transactions_and_telegram_them(context, chat_id=chat_id)
                 except Exception as e:
                     # check if the error message is lunchable.exceptions.LunchMoneyHTTPError
                     # and the message is: Access token does not exist, which means the user
@@ -489,9 +389,7 @@ async def handle_expand_tx_options(update: Update, _: ContextTypes.DEFAULT_TYPE)
     transaction_id = int(update.callback_query.data.split("_")[1])
     logger.info("Expanding transaction options for tx %s", transaction_id)
     await update.callback_query.answer()
-    await update.callback_query.edit_message_reply_markup(
-        reply_markup=get_tx_buttons(transaction_id, collapsed=False)
-    )
+    await update.callback_query.edit_message_reply_markup(reply_markup=get_tx_buttons(transaction_id, collapsed=False))
 
 
 async def handle_rename_payee(update: Update, context: ContextTypes.DEFAULT_TYPE):

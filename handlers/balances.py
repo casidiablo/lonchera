@@ -1,4 +1,3 @@
-
 from lunchable.models import AssetsObject, CryptoObject, PlaidAccountObject
 from telegram import InlineKeyboardMarkup, Update
 from telegram.constants import ParseMode
@@ -40,28 +39,16 @@ def get_accounts_buttons(current_mask: int) -> InlineKeyboardMarkup:
 
     # Toggle the state of each button's corresponding bit in the mask
     show_balances_mask = current_mask ^ SHOW_BALANCES
-    kbd += (
-        f"{emoji_for_field(SHOW_BALANCES)} Show accounts",
-        f"accountsBalances_{show_balances_mask}",
-    )
+    kbd += (f"{emoji_for_field(SHOW_BALANCES)} Show accounts", f"accountsBalances_{show_balances_mask}")
 
     show_assets_mask = current_mask ^ SHOW_ASSETS
-    kbd += (
-        f"{emoji_for_field(SHOW_ASSETS)} Show assets",
-        f"accountsBalances_{show_assets_mask}",
-    )
+    kbd += (f"{emoji_for_field(SHOW_ASSETS)} Show assets", f"accountsBalances_{show_assets_mask}")
 
     show_crypto_mask = current_mask ^ SHOW_CRYPTO
-    kbd += (
-        f"{emoji_for_field(SHOW_CRYPTO)} Show crypto",
-        f"accountsBalances_{show_crypto_mask}",
-    )
+    kbd += (f"{emoji_for_field(SHOW_CRYPTO)} Show crypto", f"accountsBalances_{show_crypto_mask}")
 
     show_details_mask = current_mask ^ SHOW_DETAILS
-    kbd += (
-        f"{emoji_for_field(SHOW_DETAILS)}  Show details",
-        f"accountsBalances_{show_details_mask}",
-    )
+    kbd += (f"{emoji_for_field(SHOW_DETAILS)}  Show details", f"accountsBalances_{show_details_mask}")
 
     kbd += ("Done", "doneBalances")
 
@@ -72,9 +59,7 @@ def get_plaid_account_summary_text(acct: PlaidAccountObject, show_details: bool)
     """Returns a message with the accounts and their balances."""
     if show_details:
         institution = ""
-        if acct.institution_name and acct.institution_name != (
-            acct.display_name or acct.name
-        ):
+        if acct.institution_name and acct.institution_name != (acct.display_name or acct.name):
             institution = f" (_{acct.institution_name}_)"
         txt = f"*{acct.display_name or acct.name}* {institution}\n"
         txt += f"Balance: `${acct.balance:,.2f}` {acct.currency.upper()}"
@@ -92,16 +77,11 @@ def get_asset_summary_text(asset: AssetsObject, show_details: bool) -> str:
     """Returns a message with the assets and their balances."""
     if show_details:
         institution = ""
-        if asset.institution_name and asset.institution_name != (
-            asset.display_name or asset.name
-        ):
+        if asset.institution_name and asset.institution_name != (asset.display_name or asset.name):
             institution = f" (_{asset.institution_name}_)"
         txt = f"*{asset.display_name or asset.name}* {institution}\n"
         txt += f"Balance: `${asset.balance:,.2f}` {asset.currency.upper()}\n"
-        return (
-            txt
-            + f"Last update: {asset.balance_as_of.strftime('%a, %b %d at %I:%M %p')}\n\n"
-        )
+        return txt + f"Last update: {asset.balance_as_of.strftime('%a, %b %d at %I:%M %p')}\n\n"
     else:
         return f" • *{asset.display_name or asset.name}*: `${asset.balance:,.2f}` {asset.currency.upper()}\n"
 
@@ -117,9 +97,7 @@ def get_crypto_summary_text(acct: CryptoObject, show_details: bool) -> str:
 
 
 def get_accounts_summary_text(
-    accts: list[PlaidAccountObject | AssetsObject | CryptoObject],
-    show_details: bool,
-    tagging: bool = True,
+    accts: list[PlaidAccountObject | AssetsObject | CryptoObject], show_details: bool, tagging: bool = True
 ) -> str:
     """Returns a message with the accounts and their balances."""
     by_group = {}
@@ -148,10 +126,7 @@ def get_accounts_summary_text(
 
 
 async def handle_show_balances(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-    mask: int = SHOW_BALANCES,
-    message_id: int | None = None,
+    update: Update, context: ContextTypes.DEFAULT_TYPE, mask: int = SHOW_BALANCES, message_id: int | None = None
 ):
     """Shows all the Plaid accounts and its balances to the user."""
     lunch = get_lunch_client_for_chat_id(update.effective_chat.id)
@@ -169,9 +144,7 @@ async def handle_show_balances(
     settings = get_db().get_current_settings(update.effective_chat.id)
     tagging = settings.tagging if settings else True
 
-    msg = get_accounts_summary_text(
-        all_accounts, is_show_details(mask), tagging=tagging
-    )
+    msg = get_accounts_summary_text(all_accounts, is_show_details(mask), tagging=tagging)
 
     if message_id:
         await context.bot.edit_message_text(
@@ -193,22 +166,14 @@ async def handle_show_balances(
         await update.message.delete()
 
 
-async def handle_btn_accounts_balances(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-):
+async def handle_btn_accounts_balances(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handles the button press to show the balances of the accounts."""
     mask = int(update.callback_query.data.split("_")[1])
-    if (
-        not is_show_balances(mask)
-        and not is_show_assets(mask)
-        and not is_show_crypto(mask)
-    ):
+    if not is_show_balances(mask) and not is_show_assets(mask) and not is_show_crypto(mask):
         # do not allow to hide all of them
         return await update.callback_query.answer()
 
-    await handle_show_balances(
-        update, context, mask=mask, message_id=update.callback_query.message.message_id
-    )
+    await handle_show_balances(update, context, mask=mask, message_id=update.callback_query.message.message_id)
 
 
 async def handle_done_balances(update: Update, context: ContextTypes.DEFAULT_TYPE):

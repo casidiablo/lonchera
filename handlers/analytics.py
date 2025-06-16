@@ -65,9 +65,7 @@ async def handle_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message += "No analytics data available for this week."
 
     await update.message.reply_text(
-        text=message,
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=Keyboard.build_from(("Close", "cancel")),
+        text=message, parse_mode=ParseMode.MARKDOWN, reply_markup=Keyboard.build_from(("Close", "cancel"))
     )
 
 
@@ -89,7 +87,4 @@ async def handle_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Messages sent: {sent_message_count}\n"
     )
 
-    await update.message.reply_text(
-        text=message,
-        reply_markup=Keyboard.build_from(("Close", "cancel")),
-    )
+    await update.message.reply_text(text=message, reply_markup=Keyboard.build_from(("Close", "cancel")))

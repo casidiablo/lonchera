@@ -15,10 +15,7 @@ from utils import Keyboard, clean_md, make_tag
 logger = logging.getLogger("messaging")
 
 
-def get_tx_buttons(
-    transaction: TransactionObject | int,
-    collapsed=True,
-) -> InlineKeyboardMarkup:
+def get_tx_buttons(transaction: TransactionObject | int, collapsed=True) -> InlineKeyboardMarkup:
     """Returns a list of buttons to be displayed for a transaction."""
     # if transaction is an int, it's a transaction_id
     if isinstance(transaction, int):
@@ -89,19 +86,13 @@ async def send_transaction_message(
 
     # Get the datetime from plaid_metadata
     if transaction.plaid_metadata:
-        authorized_datetime = transaction.plaid_metadata.get(
-            "authorized_datetime", None
-        )
+        authorized_datetime = transaction.plaid_metadata.get("authorized_datetime", None)
         if authorized_datetime:
-            date_time = datetime.fromisoformat(
-                authorized_datetime.replace("Z", "-02:00")
-            )
+            date_time = datetime.fromisoformat(authorized_datetime.replace("Z", "-02:00"))
             pst_tz = pytz.timezone("US/Pacific")
             pst_date_time = date_time.astimezone(pst_tz)
             if show_datetime:
-                formatted_date_time = pst_date_time.strftime(
-                    "%a, %b %d at %I:%M %p PST"
-                )
+                formatted_date_time = pst_date_time.strftime("%a, %b %d at %I:%M %p PST")
             else:
                 formatted_date_time = transaction.date.strftime("%a, %b %d")
         else:
@@ -128,9 +119,9 @@ async def send_transaction_message(
 
     is_reviewed = transaction.status == "cleared"
     if is_reviewed:
-        reviewed_watermark = "\u200B"
+        reviewed_watermark = "\u200b"
     else:
-        reviewed_watermark = "\u200C"
+        reviewed_watermark = "\u200c"
 
     message = f"*{clean_md(transaction.payee)}* {reviewed_watermark} {recurring} {split_transaction}\n\n"
     message += f"*Amount*: `{explicit_sign}{abs(transaction.amount):,.2f}` `{transaction.currency.upper()}`\n"
@@ -139,21 +130,15 @@ async def send_transaction_message(
     # Get category and category group
     category_group = transaction.category_group_name
     if category_group is not None:
-        category_group = make_tag(
-            category_group, title=True, tagging=tagging, no_emojis=True
-        )
+        category_group = make_tag(category_group, title=True, tagging=tagging, no_emojis=True)
         category_group = f"{category_group} / "
     else:
         category_group = ""
 
     category_name = transaction.category_name or "Uncategorized"
-    message += (
-        f"*Category*: {category_group}{make_tag(category_name, tagging=tagging)} \n"
-    )
+    message += f"*Category*: {category_group}{make_tag(category_name, tagging=tagging)} \n"
 
-    acct_name = (
-        transaction.plaid_account_display_name or transaction.account_display_name
-    )
+    acct_name = transaction.plaid_account_display_name or transaction.account_display_name
 
     asset_name = ""
     if (acct_name is None or acct_name == "") and transaction.asset_institution_name:
@@ -201,18 +186,11 @@ async def send_transaction_message(
 
 
 async def send_plaid_details(
-    query: CallbackQuery,
-    context: ContextTypes.DEFAULT_TYPE,
-    chat_id: int,
-    transaction_id: int,
-    plaid_details: str,
+    query: CallbackQuery, context: ContextTypes.DEFAULT_TYPE, chat_id: int, transaction_id: int, plaid_details: str
 ):
     """Sends the plaid details of a transaction to the chat_id."""
     await context.bot.send_message(
-        chat_id=chat_id,
-        text=plaid_details,
-        parse_mode=ParseMode.MARKDOWN,
-        reply_to_message_id=query.message.message_id,
+        chat_id=chat_id, text=plaid_details, parse_mode=ParseMode.MARKDOWN, reply_to_message_id=query.message.message_id
     )
 
     lunch = get_lunch_client_for_chat_id(chat_id)

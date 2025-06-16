@@ -101,9 +101,7 @@ class Persistence:
 
     def save_token(self, chat_id: int, token: str):
         with self.Session() as session:
-            stmt = (
-                update(Settings).where(Settings.chat_id == chat_id).values(token=token)
-            )
+            stmt = update(Settings).where(Settings.chat_id == chat_id).values(token=token)
             result = session.execute(stmt)
             if result.rowcount == 0:
                 new_setting = Settings(chat_id=chat_id, token=token)
@@ -121,12 +119,7 @@ class Persistence:
 
     def was_already_sent(self, tx_id: int, pending: bool = False) -> bool:
         with self.Session() as session:
-            return (
-                session.query(Transaction.message_id)
-                .filter_by(tx_id=tx_id, pending=pending)
-                .first()
-                is not None
-            )
+            return session.query(Transaction.message_id).filter_by(tx_id=tx_id, pending=pending).first() is not None
 
     def mark_as_sent(
         self,
@@ -154,11 +147,7 @@ class Persistence:
 
     def get_tx_associated_with(self, message_id: int, chat_id: int) -> int | None:
         with self.Session() as session:
-            transaction = (
-                session.query(Transaction.tx_id)
-                .filter_by(message_id=message_id, chat_id=chat_id)
-                .first()
-            )
+            transaction = session.query(Transaction.tx_id).filter_by(message_id=message_id, chat_id=chat_id).first()
             return transaction.tx_id if transaction else None
 
     def get_tx_by_id(self, tx_id: int) -> Transaction | None:
@@ -190,10 +179,7 @@ class Persistence:
         with self.Session() as session:
             stmt = (
                 update(Transaction)
-                .where(
-                    (Transaction.message_id == message_id)
-                    & (Transaction.chat_id == chat_id)
-                )
+                .where((Transaction.message_id == message_id) & (Transaction.chat_id == chat_id))
                 .values(reviewed_at=datetime.now())
             )
             session.execute(stmt)
@@ -203,10 +189,7 @@ class Persistence:
         with self.Session() as session:
             stmt = (
                 update(Transaction)
-                .where(
-                    (Transaction.message_id == message_id)
-                    & (Transaction.chat_id == chat_id)
-                )
+                .where((Transaction.message_id == message_id) & (Transaction.chat_id == chat_id))
                 .values(reviewed_at=None)
             )
             session.execute(stmt)
@@ -221,11 +204,7 @@ class Persistence:
 
     def update_poll_interval(self, chat_id: int, interval: int) -> None:
         with self.Session() as session:
-            stmt = (
-                update(Settings)
-                .where(Settings.chat_id == chat_id)
-                .values(poll_interval_secs=interval)
-            )
+            stmt = update(Settings).where(Settings.chat_id == chat_id).values(poll_interval_secs=interval)
             session.execute(stmt)
             session.commit()
 
@@ -247,85 +226,53 @@ class Persistence:
 
     def update_auto_mark_reviewed(self, chat_id: int, auto_mark_reviewed: bool) -> None:
         with self.Session() as session:
-            stmt = (
-                update(Settings)
-                .where(Settings.chat_id == chat_id)
-                .values(auto_mark_reviewed=auto_mark_reviewed)
-            )
+            stmt = update(Settings).where(Settings.chat_id == chat_id).values(auto_mark_reviewed=auto_mark_reviewed)
             session.execute(stmt)
             session.commit()
 
     def update_poll_pending(self, chat_id: int, poll_pending: bool) -> None:
         with self.Session() as session:
-            stmt = (
-                update(Settings)
-                .where(Settings.chat_id == chat_id)
-                .values(poll_pending=poll_pending)
-            )
+            stmt = update(Settings).where(Settings.chat_id == chat_id).values(poll_pending=poll_pending)
             session.execute(stmt)
             session.commit()
 
     def update_show_datetime(self, chat_id: int, show_datetime: bool) -> None:
         with self.Session() as session:
-            stmt = (
-                update(Settings)
-                .where(Settings.chat_id == chat_id)
-                .values(show_datetime=show_datetime)
-            )
+            stmt = update(Settings).where(Settings.chat_id == chat_id).values(show_datetime=show_datetime)
             session.execute(stmt)
             session.commit()
 
     def update_tagging(self, chat_id: int, tagging: bool) -> None:
         with self.Session() as session:
-            stmt = (
-                update(Settings)
-                .where(Settings.chat_id == chat_id)
-                .values(tagging=tagging)
-            )
+            stmt = update(Settings).where(Settings.chat_id == chat_id).values(tagging=tagging)
             session.execute(stmt)
             session.commit()
 
     def update_mark_reviewed_after_categorized(self, chat_id: int, value: bool) -> None:
         with self.Session() as session:
-            stmt = (
-                update(Settings)
-                .where(Settings.chat_id == chat_id)
-                .values(mark_reviewed_after_categorized=value)
-            )
+            stmt = update(Settings).where(Settings.chat_id == chat_id).values(mark_reviewed_after_categorized=value)
             session.execute(stmt)
             session.commit()
 
     def update_timezone(self, chat_id: int, timezone: str) -> None:
         with self.Session() as session:
-            stmt = (
-                update(Settings)
-                .where(Settings.chat_id == chat_id)
-                .values(timezone=timezone)
-            )
+            stmt = update(Settings).where(Settings.chat_id == chat_id).values(timezone=timezone)
             session.execute(stmt)
             session.commit()
 
     def update_auto_categorize_after_notes(self, chat_id: int, value: bool) -> None:
         with self.Session() as session:
-            stmt = (
-                update(Settings)
-                .where(Settings.chat_id == chat_id)
-                .values(auto_categorize_after_notes=value)
-            )
+            stmt = update(Settings).where(Settings.chat_id == chat_id).values(auto_categorize_after_notes=value)
             session.execute(stmt)
             session.commit()
 
     def set_api_token(self, chat_id: int, token: str | None) -> None:
         with self.Session() as session:
-            stmt = (
-                update(Settings).where(Settings.chat_id == chat_id).values(token=token)
-            )
+            stmt = update(Settings).where(Settings.chat_id == chat_id).values(token=token)
             session.execute(stmt)
             session.commit()
 
-    def inc_metric(
-        self, key: str, increment: float = 1.0, date: datetime | None = None
-    ):
+    def inc_metric(self, key: str, increment: float = 1.0, date: datetime | None = None):
         if date is None:
             date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         else:
@@ -347,14 +294,8 @@ class Persistence:
                 .filter(
                     and_(
                         Analytics.key == key,
-                        Analytics.date
-                        >= start_date.replace(
-                            hour=0, minute=0, second=0, microsecond=0
-                        ),
-                        Analytics.date
-                        <= end_date.replace(
-                            hour=23, minute=59, second=59, microsecond=999999
-                        ),
+                        Analytics.date >= start_date.replace(hour=0, minute=0, second=0, microsecond=0),
+                        Analytics.date <= end_date.replace(hour=23, minute=59, second=59, microsecond=999999),
                     )
                 )
                 .scalar()
@@ -367,14 +308,8 @@ class Persistence:
                 session.query(Analytics.key, Analytics.date, Analytics.value)
                 .filter(
                     and_(
-                        Analytics.date
-                        >= start_date.replace(
-                            hour=0, minute=0, second=0, microsecond=0
-                        ),
-                        Analytics.date
-                        <= end_date.replace(
-                            hour=23, minute=59, second=59, microsecond=999999
-                        ),
+                        Analytics.date >= start_date.replace(hour=0, minute=0, second=0, microsecond=0),
+                        Analytics.date <= end_date.replace(hour=23, minute=59, second=59, microsecond=999999),
                     )
                 )
                 .all()
@@ -387,23 +322,15 @@ class Persistence:
                 metrics[date][key] = value
             return metrics
 
-    def get_specific_metrics(
-        self, key: str, start_date: datetime, end_date: datetime
-    ) -> dict:
+    def get_specific_metrics(self, key: str, start_date: datetime, end_date: datetime) -> dict:
         with self.Session() as session:
             results = (
                 session.query(Analytics.key, Analytics.date, Analytics.value)
                 .filter(
                     and_(
                         Analytics.key == key,
-                        Analytics.date
-                        >= start_date.replace(
-                            hour=0, minute=0, second=0, microsecond=0
-                        ),
-                        Analytics.date
-                        <= end_date.replace(
-                            hour=23, minute=59, second=59, microsecond=999999
-                        ),
+                        Analytics.date >= start_date.replace(hour=0, minute=0, second=0, microsecond=0),
+                        Analytics.date <= end_date.replace(hour=23, minute=59, second=59, microsecond=999999),
                     )
                 )
                 .all()
