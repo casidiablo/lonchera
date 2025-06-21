@@ -120,31 +120,25 @@ async def pre_processing_amazon_transactions(
         )
 
 
-async def handle_amazon_export(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message.document is None:
-        await update.message.reply_text(
-            "Please upload the Amazon transaction history file (either the whole zip file or the CSV file)"
-        )
-        return
+async def extract_amazon_csv_file(update: Update, file_name: str, downloads_path: str) -> str | None:
+    """Extract the Amazon CSV file from an upload.
 
-    file_name = update.message.document.file_name
-    # make sure it's a zip or csv file
-    if not file_name.lower().endswith(".zip") and not file_name.lower().endswith(".csv"):
-        ext = file_name.split(".")[-1]
-        await update.message.reply_text(f"Did not recognize the file format ({ext}). Please upload a zip or csv file.")
-        return
+    Args:
+        update: The update object
+        file_name: The name of the uploaded file
+        downloads_path: Path to save downloaded files
 
-    # download file
+    Returns:
+        The path to the extracted CSV file or None if extraction failed
+    """
     current_time_path = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     file = await update.message.document.get_file()
-    downloads_path = os.getenv("DOWNLOADS_PATH", f"/tmp/{random.randint(1000, 9999)}")
     os.makedirs(downloads_path, exist_ok=True)
     download_path = f"{downloads_path}/{current_time_path}_{update.effective_chat.id}_{file_name}"
     logger.info(f"Downloading file to {download_path}")
     await file.download_to_drive(custom_path=download_path)
 
     # if zip, extract and find the csv file inside the Retail.OrderHistory.1/ folder
-    # there are other folders, so we must choose just the one file in the Retail.OrderHistory.1/ folder
     if file_name.lower().endswith(".zip"):
         # extract the zip file
         extract_to = f"{downloads_path}/{update.effective_chat.id}_{current_time_path}"
@@ -167,8 +161,31 @@ async def handle_amazon_export(update: Update, context: ContextTypes.DEFAULT_TYP
                 break
         if not csv_file_path:
             await update.message.reply_text("Could not find the CSV file in the Retail.OrderHistory.1/ folder.")
-            return
-        download_path = csv_file_path
+            return None
+        return csv_file_path
+
+    return download_path
+
+
+async def handle_amazon_export(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.document is None:
+        await update.message.reply_text(
+            "Please upload the Amazon transaction history file (either the whole zip file or the CSV file)"
+        )
+        return
+
+    file_name = update.message.document.file_name
+    # make sure it's a zip or csv file
+    if not file_name.lower().endswith(".zip") and not file_name.lower().endswith(".csv"):
+        ext = file_name.split(".")[-1]
+        await update.message.reply_text(f"Did not recognize the file format ({ext}). Please upload a zip or csv file.")
+        return
+
+    # download and extract file
+    downloads_path = os.getenv("DOWNLOADS_PATH", f"/tmp/{random.randint(1000, 9999)}")
+    download_path = await extract_amazon_csv_file(update, file_name, downloads_path)
+    if download_path is None:
+        return
 
     # Increment the metric for Amazon export uploads
     get_db().inc_metric("amazon_export_uploads")
