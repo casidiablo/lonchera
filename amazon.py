@@ -119,6 +119,44 @@ def get_amazon_transactions_summary(file_path: str):
     return summary
 
 
+def update_amazon_transaction(transaction, found, lunch, categories, dry_run, auto_categorize):
+    """Update a single Amazon transaction with product information and proper categorization."""
+    category_id = transaction.category_id
+    previous_category_name = [c.name for c in categories if c.id == category_id]
+    previous_category_name = previous_category_name[0] if previous_category_name else None
+
+    product_name = found["Product Name"]
+    if auto_categorize:
+        _, cat_id = get_suggested_category_id(tx_id=transaction.id, lunch=lunch, override_notes=product_name)
+        # make sure the category exists, since LLMs hallucinate
+        if cat_id not in [c.id for c in categories]:
+            category_id = transaction.category_id  # just leave it as is
+        else:
+            category_id = cat_id
+
+    if not dry_run:
+        if len(product_name) > NOTES_MAX_LENGTH:
+            product_name = product_name[:NOTES_MAX_LENGTH]
+
+        logger.info(
+            lunch.update_transaction(transaction.id, TransactionUpdateObject(notes=product_name, category_id=category_id))
+        )
+    category_name = [c.name for c in categories if c.id == category_id]
+    category_name = category_name[0] if category_name else None
+
+    return {
+        "transaction_id": transaction.id,
+        "date": transaction.date.strftime("%Y-%m-%d"),
+        "amount": transaction.amount,
+        "currency": transaction.currency,
+        "notes": found["Product Name"],
+        "account_name": transaction.account_display_name,
+        "category_id": category_id,
+        "previous_category_name": previous_category_name,
+        "new_category_name": category_name,
+    }
+
+
 def process_amazon_transactions(
     file_path: str,
     days_back: int,
@@ -164,41 +202,8 @@ def process_amazon_transactions(
         if a.notes is None:
             logger.info("Will update tx %s %s %s %s with %s", a.date, a.amount, a.currency, a.notes, found)
 
-            category_id = a.category_id
-            previous_category_name = [c.name for c in categories if c.id == category_id]
-            previous_category_name = previous_category_name[0] if previous_category_name else None
-
-            product_name = found["Product Name"]
-            if auto_categorize:
-                _, cat_id = get_suggested_category_id(tx_id=a.id, lunch=lunch, override_notes=product_name)
-                # make sure the category exists, since LLMs hallucinate
-                if cat_id not in [c.id for c in categories]:
-                    category_id = a.category_id  # just leave it as is
-                else:
-                    category_id = cat_id
-
-            if not dry_run:
-                if len(product_name) > NOTES_MAX_LENGTH:
-                    product_name = product_name[:NOTES_MAX_LENGTH]
-
-                logger.info(
-                    lunch.update_transaction(a.id, TransactionUpdateObject(notes=product_name, category_id=category_id))
-                )
-            category_name = [c.name for c in categories if c.id == category_id]
-            category_name = category_name[0] if category_name else None
-            report["updates"].append(
-                {
-                    "transaction_id": a.id,
-                    "date": a.date.strftime("%Y-%m-%d"),
-                    "amount": a.amount,
-                    "currency": a.currency,
-                    "notes": found["Product Name"],
-                    "account_name": a.account_display_name,
-                    "category_id": category_id,
-                    "previous_category_name": previous_category_name,
-                    "new_category_name": category_name,
-                }
-            )
+            update_result = update_amazon_transaction(a, found, lunch, categories, dry_run, auto_categorize)
+            report["updates"].append(update_result)
             will_update += 1
         else:
             logger.info("Already has notes for %s %s %s %s", a.date, a.amount, a.currency, a.notes)
