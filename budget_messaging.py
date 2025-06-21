@@ -52,18 +52,24 @@ def get_budget_category_buttons(budget_items: list[BudgetObject], budget_date: d
     return kbd.build(columns=2)
 
 
-def build_budget_message(budget: list[BudgetObject], budget_date: datetime, tagging: bool = True):
-    msg = ""
-    total_expenses_budget = 0
-    total_income_budget = 0
-    total_income = 0
-    total_spent = 0
-    net_spent = 0
+def _create_budget_progress_bar(spending_to_base: float, budgeted: float) -> tuple[str, float]:
+    """Create a visual progress bar based on spending percentage."""
+    pct = spending_to_base * 100 / budgeted
+    blocks = int(pct / 10)
+    empty = MAX_PROGRESS_BAR_BLOCKS - blocks
+    bar = "█" * blocks + "░" * empty
+    extra = ""
+    if blocks > MAX_PROGRESS_BAR_BLOCKS:
+        bar = "█" * MAX_PROGRESS_BAR_BLOCKS
+        extra = "▓" * (blocks - MAX_PROGRESS_BAR_BLOCKS)
+    return f"`[{bar}]{extra}`", pct
 
-    # first, lets group all the subcategories into their parent category
-    # and sum the budgeted and spent amounts
+
+def _initialize_budget_data(budget: list[BudgetObject]) -> tuple[dict, dict]:
+    """Initialize budget data by grouping subcategories into parent categories."""
     total_budget_per_supercategory = {}
     budget_currency_per_supercategory = {}
+
     for budget_item in budget:
         if budget_item.category_group_name is not None:
             _, budget_data = next(iter(budget_item.data.items()))
@@ -74,6 +80,21 @@ def build_budget_message(budget: list[BudgetObject], budget_date: datetime, tagg
             # just use the last one
             if budget_data.budget_currency:
                 budget_currency_per_supercategory[budget_item.group_id] = budget_data.budget_currency
+
+    return total_budget_per_supercategory, budget_currency_per_supercategory
+
+
+def build_budget_message(budget: list[BudgetObject], budget_date: datetime, tagging: bool = True):
+    msg = ""
+    total_expenses_budget = 0
+    total_income_budget = 0
+    total_income = 0
+    total_spent = 0
+    net_spent = 0
+
+    # first, lets group all the subcategories into their parent category
+    # and sum the budgeted and spent amounts
+    total_budget_per_supercategory, budget_currency_per_supercategory = _initialize_budget_data(budget)
 
     for budget_item in budget:
         if budget_item.category_group_name is None and budget_item.category_id is not None:
@@ -92,24 +113,15 @@ def build_budget_message(budget: list[BudgetObject], budget_date: datetime, tagg
             else:
                 total_expenses_budget += budgeted
                 net_spent += spending_to_base
-            pct = spending_to_base * 100 / budgeted
 
-            # number of blocks to draw (max 10)
-            blocks = int(pct / 10)
-            empty = MAX_PROGRESS_BAR_BLOCKS - blocks
-            bar = "█" * blocks + "░" * empty
-            extra = ""
-            if blocks > MAX_PROGRESS_BAR_BLOCKS:
-                bar = "█" * MAX_PROGRESS_BAR_BLOCKS
-                extra = "▓" * (blocks - MAX_PROGRESS_BAR_BLOCKS)
-
+            progress_bar, pct = _create_budget_progress_bar(spending_to_base, budgeted)
             cat_name = make_tag(budget_item.category_name, tagging=tagging)
 
             currency = budget_data.budget_currency
             if currency is None:
                 currency = budget_currency_per_supercategory.get(budget_item.category_id) or "NOCURRENCY"
 
-            msg += f"`[{bar}]{extra}`\n"
+            msg += f"{progress_bar}\n"
             msg += f"{cat_name}: `{spending_to_base:,.1f}` of `{budgeted:,.1f}`"
             msg += f" {currency.upper()} (`{pct:,.1f}%`)"
             if budget_item.is_income:
