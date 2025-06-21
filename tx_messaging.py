@@ -15,6 +15,31 @@ from utils import Keyboard, clean_md, make_tag
 logger = logging.getLogger("messaging")
 
 
+def _add_expanded_buttons(kbd: Keyboard, transaction_id: int, recurring_type, is_pending: bool, is_reviewed: bool, plaid_id) -> Keyboard:
+    """Adds buttons for the expanded view of a transaction."""
+    # recurring transactions are not categorizable
+    categorize = recurring_type is None
+    if categorize:
+        kbd += ("Categorize", f"categorize_{transaction_id}")
+        if os.getenv("DEEPINFRA_API_KEY"):
+            kbd += ("AI-categorize 🪄", f"aicategorize_{transaction_id}")
+
+    kbd += ("Rename payee", f"renamePayee_{transaction_id}")
+    kbd += ("Set notes", f"editNotes_{transaction_id}")
+    kbd += ("Set tags", f"setTags_{transaction_id}")
+    if plaid_id:
+        kbd += ("Plaid details", f"plaid_{transaction_id}")
+
+    skip = not is_pending
+    if skip and not is_reviewed:
+        kbd += ("Skip", f"skip_{transaction_id}")
+
+    if is_reviewed:
+        kbd += ("Unreview", f"unreview_{transaction_id}")
+
+    return kbd
+
+
 def get_tx_buttons(transaction: TransactionObject | int, collapsed=True) -> InlineKeyboardMarkup:
     """Returns a list of buttons to be displayed for a transaction."""
     # if transaction is an int, it's a transaction_id
@@ -40,27 +65,8 @@ def get_tx_buttons(transaction: TransactionObject | int, collapsed=True) -> Inli
     kbd = Keyboard()
     if collapsed:
         kbd += ("☷", f"moreOptions_{transaction_id}")
-
-    # recurring transactions are not categorizable
-    categorize = recurring_type is None
-    if categorize and not collapsed:
-        kbd += ("Categorize", f"categorize_{transaction_id}")
-        if os.getenv("DEEPINFRA_API_KEY"):
-            kbd += ("AI-categorize 🪄", f"aicategorize_{transaction_id}")
-
-    if not collapsed:
-        kbd += ("Rename payee", f"renamePayee_{transaction_id}")
-        kbd += ("Set notes", f"editNotes_{transaction_id}")
-        kbd += ("Set tags", f"setTags_{transaction_id}")
-        if plaid_id:
-            kbd += ("Plaid details", f"plaid_{transaction_id}")
-
-        skip = not is_pending
-        if skip and not is_reviewed:
-            kbd += ("Skip", f"skip_{transaction_id}")
-
-        if is_reviewed:
-            kbd += ("Unreview", f"unreview_{transaction_id}")
+    elif not collapsed:
+        kbd = _add_expanded_buttons(kbd, transaction_id, recurring_type, is_pending, is_reviewed, plaid_id)
 
     if not is_reviewed and not is_pending:
         kbd += ("Reviewed ✓", f"review_{transaction_id}")
