@@ -2,6 +2,8 @@ import logging
 import os
 import random
 import zipfile
+import tempfile
+import shutil
 from datetime import datetime
 from textwrap import dedent
 
@@ -140,29 +142,47 @@ async def extract_amazon_csv_file(update: Update, file_name: str, downloads_path
 
     # if zip, extract and find the csv file inside the Retail.OrderHistory.1/ folder
     if file_name.lower().endswith(".zip"):
-        # extract the zip file
-        extract_to = f"{downloads_path}/{update.effective_chat.id}_{current_time_path}"
-        os.makedirs(extract_to, exist_ok=True)
-        logger.info(f"Extracting zip file to {extract_to}")
-        with zipfile.ZipFile(download_path, "r") as zip_ref:
-            zip_ref.extractall(extract_to)
-            # remove the zip file
+        # Create a temporary directory for extracted CSV only
+        temp_dir = tempfile.mkdtemp(dir=downloads_path)
+        target_csv_path = os.path.join(temp_dir, "amazon_orders.csv")
+        logger.info(f"Looking for CSV in zip file, will extract to {target_csv_path}")
+
+        try:
+            # Open the zip file and process one file at a time
+            with zipfile.ZipFile(download_path, "r") as zip_ref:
+                # Process zip contents without extracting everything
+                csv_found = False
+                for info in zip_ref.infolist():
+                    # Look only for CSV files in the right directory
+                    if info.filename.lower().endswith(".csv") and "Retail.OrderHistory.1" in info.filename:
+                        logger.info(f"Found CSV file: {info.filename}")
+                        # Extract just this one file
+                        with zip_ref.open(info) as source, open(target_csv_path, "wb") as target:
+                            # Copy in chunks to minimize memory usage
+                            shutil.copyfileobj(source, target, 65536)  # 64KB chunks
+                        csv_found = True
+                        break
+
+                if not csv_found:
+                    await update.message.reply_text("Could not find the CSV file in the Retail.OrderHistory.1/ folder.")
+                    # Clean up
+                    shutil.rmtree(temp_dir, ignore_errors=True)
+                    os.remove(download_path)
+                    return None
+
+            # Remove the zip file to free up space
+            os.remove(download_path)
+            return target_csv_path
+
+        except Exception as e:
+            logger.error(f"Error extracting CSV from zip: {e}")
+            # Clean up on error
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir, ignore_errors=True)
             if os.path.exists(download_path):
                 os.remove(download_path)
-
-        # find the csv file
-        csv_file_path = None
-        for root, _dirs, files in os.walk(extract_to):
-            for file in files:
-                if file.lower().endswith(".csv") and "Retail.OrderHistory.1" in root:
-                    csv_file_path = os.path.join(root, file)
-                    break
-            if csv_file_path:
-                break
-        if not csv_file_path:
-            await update.message.reply_text("Could not find the CSV file in the Retail.OrderHistory.1/ folder.")
+            await update.message.reply_text(f"Error extracting CSV from zip file: {e}")
             return None
-        return csv_file_path
 
     return download_path
 
@@ -341,6 +361,7 @@ async def handle_process_amazon_transactions(update: Update, context: ContextTyp
         will_update_transactions = result["will_update_transactions"]
 
         not_updated = found_transactions - will_update_transactions
+        not_updated_text = ""
         if not_updated > 0:
             not_updated_text = f"{not_updated} transactions were not updated because they already had notes."
 
@@ -359,5 +380,14 @@ async def handle_process_amazon_transactions(update: Update, context: ContextTyp
     except Exception as e:
         await query.edit_message_text(f"Error processing Amazon transactions: {e}")
     finally:
-        if os.path.exists(export_file):
-            os.remove(export_file)
+        # Clean up extracted files
+        if export_file and os.path.exists(export_file):
+            try:
+                # Remove the file
+                os.remove(export_file)
+                # If it's in a temp directory, try to remove the directory too
+                parent_dir = os.path.dirname(export_file)
+                if os.path.basename(parent_dir).startswith('tmp') and len(os.listdir(parent_dir)) == 0:
+                    shutil.rmtree(parent_dir, ignore_errors=True)
+            except Exception as e:
+                logger.error(f"Error cleaning up temporary files: {e}")
