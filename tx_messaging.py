@@ -15,7 +15,9 @@ from utils import Keyboard, clean_md, make_tag
 logger = logging.getLogger("messaging")
 
 
-def _add_expanded_buttons(kbd: Keyboard, transaction_id: int, recurring_type, is_pending: bool, is_reviewed: bool, plaid_id) -> Keyboard:
+def _add_expanded_buttons(
+    kbd: Keyboard, transaction_id: int, recurring_type, is_pending: bool, is_reviewed: bool, plaid_id
+) -> Keyboard:
     """Adds buttons for the expanded view of a transaction."""
     # recurring transactions are not categorizable
     categorize = recurring_type is None

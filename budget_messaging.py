@@ -224,9 +224,7 @@ def _format_transaction_link(budget_item: BudgetObject, budget_data, budget_date
     end_date = (budget_date.replace(day=1) + timedelta(days=32)).replace(day=1) - timedelta(days=1)
     end_date = end_date.strftime("%Y-%m-%d")
     link = "https://my.lunchmoney.app/transactions"
-    link += (
-        f"?category={budget_item.category_id}&start_date={start_date}&end_date={end_date}&match=all&time=custom"
-    )
+    link += f"?category={budget_item.category_id}&start_date={start_date}&end_date={end_date}&match=all&time=custom"
     return f"    [{budget_data.num_transactions} transaction{plural}]({link})\n\n"
 
 

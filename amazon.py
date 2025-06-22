@@ -12,6 +12,7 @@ from lunchable import TransactionUpdateObject
 from constants import NOTES_MAX_LENGTH
 from deepinfra import get_suggested_category_id
 from lunch import get_lunch_client
+from typing import List
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("amz")
@@ -25,18 +26,28 @@ def parse_date_time(d: str) -> datetime:
 
 
 def parse_csv_and_filter(
-    file_path: str, target_date: str, target_price: float, target_currency: str, allow_days: int
-) -> dict[str, str]:
+    file_path: str, target_date: str, target_price: float, target_currency: str | None, allow_days: int
+) -> dict[str, str] | None:
+    if target_currency is None:
+        target_currency = "USD"
+
+    class OrderData:
+        def __init__(self):
+            self.total_owed: float = 0.0
+            self.currency: str = ""
+            self.product_names: List[str] = []
+            self.rows: List[dict[str, str]] = []
+
     # Convert target_date string to a datetime object
-    target_date = datetime.strptime(target_date, "%Y-%m-%d")
+    target_date_dt = datetime.strptime(target_date, "%Y-%m-%d")
 
     # Define the date range for filtering
-    start_date = target_date - timedelta(days=allow_days)
-    end_date = target_date + timedelta(days=allow_days)
+    start_date = target_date_dt - timedelta(days=allow_days)
+    end_date = target_date_dt + timedelta(days=allow_days)
 
     closest_result = None
     closest_date_diff = timedelta.max
-    order_data = defaultdict(lambda: {"total_owed": 0.0, "currency": "", "product_names": [], "rows": []})
+    order_data = defaultdict(OrderData)
 
     margin_of_error = 0.5
 
@@ -56,33 +67,31 @@ def parse_csv_and_filter(
 
             # Aggregate data by order ID
             if start_date <= order_date <= end_date:
-                order_data[order_id]["total_owed"] += total_owed
-                order_data[order_id]["currency"] = currency
-                order_data[order_id]["product_names"].append(product_name)
-                order_data[order_id]["rows"].append(row)
+                od = order_data[order_id]
+                od.total_owed += total_owed
+                od.currency = currency
+                od.product_names.append(product_name)
+                od.rows.append(row)
 
     # Check aggregated data against target price and currency
     for order_id, data in order_data.items():
-        if (
-            abs(data["total_owed"] - target_price) <= margin_of_error
-            and data["currency"].lower() == target_currency.lower()
-        ):
-            date_diff = abs(target_date - parse_date_time(data["rows"][0]["Order Date"]))
+        if abs(data.total_owed - target_price) <= margin_of_error and data.currency.lower() == target_currency.lower():
+            date_diff = abs(target_date_dt - parse_date_time(data.rows[0]["Order Date"]))
             if date_diff < closest_date_diff:
                 closest_date_diff = date_diff
                 closest_result = {
                     "Order ID": order_id,
-                    "Total Owed": str(data["total_owed"]),
-                    "Currency": data["currency"],
-                    "Product Name": ", ".join(data["product_names"]),
+                    "Total Owed": str(data.total_owed),
+                    "Currency": data.currency,
+                    "Product Name": ", ".join(data.product_names),
                 }
         else:
             # Check individual rows if the aggregated total does not match
-            for row in data["rows"]:
+            for row in data.rows:
                 total_owed = float(row["Total Owed"].replace(",", ""))
                 currency = row["Currency"]
                 if abs(total_owed - target_price) <= margin_of_error and currency.lower() == target_currency.lower():
-                    date_diff = abs(target_date - parse_date_time(row["Order Date"]))
+                    date_diff = abs(target_date_dt - parse_date_time(row["Order Date"]))
                     if date_diff < closest_date_diff:
                         closest_date_diff = date_diff
                         closest_result = {
@@ -98,9 +107,7 @@ def parse_csv_and_filter(
 def get_amazon_transactions_summary(file_path: str):
     """Just return a summary of the transactions in the CSV file."""
     logger.info("Getting summary of transactions in %s", file_path)
-    summary = defaultdict(int)
-    summary["total_transactions"] = 0
-    date_ranges = {"start_date": None, "end_date": None}
+    summary = {"total_transactions": 0, "start_date": None, "end_date": None}
     with open(file_path, newline="") as csvfile:
         reader = csv.DictReader(csvfile)
 
@@ -109,10 +116,9 @@ def get_amazon_transactions_summary(file_path: str):
 
         if transactions:
             dates = [parse_date_time(row["Order Date"]) for row in transactions]
-            date_ranges["start_date"] = min(dates).strftime("%Y-%m-%d")
-            date_ranges["end_date"] = max(dates).strftime("%Y-%m-%d")
+            summary["start_date"] = min(dates).strftime("%Y-%m-%d")
+            summary["end_date"] = max(dates).strftime("%Y-%m-%d")
 
-    summary.update(date_ranges)
     logger.info(
         "Found %d transactions from %s to %s", summary["total_transactions"], summary["start_date"], summary["end_date"]
     )
@@ -139,7 +145,22 @@ def update_amazon_transaction(transaction, found, lunch, categories, dry_run, au
             product_name = product_name[:NOTES_MAX_LENGTH]
 
         logger.info(
-            lunch.update_transaction(transaction.id, TransactionUpdateObject(notes=product_name, category_id=category_id))
+            lunch.update_transaction(
+                transaction.id,
+                TransactionUpdateObject(
+                    notes=product_name,
+                    category_id=category_id,
+                    date=None,
+                    payee=None,
+                    amount=None,
+                    currency=None,
+                    asset_id=None,
+                    recurring_id=None,
+                    status=None,
+                    external_id=None,
+                    tags=None,
+                ),
+            )
         )
     category_name = [c.name for c in categories if c.id == category_id]
     category_name = category_name[0] if category_name else None

@@ -387,7 +387,7 @@ async def handle_process_amazon_transactions(update: Update, context: ContextTyp
                 os.remove(export_file)
                 # If it's in a temp directory, try to remove the directory too
                 parent_dir = os.path.dirname(export_file)
-                if os.path.basename(parent_dir).startswith('tmp') and len(os.listdir(parent_dir)) == 0:
+                if os.path.basename(parent_dir).startswith("tmp") and len(os.listdir(parent_dir)) == 0:
                     shutil.rmtree(parent_dir, ignore_errors=True)
             except Exception as e:
                 logger.error(f"Error cleaning up temporary files: {e}")
