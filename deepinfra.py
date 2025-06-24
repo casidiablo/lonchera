@@ -87,7 +87,7 @@ def send_message_to_llm(content):
     url = "https://api.deepinfra.com/v1/openai/chat/completions"
     headers = {"Content-Type": "application/json", "Authorization": "Bearer " + os.getenv("DEEPINFRA_API_KEY")}
     data = {
-        "model": "meta-llama/Meta-Llama-3.1-405B-Instruct",
+        "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
         "temperature": 0.0,
         "messages": [{"role": "user", "content": content}],
     }
