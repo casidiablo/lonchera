@@ -24,6 +24,7 @@ from handlers.expectations import (
     get_expectation,
     set_expectation,
 )
+from lunch_money_agent import handle_generic_message_with_ai
 from handlers.settings.schedule_rendering import get_schedule_rendering_buttons, get_schedule_rendering_text
 from handlers.settings.session import handle_register_token
 from lunch import get_lunch_client_for_chat_id
@@ -99,6 +100,10 @@ async def handle_generic_message(update: Update, context: ContextTypes.DEFAULT_T
         return await handle_edit_notes(update, context, expectation)
     elif expectation and expectation["expectation"] == SET_TAGS:
         return await handle_set_tags(update, context, expectation)
+    else:
+        # when we were not expecting any message, try to process the message
+        # with AI and try to respond to the user accordingly
+        await handle_generic_message_with_ai(update, context)
 
     return False
 

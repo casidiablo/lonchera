@@ -1,9 +1,9 @@
 import logging
 import os
 import random
-import zipfile
-import tempfile
 import shutil
+import tempfile
+import zipfile
 from datetime import datetime
 from textwrap import dedent
 

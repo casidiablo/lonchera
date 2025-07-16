@@ -1,0 +1,140 @@
+import logging
+import os
+from tempfile import NamedTemporaryFile
+
+import requests
+from telegram import Update
+from telegram.constants import ReactionEmoji, ParseMode
+from telegram.ext import ContextTypes
+
+from persistence import get_db
+from lunch_money_agent import get_agent_response
+
+logger = logging.getLogger("handlers.audio")
+
+# Constants
+HTTP_OK = 200
+
+
+async def handle_audio_transcription(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    """
+    Handle audio file uploads and transcribe them using DeepInfra's Whisper API.
+
+    Args:
+        update: The update containing the audio file
+        context: The context
+
+    Returns:
+        True if the audio was successfully handled, False otherwise
+    """
+    chat_id = update.effective_chat.id
+    message = update.message
+
+    # Check if there's an audio file in the message
+    audio_file = None
+    if message.voice:
+        audio_file = message.voice
+    elif message.audio:
+        audio_file = message.audio
+
+    if not audio_file:
+        logger.info("No audio file found in message")
+        return False
+
+    # React to the audio message to indicate processing
+    await context.bot.set_message_reaction(
+        chat_id=chat_id, message_id=message.message_id, reaction=ReactionEmoji.HIGH_VOLTAGE_SIGN
+    )
+
+    try:
+        # Download the audio file
+        audio_data = await context.bot.get_file(audio_file.file_id)
+
+        # Save to a temporary file
+        with NamedTemporaryFile(delete=False, suffix=".ogg") as temp_file:
+            await audio_data.download_to_drive(temp_file.name)
+            temp_path = temp_file.name
+
+        # Transcribe the audio
+        transcription, language = transcribe_audio(temp_path)
+
+        # Delete the temporary file
+        os.unlink(temp_path)
+
+        # Process the transcription with AI
+        ai_response = get_agent_response(transcription, chat_id, verbose=True)
+
+        # Send the AI response back to the user
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=ai_response,
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+        return True
+
+    except Exception as e:
+        logger.error(f"Error processing audio file: {e}")
+        await context.bot.send_message(chat_id=chat_id, text=f"Error processing audio: {e!s}")
+
+        # # Update reaction to indicate error
+        # await context.bot.set_message_reaction(
+        #     chat_id=chat_id, message_id=message.message_id, reaction=ReactionEmoji.CROSS_MARK
+        # )
+
+        return False
+
+
+def transcribe_audio(file_path: str) -> tuple[str, str]:
+    """
+    Transcribe an audio file using DeepInfra's Whisper API.
+
+    Args:
+        file_path: Path to the audio file
+
+    Returns:
+        A tuple containing the transcription text and detected language
+    """
+    url = "https://api.deepinfra.com/v1/inference/openai/whisper-large-v3"
+    api_key = os.getenv("DEEPINFRA_API_KEY")
+
+    if not api_key:
+        raise ValueError("DEEPINFRA_API_KEY environment variable is not set")
+
+    headers = {"Authorization": f"Bearer {api_key}"}
+
+    logger.info(f"Sending audio file {file_path} to DeepInfra for transcription")
+
+    try:
+        with open(file_path, "rb") as audio_file:
+            files = {"audio": audio_file}
+            response = requests.post(url, headers=headers, files=files)
+
+        # Track DeepInfra usage metrics
+        get_db().inc_metric("deepinfra_whisper_requests")
+
+        if response.status_code == HTTP_OK:
+            response_json = response.json()
+
+            # Extract the transcription text and language from the response
+            transcription = response_json.get("text", "")
+            language = response_json.get("language", "")
+
+            # Track cost if available
+            if "inference_status" in response_json and "cost" in response_json["inference_status"]:
+                cost = response_json["inference_status"]["cost"]
+                get_db().inc_metric("deepinfra_whisper_estimated_cost", cost)
+
+            logger.info(f"Transcription successful: {transcription[:50]}...")
+            logger.info(f"Detected language: {language}")
+
+            # Print the full transcription to stdout for debugging
+            print(f"\n\n===== AUDIO TRANSCRIPTION =====\n{transcription}\n==============================\n\n")
+            return transcription, language
+        else:
+            logger.error(f"Transcription failed with status code: {response.status_code}")
+            response.raise_for_status()
+            return "", ""
+    except Exception as e:
+        logger.error(f"Error during transcription: {e}")
+        raise
