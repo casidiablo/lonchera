@@ -8,6 +8,7 @@ from lunchable import TransactionInsertObject
 
 from lunch import get_lunch_client_for_chat_id
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("aitools")
 
 
@@ -154,6 +155,8 @@ def add_manual_transaction(
             return json.dumps({"error": "Invalid date format. Use YYYY-MM-DD"})
 
         # Create transaction
+        if category_id == 0:
+            category_id = None
         transaction_obj = TransactionInsertObject(
             date=transaction_date,
             category_id=category_id,
