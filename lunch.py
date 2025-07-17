@@ -1,5 +1,6 @@
-from lunchable import LunchMoney
 import os
+
+from lunchable import LunchMoney
 
 from errors import NoLunchTokenError
 from persistence import get_db

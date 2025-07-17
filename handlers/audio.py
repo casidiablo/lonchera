@@ -4,11 +4,11 @@ from tempfile import NamedTemporaryFile
 
 import requests
 from telegram import Update
-from telegram.constants import ReactionEmoji, ParseMode
+from telegram.constants import ReactionEmoji
 from telegram.ext import ContextTypes
 
+from handlers.lunch_money_agent import get_agent_response, handle_ai_response
 from persistence import get_db
-from lunch_money_agent import get_agent_response
 
 logger = logging.getLogger("handlers.audio")
 
@@ -63,13 +63,7 @@ async def handle_audio_transcription(update: Update, context: ContextTypes.DEFAU
 
         # Process the transcription with AI
         ai_response = get_agent_response(transcription, chat_id, verbose=True)
-
-        # Send the AI response back to the user
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text=ai_response,
-            parse_mode=ParseMode.MARKDOWN
-        )
+        await handle_ai_response(update, context, ai_response)
 
         return True
 
