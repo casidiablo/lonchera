@@ -21,6 +21,7 @@ async def get_my_lunch_money_user_info(chat_id: int) -> str:
         user_info = lunch_client.get_user()
         return json.dumps(user_info.model_dump())
     except Exception as e:
+        logger.error("Error fetching user info: %s", str(e), exc_info=True)
         return json.dumps({"error": str(e)})
 
 
@@ -31,9 +32,12 @@ def get_account_balances(chat_id: int) -> str:
     try:
         lunch_client = get_lunch_client_for_chat_id(chat_id)
         plaid_accounts = lunch_client.get_plaid_accounts()
+        logger.info("Retrieved %d Plaid accounts", len(plaid_accounts))
 
         accounts_data = []
         for acc in plaid_accounts:
+            logger.debug("Processing account: %s (id: %s, type: %s)",
+                        acc.display_name or acc.name, acc.id, acc.type)
             account_info = {
                 "name": acc.display_name or acc.name,
                 "balance": float(acc.balance),
@@ -49,6 +53,7 @@ def get_account_balances(chat_id: int) -> str:
 
         return json.dumps({"accounts": accounts_data})
     except Exception as e:
+        logger.error("Error fetching account balances: %s", str(e), exc_info=True)
         return json.dumps({"error": str(e)})
 
 
@@ -60,12 +65,16 @@ def get_manual_asset_accounts(chat_id: int) -> str:
         lunch_client = get_lunch_client_for_chat_id(chat_id)
 
         assets = lunch_client.get_assets()
+        logger.info("Retrieved %d total assets", len(assets))
 
         # Filter for manually managed accounts (credit and cash types)
         manual_accounts = [asset for asset in assets if asset.type_name in {"credit", "cash"}]
+        logger.info("Filtered to %d manually managed accounts (credit/cash types)", len(manual_accounts))
 
         accounts_data = []
         for asset in manual_accounts:
+            logger.debug("Processing manual account: %s (id: %s, type: %s)",
+                        asset.display_name or asset.name, asset.id, asset.type_name)
             account_info = {
                 "id": asset.id,
                 "name": asset.name,
@@ -77,8 +86,10 @@ def get_manual_asset_accounts(chat_id: int) -> str:
             }
             accounts_data.append(account_info)
 
+        logger.info("Successfully processed %d manual accounts", len(accounts_data))
         return json.dumps({"manual_accounts": accounts_data})
     except Exception as e:
+        logger.error("Error fetching manual asset accounts: %s", str(e), exc_info=True)
         return json.dumps({"error": str(e)})
 
 
@@ -89,19 +100,21 @@ def get_categories(chat_id: int) -> str:
     try:
         lunch_client = get_lunch_client_for_chat_id(chat_id)
         categories = lunch_client.get_categories()
+        logger.info("Retrieved %d categories", len(categories))
 
         categories_data = []
         for category in categories:
+            if category.is_group:
+                continue  # Skip category groups
             category_info = {
                 "id": category.id,
                 "name": category.name,
-                "is_group": category.is_group,
-                "group_id": category.group_id,
             }
             categories_data.append(category_info)
 
         return json.dumps({"categories": categories_data})
     except Exception as e:
+        logger.error("Error fetching categories: %s", str(e), exc_info=True)
         return json.dumps({"error": str(e)})
 
 
@@ -128,35 +141,56 @@ def add_manual_transaction(
         category_id: Optional category ID
         notes: Optional notes
     """
-    logger.info("Calling add_manual_transaction for chat_id: %s", chat_id)
+    logger.info(
+        "Calling add_manual_transaction with chat_id=%s, date=%s, account_id=%s, payee=%s, amount=%s, is_received=%s, category_id=%s, notes=%s",
+        chat_id, date, account_id, payee, amount, is_received, category_id, notes
+    )
     try:
         lunch_client = get_lunch_client_for_chat_id(chat_id)
 
         # Validate that the account exists and is manually managed
+        logger.info("Fetching assets to validate account_id=%s", account_id)
         assets = lunch_client.get_assets()
+        logger.debug("Retrieved %d assets for validation", len(assets))
+
         account = next((asset for asset in assets if asset.id == account_id), None)
         if not account:
+            logger.warning("Account with ID %s not found", account_id)
             return json.dumps({"error": f"Account with ID {account_id} not found"})
 
         if account.type_name not in {"credit", "cash"}:
+            logger.warning("Account '%s' (type: %s) is not manually managed",
+                          account.name, account.type_name)
             return json.dumps(
                 {
                     "error": f"Account '{account.name}' is not manually managed. Only credit and cash accounts support manual transactions."
                 }
             )
 
+        logger.info("Account validated: %s (id: %s, type: %s)",
+                   account.name, account.id, account.type_name)
+
         # Convert received money to negative amount
         final_amount = amount * -1 if is_received else amount
+        logger.debug("Transaction amount: %s → %s (%s)",
+                    amount, final_amount, "income" if is_received else "expense")
 
         # Parse the date
         try:
+            logger.debug("Parsing date: %s", date)
             transaction_date = datetime.datetime.strptime(date, "%Y-%m-%d")
         except ValueError:
+            logger.warning("Invalid date format: %s", date)
             return json.dumps({"error": "Invalid date format. Use YYYY-MM-DD"})
 
         # Create transaction
         if category_id == 0:
             category_id = None
+
+        logger.info("Creating transaction object for account %s: %s to %s for %s %s",
+                   account_id, "Income" if is_received else "Payment",
+                   payee, abs(final_amount), account.currency.upper())
+
         transaction_obj = TransactionInsertObject(
             date=transaction_date,
             category_id=category_id,
@@ -174,10 +208,10 @@ def add_manual_transaction(
         # Insert transaction
         transaction_ids = lunch_client.insert_transactions(transaction_obj)
         transaction_id = transaction_ids[0]
+        logger.info("Transaction inserted with ID: %s", transaction_id)
 
         # Get the created transaction to return details
         transaction = lunch_client.get_transaction(transaction_id)
-        logger.info(f"Transaction {transaction_id} created")
 
         return json.dumps(
             {
@@ -207,9 +241,12 @@ def get_crypto_accounts(chat_id: int) -> str:
     try:
         lunch_client = get_lunch_client_for_chat_id(chat_id)
         crypto_accounts = lunch_client.get_crypto()
+        logger.info("Retrieved %d crypto accounts", len(crypto_accounts))
 
         accounts_data = []
         for crypto in crypto_accounts:
+            logger.debug("Processing crypto account: %s (id: %s, currency: %s)",
+                        crypto.display_name or crypto.name, crypto.id, crypto.currency)
             account_info = {
                 "id": crypto.id,
                 "name": crypto.name,
@@ -222,8 +259,10 @@ def get_crypto_accounts(chat_id: int) -> str:
             }
             accounts_data.append(account_info)
 
+        logger.info("Successfully processed %d crypto accounts", len(accounts_data))
         return json.dumps({"crypto_accounts": accounts_data})
     except Exception as e:
+        logger.error("Error fetching crypto accounts: %s", str(e), exc_info=True)
         return json.dumps({"error": str(e)})
 
 
@@ -258,8 +297,10 @@ def calculate(expression: str) -> str:
             **safe_functions
         }
 
+        logger.info("Evaluating math expression: %r", expression)
         # Evaluate the expression safely
         result = eval(expression, safe_names, {})
+        logger.info("Expression evaluated successfully: %r = %r", expression, result)
 
         return json.dumps({
             "success": True,
@@ -268,11 +309,13 @@ def calculate(expression: str) -> str:
         })
 
     except ZeroDivisionError:
+        logger.warning("Division by zero in expression: %r", expression)
         return json.dumps({"error": "Division by zero"})
     except (SyntaxError, NameError, TypeError, ValueError) as e:
+        logger.warning("Invalid expression %r: %s", expression, str(e))
         return json.dumps({"error": f"Invalid expression: {str(e)}"})
     except Exception as e:
-        logger.error(f"Error calculating expression: {e}")
+        logger.error("Error calculating expression %r: %s", expression, str(e), exc_info=True)
         return json.dumps({"error": f"Calculation error: {str(e)}"})
 
 
@@ -295,13 +338,24 @@ def parse_date_reference(date_reference: str) -> str:
     logger.info("Calling parse_date_reference for: %s", date_reference)
     try:
         # Use dateparser to parse the date reference
+        logger.info("Parsing date reference: %r", date_reference)
+        base_date = datetime.date.today()
+        logger.debug("Base date for reference: %s", base_date.isoformat())
+
         parsed_datetime = dateparser.parse(date_reference)
 
         if parsed_datetime is None:
+            logger.warning("Failed to parse date reference: %r", date_reference)
             return json.dumps({"error": f"Could not parse date reference: {date_reference}"})
 
         result_date = parsed_datetime.date()
-        base_date = datetime.date.today()
+        logger.info("Successfully parsed date reference %r to %s",
+                   date_reference, result_date.isoformat())
+
+        days_diff = (result_date - base_date).days
+        if days_diff != 0:
+            logger.info("Date is %d days %s today",
+                       abs(days_diff), "after" if days_diff > 0 else "before")
 
         return json.dumps(
             {
@@ -314,5 +368,5 @@ def parse_date_reference(date_reference: str) -> str:
         )
 
     except Exception as e:
-        logger.error(f"Error parsing date reference: {e}")
+        logger.error("Error parsing date reference %r: %s", date_reference, str(e), exc_info=True)
         return json.dumps({"error": str(e)})
