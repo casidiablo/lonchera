@@ -41,9 +41,9 @@ class LunchMoneyAgentResponse(BaseModel):
 
 def create_lunch_money_agent(chat_id: int):
     """Create and return a Lunch Money agent with the configured model and tools."""
-    # TODO: restrict usage of OpenAI to a set of Chat IDs
     use_openai = os.environ.get("USE_OPEN_AI", "false").lower() == "true"
-    if use_openai:
+    # For now only use OpenAI for chat_id 378659027 since it's in beta
+    if use_openai and chat_id == 378659027:
         chat_model = ChatOpenAI(
             model="gpt-4.1-nano", api_key=SecretStr(os.environ.get("OPENAI_API_KEY", "")), temperature=0
         )
