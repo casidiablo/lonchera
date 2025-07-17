@@ -18,6 +18,7 @@ from handlers.aitools.tools import (
     get_manual_asset_accounts,
     get_my_lunch_money_user_info,
     parse_date_reference,
+    get_crypto_accounts,
 )
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
@@ -64,6 +65,7 @@ def create_lunch_money_agent(chat_id: int):
             get_categories,
             add_manual_transaction,
             parse_date_reference,
+            get_crypto_accounts,
         ],
         response_format=LunchMoneyAgentResponse,
     )

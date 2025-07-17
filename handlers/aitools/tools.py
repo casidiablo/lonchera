@@ -198,6 +198,33 @@ def add_manual_transaction(
 
 
 @tool
+def get_crypto_accounts(chat_id: int) -> str:
+    """Get all cryptocurrency accounts and their balances"""
+    logger.info("Calling get_crypto_accounts for chat_id: %s", chat_id)
+    try:
+        lunch_client = get_lunch_client_for_chat_id(chat_id)
+        crypto_accounts = lunch_client.get_crypto()
+
+        accounts_data = []
+        for crypto in crypto_accounts:
+            account_info = {
+                "id": crypto.id,
+                "name": crypto.name,
+                "display_name": crypto.display_name,
+                "balance": float(crypto.balance),
+                "currency": crypto.currency.upper(),
+                "institution_name": crypto.institution_name,
+                "last_update": crypto.balance_as_of.isoformat() if crypto.balance_as_of else None,
+                "status": crypto.status,
+            }
+            accounts_data.append(account_info)
+
+        return json.dumps({"crypto_accounts": accounts_data})
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+@tool
 def parse_date_reference(date_reference: str) -> str:
     """Parse date references using the powerful dateparser library.
 
