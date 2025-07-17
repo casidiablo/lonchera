@@ -225,6 +225,55 @@ def get_crypto_accounts(chat_id: int) -> str:
 
 
 @tool
+def calculate(expression: str) -> str:
+    """Perform basic arithmetic calculations safely.
+
+    Supports basic arithmetic operations: +, -, *, /, %, ** (power), and parentheses.
+    Also supports common math functions like abs, round, min, max.
+
+    Args:
+        expression: Mathematical expression to evaluate (e.g., "2 + 3 * 4", "round(15.7)", "abs(-5)")
+
+    Returns:
+        JSON with the calculation result
+    """
+    logger.info("Calling calculate for expression: %s", expression)
+    try:
+        # Define safe functions that can be used in expressions
+        safe_functions = {
+            'abs': abs,
+            'round': round,
+            'min': min,
+            'max': max,
+            'pow': pow,
+            'sum': sum,
+        }
+
+        # Define safe names (no built-ins that could be dangerous)
+        safe_names = {
+            "__builtins__": {},
+            **safe_functions
+        }
+
+        # Evaluate the expression safely
+        result = eval(expression, safe_names, {})
+
+        return json.dumps({
+            "success": True,
+            "expression": expression,
+            "result": result,
+        })
+
+    except ZeroDivisionError:
+        return json.dumps({"error": "Division by zero"})
+    except (SyntaxError, NameError, TypeError, ValueError) as e:
+        return json.dumps({"error": f"Invalid expression: {str(e)}"})
+    except Exception as e:
+        logger.error(f"Error calculating expression: {e}")
+        return json.dumps({"error": f"Calculation error: {str(e)}"})
+
+
+@tool
 def parse_date_reference(date_reference: str) -> str:
     """Parse date references using the powerful dateparser library.
 

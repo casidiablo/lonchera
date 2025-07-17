@@ -13,6 +13,7 @@ from telegram.ext import ContextTypes
 
 from handlers.aitools.tools import (
     add_manual_transaction,
+    calculate,
     get_account_balances,
     get_categories,
     get_manual_asset_accounts,
@@ -40,8 +41,7 @@ class LunchMoneyAgentResponse(BaseModel):
 
 def create_lunch_money_agent(chat_id: int):
     """Create and return a Lunch Money agent with the configured model and tools."""
-    # Configure the chat model to use DeepInfra API
-
+    # TODO: restrict usage of OpenAI to a set of Chat IDs
     use_openai = os.environ.get("USE_OPEN_AI", "false").lower() == "true"
     if use_openai:
         chat_model = ChatOpenAI(
@@ -66,6 +66,7 @@ def create_lunch_money_agent(chat_id: int):
             add_manual_transaction,
             parse_date_reference,
             get_crypto_accounts,
+            calculate,
         ],
         response_format=LunchMoneyAgentResponse,
     )
