@@ -12,6 +12,7 @@ from telegram.ext import ContextTypes
 from constants import NOTES_MAX_LENGTH
 from errors import NoLunchTokenError
 from handlers.amz import handle_amazon_export
+from handlers.lunch_money_agent import handle_generic_message_with_ai
 from handlers.categorization import ai_categorize_transaction
 from handlers.expectations import (
     AMAZON_EXPORT,
@@ -99,6 +100,10 @@ async def handle_generic_message(update: Update, context: ContextTypes.DEFAULT_T
         return await handle_edit_notes(update, context, expectation)
     elif expectation and expectation["expectation"] == SET_TAGS:
         return await handle_set_tags(update, context, expectation)
+    else:
+        # when we were not expecting any message, try to process the message
+        # with AI and try to respond to the user accordingly
+        await handle_generic_message_with_ai(update, context)
 
     return False
 

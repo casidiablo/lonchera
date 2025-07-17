@@ -12,7 +12,6 @@ from lunchable import TransactionUpdateObject
 from constants import NOTES_MAX_LENGTH
 from deepinfra import get_suggested_category_id
 from lunch import get_lunch_client
-from typing import List
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("amz")
@@ -35,8 +34,8 @@ def parse_csv_and_filter(
         def __init__(self):
             self.total_owed: float = 0.0
             self.currency: str = ""
-            self.product_names: List[str] = []
-            self.rows: List[dict[str, str]] = []
+            self.product_names: list[str] = []
+            self.rows: list[dict[str, str]] = []
 
     # Convert target_date string to a datetime object
     target_date_dt = datetime.strptime(target_date, "%Y-%m-%d")

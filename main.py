@@ -15,6 +15,7 @@ from handlers.amz import (
     handle_update_amz_settings,
 )
 from handlers.analytics import handle_stats, handle_status
+from handlers.audio import handle_audio_transcription
 from handlers.balances import handle_btn_accounts_balances, handle_done_balances, handle_show_balances
 from handlers.budget import (
     handle_btn_hide_budget_categories,
@@ -184,6 +185,7 @@ def setup_handlers(config):
     app.add_handler(MessageHandler(filters.TEXT & filters.REPLY, handle_set_tx_notes_or_tags))
     app.add_handler(MessageHandler(filters.TEXT, handle_generic_message))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_file_upload))
+    app.add_handler(MessageHandler((filters.VOICE | filters.AUDIO), handle_audio_transcription))
     app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_web_app_data))
 
     logger.info("Telegram handlers set up successfully")

@@ -10,3 +10,10 @@ uv run ruff check .
 ```
 
 Use type hints as much as possible.
+
+# coding conventions
+
+# logging
+
+Avoid using print statements for logging. Use the `logging` package instead. Create a logger the
+root of the file that makes sense for the context.

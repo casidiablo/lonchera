@@ -1,3 +1,5 @@
+import os
+
 from lunchable import LunchMoney
 
 from errors import NoLunchTokenError
@@ -11,6 +13,8 @@ def get_lunch_client(token: str) -> LunchMoney:
 
 
 def get_lunch_client_for_chat_id(chat_id: int) -> LunchMoney:
+    if chat_id == 420420420:
+        return LunchMoney(access_token=os.environ["DEBUG_LUNCH_MONEY_API_KEY"])
     if chat_id in lunch_clients_cache:
         return lunch_clients_cache[chat_id]
 

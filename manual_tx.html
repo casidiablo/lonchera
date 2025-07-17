@@ -1,203 +1,255 @@
 <html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <script src="https://telegram.org/js/telegram-web-app.js?56"></script>
+        <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css"
+        />
+        <title>Add manual transaction</title>
+        <style>
+            body.keyboard {
+                height: calc(100% + 500px);
+                /* add padding for keyboard */
+            }
+        </style>
+    </head>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://telegram.org/js/telegram-web-app.js?56"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-    <title>Add manual transaction</title>
-    <style>
-        body.keyboard {
-            height: calc(100% + 500px);
-            /* add padding for keyboard */
-        }
-    </style>
-</head>
-
-<body class="p-4">
-    <div id="error" class="notification is-danger is-hidden"></div>
-    <div class="container" id="form-container">
-        <div class="card">
-            <header class="card-header">
-                <p class="card-header-title form-header">
-                    Add new transaction
-                </p>
-            </header>
-            <div class="card-content">
-                <form id="transaction-form">
-                    <!-- Date -->
-                    <div class="field">
-                        <label class="label form-label">Date</label>
-                        <div class="control">
-                            <input class="input" type="date" id="date" max="" value="" required>
-                        </div>
-                    </div>
-
-                    <!-- Account -->
-                    <div class="field">
-                        <label class="label form-label">Account</label>
-                        <div class="control">
-                            <div class="select is-fullwidth">
-                                <select id="account" required>
-                                    {account_options}
-                                </select>
+    <body class="p-4">
+        <div id="error" class="notification is-danger is-hidden"></div>
+        <div class="container" id="form-container">
+            <div class="card">
+                <header class="card-header">
+                    <p class="card-header-title form-header">
+                        Add new transaction
+                    </p>
+                </header>
+                <div class="card-content">
+                    <form id="transaction-form">
+                        <!-- Date -->
+                        <div class="field">
+                            <label class="label form-label">Date</label>
+                            <div class="control">
+                                <input
+                                    class="input"
+                                    type="date"
+                                    id="date"
+                                    max=""
+                                    value=""
+                                    required
+                                />
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Payee -->
-                    <div class="field">
-                        <label class="label form-label">Payee</label>
-                        <div class="control">
-                            <input class="input" type="text" id="payee" placeholder="Enter payee name" required>
-                        </div>
-                    </div>
-
-                    <!-- Amount -->
-                    <div class="field">
-                        <label class="label form-label">Amount</label>
-                        <div class="control is-flex is-align-items-center">
-                            <input class="input" type="number" step="0.01" id="amount" placeholder="Enter amount"
-                                required>
-                            <label class="checkbox ml-2">
-                                <input type="checkbox" id="is_received">
-                                Received
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Category -->
-                    <div class="field">
-                        <label class="label form-label">Category</label>
-                        <div class="control">
-                            <div class="select is-fullwidth">
-                                <select id="category" required>
-                                    {category_options}
-                                </select>
+                        <!-- Account -->
+                        <div class="field">
+                            <label class="label form-label">Account</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    <select id="account" required>
+                                        {account_options}
+                                    </select>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Notes -->
-                    <div class="field">
-                        <label class="label form-label">Notes</label>
-                        <div class="control">
-                            <textarea class="textarea" id="notes" placeholder="Optional notes"></textarea>
+                        <!-- Payee -->
+                        <div class="field">
+                            <label class="label form-label">Payee</label>
+                            <div class="control">
+                                <input
+                                    class="input"
+                                    type="text"
+                                    id="payee"
+                                    placeholder="Enter payee name"
+                                    required
+                                />
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- Submit -->
-                    <div class="field">
-                        <div class="control">
-                            <button type="submit" class="button is-link is-fullwidth submit-button">Submit</button>
+                        <!-- Amount -->
+                        <div class="field">
+                            <label class="label form-label">Amount</label>
+                            <div class="control is-flex is-align-items-center">
+                                <input
+                                    class="input"
+                                    type="number"
+                                    step="0.01"
+                                    id="amount"
+                                    placeholder="Enter amount"
+                                    required
+                                />
+                                <label class="checkbox ml-2">
+                                    <input type="checkbox" id="is_received" />
+                                    Received
+                                </label>
+                            </div>
                         </div>
-                    </div>
-                </form>
+
+                        <!-- Category -->
+                        <div class="field">
+                            <label class="label form-label">Category</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    <select id="category" required>
+                                        {category_options}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="field">
+                            <label class="label form-label">Notes</label>
+                            <div class="control">
+                                <textarea
+                                    class="textarea"
+                                    id="notes"
+                                    placeholder="Optional notes"
+                                    rows="2"
+                                ></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Submit -->
+                        <div class="field">
+                            <div class="control">
+                                <button
+                                    type="submit"
+                                    class="button is-link is-fullwidth submit-button"
+                                >
+                                    Submit
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
-    </div>
 
+        <script>
+            // Add this function to format date as YYYY-MM-DD
+            function formatDate(date) {
+                return date.toISOString().split("T")[0];
+            }
 
+            const today = formatDate(new Date());
+            document.getElementById("date").max = today;
+            document.getElementById("date").value = today;
 
-    <script>
+            function applyTheme(themeParams) {
+                document.body.style.backgroundColor = themeParams.bg_color;
+                document.querySelector(".card").style.backgroundColor =
+                    themeParams.secondary_bg_color;
+                document.querySelector(".form-header").style.color =
+                    themeParams.section_header_text_color;
+                document.querySelectorAll(".form-label").forEach((label) => {
+                    label.style.color = themeParams.text_color;
+                });
+                const submitButton = document.querySelector(".submit-button");
+                submitButton.style.backgroundColor = themeParams.button_color;
+                submitButton.style.color = themeParams.button_text_color;
+            }
 
-        // Add this function to format date as YYYY-MM-DD
-        function formatDate(date) {
-            return date.toISOString().split('T')[0];
-        }
+            const webApp = window.Telegram.WebApp;
+            webApp.expand();
+            applyTheme(webApp.themeParams);
 
-        const today = formatDate(new Date());
-        document.getElementById('date').max = today;
-        document.getElementById('date').value = today;
+            async function validateInitData() {
+                try {
+                    const response = await fetch("/validate", {
+                        method: "POST",
+                        body: new URLSearchParams({
+                            initData: webApp.initData,
+                        }),
+                    });
 
-        function applyTheme(themeParams) {
-            document.body.style.backgroundColor = themeParams.bg_color;
-            document.querySelector('.card').style.backgroundColor = themeParams.secondary_bg_color;
-            document.querySelector('.form-header').style.color = themeParams.section_header_text_color;
-            document.querySelectorAll('.form-label').forEach(label => {
-                label.style.color = themeParams.text_color;
-            });
-            const submitButton = document.querySelector('.submit-button');
-            submitButton.style.backgroundColor = themeParams.button_color;
-            submitButton.style.color = themeParams.button_text_color;
-        }
+                    if (!response.ok) {
+                        throw new Error(
+                            `HTTP error! status: ${response.status}`,
+                        );
+                    }
 
-        const webApp = window.Telegram.WebApp;
-        webApp.expand();
-        applyTheme(webApp.themeParams);
+                    const result = await response.json();
+                    if (!result.valid) {
+                        throw new Error(
+                            result.message || "Invalid Telegram request",
+                        );
+                    }
+                } catch (error) {
+                    document.getElementById("error").textContent =
+                        error.message;
+                    document
+                        .getElementById("error")
+                        .classList.remove("is-hidden");
+                    document
+                        .getElementById("form-container")
+                        .classList.add("is-hidden");
+                }
+            }
 
-        async function validateInitData() {
-            try {
-                const response = await fetch('/validate', {
-                    method: 'POST',
-                    body: new URLSearchParams({ initData: webApp.initData })
+            // only exists if called from an inline button
+            if (webApp.initData) {
+                validateInitData();
+            }
+
+            // Add function to collect form data
+            function collectFormData() {
+                const date = document.getElementById("date").value;
+                const account_id = document.getElementById("account").value;
+                const payee = document.getElementById("payee").value;
+                const amount = parseFloat(
+                    document.getElementById("amount").value,
+                );
+                const is_received =
+                    document.getElementById("is_received").checked;
+                const category_id = document.getElementById("category").value;
+                const notes = document.getElementById("notes").value;
+
+                return {
+                    date,
+                    account_id,
+                    payee,
+                    amount,
+                    category_id: category_id === "None" ? null : category_id,
+                    notes,
+                    type: "manual_tx",
+                    is_received,
+                };
+            }
+
+            // Replace the form submission handler
+            document
+                .getElementById("transaction-form")
+                .addEventListener("submit", function (e) {
+                    e.preventDefault();
+                    const formData = collectFormData();
+                    webApp.sendData(JSON.stringify(formData));
+                    webApp.close();
                 });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const result = await response.json();
-                if (!result.valid) {
-                    throw new Error(result.message || 'Invalid Telegram request');
-                }
-            } catch (error) {
-                document.getElementById('error').textContent = error.message;
-                document.getElementById('error').classList.remove('is-hidden');
-                document.getElementById('form-container').classList.add('is-hidden');
-            }
-        }
-
-        // only exists if called from an inline button
-        if (webApp.initData) {
-            validateInitData();
-        }
-
-        // Add function to collect form data
-        function collectFormData() {
-            const date = document.getElementById('date').value;
-            const account_id = document.getElementById('account').value;
-            const payee = document.getElementById('payee').value;
-            const amount = parseFloat(document.getElementById('amount').value);
-            const is_received = document.getElementById('is_received').checked;
-            const category_id = document.getElementById('category').value;
-            const notes = document.getElementById('notes').value;
-
-            return {
-                date,
-                account_id,
-                payee,
-                amount,
-                category_id: category_id === 'None' ? null : category_id,
-                notes,
-                type: 'manual_tx',
-                is_received,
-            };
-        }
-
-        // Replace the form submission handler
-        document.getElementById('transaction-form').addEventListener('submit', function (e) {
-            e.preventDefault();
-            const formData = collectFormData();
-            webApp.sendData(JSON.stringify(formData));
-            webApp.close();
-        });
-
-        // focus events don't bubble, must use capture phase
-        document.body.addEventListener("focus", event => {
-            const target = event.target;
-            switch (target.tagName) {
-                case "INPUT":
-                case "TEXTAREA":
-                case "SELECT":
-                    document.body.classList.add("keyboard");
-            }
-        }, true);
-        document.body.addEventListener("blur", () => {
-            document.body.classList.remove("keyboard");
-        }, true);
-
-    </script>
-</body>
-
+            // focus events don't bubble, must use capture phase
+            document.body.addEventListener(
+                "focus",
+                (event) => {
+                    const target = event.target;
+                    switch (target.tagName) {
+                        case "INPUT":
+                        case "TEXTAREA":
+                        case "SELECT":
+                            document.body.classList.add("keyboard");
+                    }
+                },
+                true,
+            );
+            document.body.addEventListener(
+                "blur",
+                () => {
+                    document.body.classList.remove("keyboard");
+                },
+                true,
+            );
+        </script>
+    </body>
 </html>
