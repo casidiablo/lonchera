@@ -187,6 +187,8 @@ async def handle_ai_response(update: Update, context: ContextTypes.DEFAULT_TYPE,
         # should never happen
         logger.error("handle_ai_response called with None message or chat", exc_info=True)
         return
+
+    chat_id = update.effective_chat.id
     try:
         await message.reply_text(
             text=response.message, parse_mode=ParseMode.MARKDOWN, reply_to_message_id=message.message_id
