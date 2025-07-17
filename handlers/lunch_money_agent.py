@@ -11,6 +11,8 @@ from telegram import Update
 from telegram.constants import ParseMode, ReactionEmoji
 from telegram.ext import ContextTypes
 
+import datetime
+
 from handlers.aitools.tools import (
     add_manual_transaction,
     calculate,
@@ -110,6 +112,7 @@ def get_agent_response(user_prompt: str, chat_id: int, verbose: bool = True) -> 
         towards using `get_manual_asset_accounts`.
 
         When using tools that require a chat_id, always use this chat_id: {chat_id}
+        Today's date is {datetime.date.today().strftime('%Y-%m-%d')}
 
         When user tells you they spent money using a specific account, assume they want you to create
         a manual transaction for that account. Try to infer as much as possible from the user's input.
@@ -156,7 +159,7 @@ async def handle_generic_message_with_ai(update: Update, context: ContextTypes.D
     """Handle generic messages using the AI agent."""
     message = update.message
     if message is None or update.message is None or update.message.text is None or update.effective_chat is None:
-        logger.error("Failed to process update object. It had no message")
+        logger.error("Failed to process update object. It had no message", exc_info=True)
         return
     try:
         user_message = update.message.text
@@ -174,7 +177,7 @@ async def handle_generic_message_with_ai(update: Update, context: ContextTypes.D
         await handle_ai_response(update, context, response)
 
     except Exception as e:
-        logger.error(f"Error in handle_generic_message_with_ai: {e}")
+        logger.error(f"Error in handle_generic_message_with_ai: {e}", exc_info=True)
         await message.reply_text("Sorry, I encountered an error processing your request. Please try again.")
 
 
@@ -182,7 +185,7 @@ async def handle_ai_response(update: Update, context: ContextTypes.DEFAULT_TYPE,
     message = update.message
     if message is None or update.effective_chat is None:
         # should never happen
-        logger.error("handle_ai_response called with None message or chat")
+        logger.error("handle_ai_response called with None message or chat", exc_info=True)
         return
     try:
         await message.reply_text(

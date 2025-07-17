@@ -230,7 +230,7 @@ def add_manual_transaction(
             }
         )
     except Exception as e:
-        logger.error(f"Error adding manual transaction: {e}")
+        logger.error(f"Error adding manual transaction: {e}", exc_info=True)
         return json.dumps({"error": str(e)})
 
 
