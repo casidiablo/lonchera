@@ -34,6 +34,18 @@ async def handle_audio_transcription(update: Update, context: ContextTypes.DEFAU
 
     chat_id = update.effective_chat.id
 
+    # Check if AI agent is enabled for this chat
+    settings = get_db().get_current_settings(chat_id)
+    ai_agent = settings.ai_agent if settings else False
+
+    if not ai_agent:
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="AI Agent is not enabled. Please enable AI Agent in settings to process audio messages.",
+            reply_to_message_id=message.message_id,
+        )
+        return False
+
     # Check if there's an audio file in the message
     audio_file = None
     if message.voice:
@@ -62,19 +74,20 @@ async def handle_audio_transcription(update: Update, context: ContextTypes.DEFAU
         # Transcribe the audio
         transcription, language = transcribe_audio(temp_path)
 
-        # Send the transcription to the user
-        try:
-            await context.bot.send_message(
-                chat_id=chat_id,
-                text=f"I will process now the following transcription:\n> {transcription.replace('.', '\\.')}",
-                parse_mode=ParseMode.MARKDOWN_V2,
-            )
-        except Exception as se:
-            if "Can't parse entities" in str(se):
-                # try to send without markdown
+        # Send the transcription to the user if enabled in settings
+        if settings.show_transcription:
+            try:
                 await context.bot.send_message(
-                    chat_id=chat_id, text=f"I will process now the following transcription:\n{transcription}"
+                    chat_id=chat_id,
+                    text=f"I will process now the following transcription:\n> {transcription.replace('.', '\\.')}",
+                    parse_mode=ParseMode.MARKDOWN_V2,
                 )
+            except Exception as se:
+                if "Can't parse entities" in str(se):
+                    # try to send without markdown
+                    await context.bot.send_message(
+                        chat_id=chat_id, text=f"I will process now the following transcription:\n{transcription}"
+                    )
 
         # Delete the temporary file
         os.unlink(temp_path)

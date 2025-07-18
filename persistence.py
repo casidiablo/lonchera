@@ -86,6 +86,9 @@ class Settings(Base):
     # Indicates whether AI agent is enabled
     ai_agent: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
+    # Indicates whether to show transcription message after processing audio
+    show_transcription: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
 
 class Analytics(Base):
     __tablename__ = "analytics"
@@ -272,6 +275,12 @@ class Persistence:
     def update_ai_agent(self, chat_id: int, ai_agent: bool) -> None:
         with self.Session() as session:
             stmt = update(Settings).where(Settings.chat_id == chat_id).values(ai_agent=ai_agent)
+            session.execute(stmt)
+            session.commit()
+
+    def update_show_transcription(self, chat_id: int, show_transcription: bool) -> None:
+        with self.Session() as session:
+            stmt = update(Settings).where(Settings.chat_id == chat_id).values(show_transcription=show_transcription)
             session.execute(stmt)
             session.commit()
 

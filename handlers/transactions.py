@@ -316,9 +316,7 @@ async def handle_message_reply(update: Update, context: ContextTypes.DEFAULT_TYP
 
     # update the transaction message to show the new notes
     updated_tx = lunch.get_transaction(tx_id)
-    await send_transaction_message(
-        context, transaction=updated_tx, chat_id=chat_id, message_id=replying_to_msg_id
-    )
+    await send_transaction_message(context, transaction=updated_tx, chat_id=chat_id, message_id=replying_to_msg_id)
 
     settings = get_db().get_current_settings(chat_id)
     if settings.auto_categorize_after_notes and not message_are_tags:
@@ -405,7 +403,9 @@ async def handle_expand_tx_options(update: Update, _: ContextTypes.DEFAULT_TYPE)
     transaction_id = int(update.callback_query.data.split("_")[1])
     logger.info("Expanding transaction options for tx %s", transaction_id)
     await update.callback_query.answer()
-    await update.callback_query.edit_message_reply_markup(reply_markup=get_tx_buttons(transaction_id, ai_agent=ai_agent, collapsed=False))
+    await update.callback_query.edit_message_reply_markup(
+        reply_markup=get_tx_buttons(transaction_id, ai_agent=ai_agent, collapsed=False)
+    )
 
 
 async def handle_rename_payee(update: Update, context: ContextTypes.DEFAULT_TYPE):
