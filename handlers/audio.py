@@ -4,7 +4,7 @@ from tempfile import NamedTemporaryFile
 
 import requests
 from telegram import Update
-from telegram.constants import ReactionEmoji
+from telegram.constants import ReactionEmoji, ParseMode
 from telegram.ext import ContextTypes
 
 from handlers.lunch_money_agent import get_agent_response, handle_ai_response
@@ -27,8 +27,12 @@ async def handle_audio_transcription(update: Update, context: ContextTypes.DEFAU
     Returns:
         True if the audio was successfully handled, False otherwise
     """
-    chat_id = update.effective_chat.id
     message = update.message
+    if message is None or update.effective_chat is None:
+        logger.info("No message or chat found")
+        return False
+
+    chat_id = update.effective_chat.id
 
     # Check if there's an audio file in the message
     audio_file = None
@@ -59,16 +63,31 @@ async def handle_audio_transcription(update: Update, context: ContextTypes.DEFAU
         transcription, language = transcribe_audio(temp_path)
 
         # Send the transcription to the user
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text=f"I will process now the following transcription:\n{transcription}"
-        )
+        try:
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=f"I will process now the following transcription:\n> {transcription.replace('.', '\\.')}",
+                parse_mode=ParseMode.MARKDOWN_V2,
+            )
+        except Exception as se:
+            if "Can't parse entities" in str(se):
+                # try to send without markdown
+                await context.bot.send_message(
+                    chat_id=chat_id, text=f"I will process now the following transcription:\n{transcription}"
+                )
 
         # Delete the temporary file
         os.unlink(temp_path)
 
+        # try to see if the message is a reply to a transaction message
+        tx_id = None
+        replying_to_msg_id = None
+        if message.reply_to_message:
+            replying_to_msg_id = message.reply_to_message.message_id
+            tx_id = get_db().get_tx_associated_with(replying_to_msg_id, message.chat_id)
+
         # Process the transcription with AI
-        ai_response = get_agent_response(transcription, chat_id, verbose=True)
+        ai_response = get_agent_response(transcription, chat_id, tx_id, replying_to_msg_id, verbose=True)
         await handle_ai_response(update, context, ai_response)
 
         return True

@@ -99,7 +99,7 @@ async def handle_generic_message(update: Update, context: ContextTypes.DEFAULT_T
     elif expectation and expectation["expectation"] == EDIT_NOTES:
         return await handle_edit_notes(update, context, expectation)
     elif expectation and expectation["expectation"] == SET_TAGS:
-        return await handle_set_tags(update, context, expectation)
+        return await tags(update, context, expectation)
     else:
         # when we were not expecting any message, try to process the message
         # with AI and try to respond to the user accordingly

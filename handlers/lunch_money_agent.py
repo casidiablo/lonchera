@@ -22,6 +22,10 @@ from handlers.aitools.tools import (
     get_my_lunch_money_user_info,
     parse_date_reference,
     get_crypto_accounts,
+    get_recent_transactions,
+    get_single_transaction,
+    get_transactions,
+    update_transaction,
 )
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
@@ -39,6 +43,16 @@ class LunchMoneyAgentResponse(BaseModel):
     transactions_created_ids: list[int] | None = Field(
         default=None, description="List of transaction IDs that were created, only present if transactions were created"
     )
+    transaction_updated_ids: dict[int, int] | None = Field(
+        default=None,
+        description="""
+        A mapping of transaction IDs that were updated to their new values,
+        where keys are the transaction ID (integer) and values are the telegram message ID (integer) or None if no message was sent,
+        only present if transactions were updated.
+
+        Always include the transaction ID in the message regardless of whether there is a Telegram message ID.
+        """,
+    )
 
 
 def create_lunch_money_agent(chat_id: int):
@@ -46,12 +60,16 @@ def create_lunch_money_agent(chat_id: int):
     use_openai = os.environ.get("USE_OPEN_AI", "false").lower() == "true"
     # For now only use OpenAI for chat_id 378659027 since it's in beta
     if use_openai and chat_id == 378659027:
+        model_name = "gpt-4.1-nano"
+        logger.info(f"Using model: {model_name}")
         chat_model = ChatOpenAI(
-            model="gpt-4.1-nano", api_key=SecretStr(os.environ.get("OPENAI_API_KEY", "")), temperature=0
+            model=model_name, api_key=SecretStr(os.environ.get("OPENAI_API_KEY", "")), temperature=0
         )
     else:
+        model_name = "meta-llama/Llama-4-Scout-17B-16E-Instruct"
+        logger.info(f"Using model: {model_name}")
         chat_model = ChatOpenAI(
-            model="meta-llama/Llama-4-Scout-17B-16E-Instruct",
+            model=model_name,
             base_url="https://api.deepinfra.com/v1/openai",
             api_key=SecretStr(os.environ["DEEPINFRA_API_KEY"]),
             temperature=0,
@@ -69,6 +87,8 @@ def create_lunch_money_agent(chat_id: int):
             parse_date_reference,
             get_crypto_accounts,
             calculate,
+            get_single_transaction,
+            update_transaction,
         ],
         response_format=LunchMoneyAgentResponse,
     )
@@ -76,7 +96,13 @@ def create_lunch_money_agent(chat_id: int):
     return agent
 
 
-def get_agent_response(user_prompt: str, chat_id: int, verbose: bool = True) -> LunchMoneyAgentResponse:
+def get_agent_response(
+    user_prompt: str,
+    chat_id: int,
+    tx_id: int | None = None,
+    telegram_message_id: int | None = None,
+    verbose: bool = True,
+) -> LunchMoneyAgentResponse:
     """
     Get response from the Lunch Money agent for a given user prompt.
 
@@ -96,6 +122,19 @@ def get_agent_response(user_prompt: str, chat_id: int, verbose: bool = True) -> 
 
     config: RunnableConfig = {"configurable": {"thread_id": str(uuid.uuid4())}, "recursion_limit": 30}
 
+    tx_prompt = ""
+    if tx_id:
+        tx_prompt = f"""
+        The user is referring to this Lunch transaction ID: {tx_id} whose
+        contents are displayed in the Telegram Message ID: {telegram_message_id}
+
+        If user asks you to update a transaction, like setting notes or tags, use the
+        update_transaction tool.
+
+        If user asked you to categorize the transaction, make sure to call get_categories
+        to get the right category ID.
+        """
+
     system_message = SystemMessage(
         content=f"""
         You are a helpful assistant that can provide Lunch Money information and help users manage their finances.
@@ -106,13 +145,16 @@ def get_agent_response(user_prompt: str, chat_id: int, verbose: bool = True) -> 
 
         When user asks for balances, remember to include the currency when possible.
         If the user asks for the balance of an account and it could not be found with
-        `get_account_balances`, try to find it in the manually-managed accounts calling `get_manual_asset_accounts`
+        `get_account_balances`, try to find it in the manually-managed accounts calling
+        `get_manual_asset_accounts`.
 
         Note that when user asks for how much money they have in cash, you must bias
         towards using `get_manual_asset_accounts`.
 
         When using tools that require a chat_id, always use this chat_id: {chat_id}
-        Today's date is {datetime.date.today().strftime('%Y-%m-%d')}
+        Today's date is {datetime.date.today().strftime("%Y-%m-%d")}
+
+        {tx_prompt}
 
         When user tells you they spent money using a specific account, assume they want you to create
         a manual transaction for that account. Try to infer as much as possible from the user's input.
@@ -146,6 +188,7 @@ def get_agent_response(user_prompt: str, chat_id: int, verbose: bool = True) -> 
         the request or fail with a reasonable message.
         - NEVER TELL THE USER WHAT YOU INTENT TO DO, JUST DO IT.
         - NEVER TELL TO USER TO CONFIRM OR APPROVE YOUR ACTIONS.
+        - ONLY add a transaction when the user asks you to.
         """
     )
     initial_message = HumanMessage(content=user_prompt)
@@ -165,7 +208,14 @@ async def handle_generic_message_with_ai(update: Update, context: ContextTypes.D
         user_message = update.message.text
         chat_id = update.effective_chat.id
 
-        logger.info("Processing AI message for chat_id %s: %s", chat_id, user_message)
+        # try to see if the message is a reply to a transaction message
+        tx_id = None
+        replying_to_msg_id = None
+        if update.message.reply_to_message:
+            replying_to_msg_id = update.message.reply_to_message.message_id
+            tx_id = get_db().get_tx_associated_with(replying_to_msg_id, update.message.chat_id)
+
+        logger.info("Processing AI message for chat_id %s: %s (tx id: %s)", chat_id, user_message, tx_id)
 
         # React to the audio message to indicate processing
         await context.bot.set_message_reaction(
@@ -173,7 +223,7 @@ async def handle_generic_message_with_ai(update: Update, context: ContextTypes.D
         )
 
         # Get the AI response
-        response = get_agent_response(user_message, chat_id, verbose=True)
+        response = get_agent_response(user_message, chat_id, tx_id, replying_to_msg_id, verbose=True)
         await handle_ai_response(update, context, response)
 
     except Exception as e:
@@ -187,6 +237,8 @@ async def handle_ai_response(update: Update, context: ContextTypes.DEFAULT_TYPE,
         # should never happen
         logger.error("handle_ai_response called with None message or chat", exc_info=True)
         return
+
+    logger.info(f"Handling message from AI: {response}")
 
     chat_id = update.effective_chat.id
     try:
@@ -214,6 +266,17 @@ async def handle_ai_response(update: Update, context: ContextTypes.DEFAULT_TYPE,
                 tx.recurring_type,
                 reviewed=True,
                 plaid_id=None,  # this is a manual transaction
+            )
+
+    if response.transaction_updated_ids:
+        lunch_client = get_lunch_client_for_chat_id(chat_id)
+        for tx_id, telegram_message_id in response.transaction_updated_ids.items():
+            if telegram_message_id is None:
+                continue
+            # update the transaction message to show the new notes
+            updated_tx = lunch_client.get_transaction(tx_id)
+            await send_transaction_message(
+                context, transaction=updated_tx, chat_id=chat_id, message_id=telegram_message_id
             )
 
 

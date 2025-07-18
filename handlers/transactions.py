@@ -263,10 +263,6 @@ async def handle_btn_mark_tx_as_unreviewed(update: Update, context: ContextTypes
 
 async def handle_set_tx_notes_or_tags(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Updates the transaction notes."""
-    handled = await handle_generic_message(update, context)
-    if handled:
-        return
-
     replying_to_msg_id = update.message.reply_to_message.message_id
     tx_id = get_db().get_tx_associated_with(replying_to_msg_id, update.message.chat_id)
 
