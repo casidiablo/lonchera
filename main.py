@@ -183,7 +183,7 @@ def setup_handlers(config):
     app.job_queue.run_repeating(poll_transactions_on_schedule, interval=60, first=5)
 
     app.add_handler(MessageHandler(filters.TEXT & filters.REPLY, handle_set_tx_notes_or_tags))
-    app.add_handler(MessageHandler(filters.TEXT, handle_generic_message))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.REPLY, handle_generic_message))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_file_upload))
     app.add_handler(MessageHandler((filters.VOICE | filters.AUDIO), handle_audio_transcription))
     app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_web_app_data))
