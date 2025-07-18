@@ -8,6 +8,7 @@ from telegram import CallbackQuery, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
+from handlers.settings import ai
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
 from utils import Keyboard, clean_md, make_tag
@@ -16,7 +17,7 @@ logger = logging.getLogger("messaging")
 
 
 def _add_expanded_buttons(
-    kbd: Keyboard, transaction_id: int, recurring_type, is_pending: bool, is_reviewed: bool, plaid_id
+    kbd: Keyboard, transaction_id: int, recurring_type, is_pending: bool, is_reviewed: bool, plaid_id, ai_agent=False
 ) -> Keyboard:
     """Adds buttons for the expanded view of a transaction."""
     # recurring transactions are not categorizable
@@ -26,9 +27,12 @@ def _add_expanded_buttons(
         if os.getenv("DEEPINFRA_API_KEY"):
             kbd += ("AI-categorize 🪄", f"aicategorize_{transaction_id}")
 
-    kbd += ("Rename payee", f"renamePayee_{transaction_id}")
-    kbd += ("Set notes", f"editNotes_{transaction_id}")
-    kbd += ("Set tags", f"setTags_{transaction_id}")
+    # These are disabled when AI Agent is enabled
+    if not ai_agent:
+        kbd += ("Rename payee", f"renamePayee_{transaction_id}")
+        kbd += ("Set notes", f"editNotes_{transaction_id}")
+        kbd += ("Set tags", f"setTags_{transaction_id}")
+
     if plaid_id:
         kbd += ("Plaid details", f"plaid_{transaction_id}")
 
@@ -42,7 +46,7 @@ def _add_expanded_buttons(
     return kbd
 
 
-def get_tx_buttons(transaction: TransactionObject | int, collapsed=True) -> InlineKeyboardMarkup:
+def get_tx_buttons(transaction: TransactionObject | int, ai_agent=False, collapsed=True) -> InlineKeyboardMarkup:
     """Returns a list of buttons to be displayed for a transaction."""
     # if transaction is an int, it's a transaction_id
     if isinstance(transaction, int):
@@ -68,7 +72,7 @@ def get_tx_buttons(transaction: TransactionObject | int, collapsed=True) -> Inli
     if collapsed:
         kbd += ("☷", f"moreOptions_{transaction_id}")
     elif not collapsed:
-        kbd = _add_expanded_buttons(kbd, transaction_id, recurring_type, is_pending, is_reviewed, plaid_id)
+        kbd = _add_expanded_buttons(kbd, transaction_id, recurring_type, is_pending, is_reviewed, plaid_id, ai_agent)
 
     if not is_reviewed and not is_pending:
         kbd += ("Reviewed ✓", f"review_{transaction_id}")
@@ -173,6 +177,7 @@ async def send_transaction_message(
     # Ensure settings fields are bool, not SQLAlchemy Columns
     show_datetime = settings.show_datetime if settings else True
     tagging = settings.tagging if settings else True
+    ai_agent = settings.ai_agent if settings else False
 
     message = format_transaction_message(transaction, tagging, show_datetime)
 
@@ -186,7 +191,7 @@ async def send_transaction_message(
                 message_id=message_id,
                 text=message,
                 parse_mode=ParseMode.MARKDOWN,
-                reply_markup=get_tx_buttons(transaction),
+                reply_markup=get_tx_buttons(transaction, ai_agent=ai_agent),
             )
         except Exception as e:
             if "Message is not modified" in str(e):
@@ -199,7 +204,7 @@ async def send_transaction_message(
             chat_id=chat_id,
             text=message,
             parse_mode=ParseMode.MARKDOWN,
-            reply_markup=get_tx_buttons(transaction),
+            reply_markup=get_tx_buttons(transaction, ai_agent=ai_agent),
             reply_to_message_id=reply_to_message_id,
         )
         return msg.id

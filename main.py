@@ -15,6 +15,7 @@ from handlers.amz import (
     handle_update_amz_settings,
 )
 from handlers.analytics import handle_stats, handle_status
+from handlers.lunch_money_agent import handle_generic_message_with_ai
 from handlers.audio import handle_audio_transcription
 from handlers.balances import handle_btn_accounts_balances, handle_done_balances, handle_show_balances
 from handlers.budget import (
@@ -75,7 +76,7 @@ from handlers.transactions import (
     handle_expand_tx_options,
     handle_rename_payee,
     handle_set_tags,
-    handle_set_tx_notes_or_tags,
+    handle_message_reply,
     poll_transactions_on_schedule,
 )
 from manual_tx import handle_manual_tx, handle_web_app_data
@@ -185,7 +186,7 @@ def setup_handlers(config):
 
     app.job_queue.run_repeating(poll_transactions_on_schedule, interval=60, first=5)
 
-    app.add_handler(MessageHandler(filters.TEXT & filters.REPLY, handle_set_tx_notes_or_tags))
+    app.add_handler(MessageHandler(filters.TEXT & filters.REPLY, handle_message_reply))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.REPLY, handle_generic_message))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_file_upload))
     app.add_handler(MessageHandler((filters.VOICE | filters.AUDIO), handle_audio_transcription))

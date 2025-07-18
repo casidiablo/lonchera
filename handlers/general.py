@@ -86,24 +86,30 @@ async def handle_errors(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def handle_generic_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    chat_id = update.effective_chat.id
     # if waiting for a token, register it
-    expectation = get_expectation(update.effective_chat.id)
+    expectation = get_expectation(chat_id)
     if expectation and expectation["expectation"] == EXPECTING_TOKEN:
         await handle_register_token(update, context, token_msg=update.message.text, hello_msg_id=expectation["msg_id"])
         return True
+
     # if waiting for a time zone, persist it
-    elif expectation and expectation["expectation"] == EXPECTING_TIME_ZONE:
+    if expectation and expectation["expectation"] == EXPECTING_TIME_ZONE:
         return await handle_timezone_setting(update, context, expectation)
-    elif expectation and expectation["expectation"] == RENAME_PAYEE:
+
+    settings = get_db().get_current_settings(chat_id)
+    if settings is not None and settings.ai_agent:
+        # If AI Agent is enabled, we just pass the message to the AI handler
+        await handle_generic_message_with_ai(update, context)
+        return True
+
+    # These are disabled when AI Agent is enabled
+    if expectation and expectation["expectation"] == RENAME_PAYEE:
         return await handle_rename_payee(update, context, expectation)
     elif expectation and expectation["expectation"] == EDIT_NOTES:
         return await handle_edit_notes(update, context, expectation)
     elif expectation and expectation["expectation"] == SET_TAGS:
-        return await tags(update, context, expectation)
-    else:
-        # when we were not expecting any message, try to process the message
-        # with AI and try to respond to the user accordingly
-        await handle_generic_message_with_ai(update, context)
+        return await handle_set_tags(update, context, expectation)
 
     return False
 

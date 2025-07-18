@@ -11,8 +11,8 @@ from telegram.ext import ContextTypes
 from constants import NOTES_MAX_LENGTH
 from deepinfra import auto_categorize
 from handlers.categorization import ai_categorize_transaction
+from handlers.lunch_money_agent import handle_generic_message_with_ai
 from handlers.expectations import EDIT_NOTES, RENAME_PAYEE, SET_TAGS, set_expectation
-from handlers.general import handle_generic_message
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
 from tx_messaging import get_tx_buttons, send_plaid_details, send_transaction_message
@@ -126,16 +126,22 @@ async def handle_btn_skip_transaction(update: Update, _: ContextTypes.DEFAULT_TY
 
 
 async def handle_btn_collapse_transaction(update: Update, _: ContextTypes.DEFAULT_TYPE):
+    settings = get_db().get_current_settings(update.effective_chat.id)
+    ai_agent = settings.ai_agent if settings else False
+
     await update.callback_query.edit_message_reply_markup(
-        reply_markup=get_tx_buttons(int(update.callback_query.data.split("_")[1]), collapsed=True)
+        reply_markup=get_tx_buttons(int(update.callback_query.data.split("_")[1]), ai_agent=ai_agent, collapsed=True)
     )
     await update.callback_query.answer()
 
 
 async def handle_btn_cancel_categorization(update: Update, _: ContextTypes.DEFAULT_TYPE):
+    settings = get_db().get_current_settings(update.effective_chat.id)
+    ai_agent = settings.ai_agent if settings else False
+
     query = update.callback_query
     transaction_id = int(query.data.split("_")[1])
-    await query.edit_message_reply_markup(reply_markup=get_tx_buttons(transaction_id))
+    await query.edit_message_reply_markup(reply_markup=get_tx_buttons(transaction_id, ai_agent=ai_agent))
     await query.answer()
 
 
@@ -261,15 +267,25 @@ async def handle_btn_mark_tx_as_unreviewed(update: Update, context: ContextTypes
         await query.answer(text=f"Error marking transaction as reviewed: {e!s}", show_alert=True)
 
 
-async def handle_set_tx_notes_or_tags(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_message_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Updates the transaction notes."""
+    if update.message is None or update.effective_chat is None:
+        return None
+
+    chat_id = update.effective_chat.id
+
+    settings = get_db().get_current_settings(chat_id)
+    if settings is not None and settings.ai_agent:
+        # If AI Agent is enabled, we just pass the message to the AI handler
+        return await handle_generic_message_with_ai(update, context)
+
     replying_to_msg_id = update.message.reply_to_message.message_id
-    tx_id = get_db().get_tx_associated_with(replying_to_msg_id, update.message.chat_id)
+    tx_id = get_db().get_tx_associated_with(replying_to_msg_id, chat_id)
 
     if tx_id is None:
         logger.error("No transaction ID found in bot data", exc_info=True)
         await context.bot.send_message(
-            chat_id=update.message.chat_id,
+            chat_id=chat_id,
             text=dedent(
                 """
                 Could not find the transaction associated with the message.
@@ -286,7 +302,7 @@ async def handle_set_tx_notes_or_tags(update: Update, context: ContextTypes.DEFA
             message_are_tags = False
             break
 
-    lunch = get_lunch_client_for_chat_id(update.message.chat_id)
+    lunch = get_lunch_client_for_chat_id(chat_id)
     if message_are_tags:
         tags_without_hashtag = [tag[1:] for tag in msg_text.split(" ") if tag.startswith("#")]
         logger.info(f"Setting tags to transaction ({tx_id}): {tags_without_hashtag}")
@@ -301,15 +317,15 @@ async def handle_set_tx_notes_or_tags(update: Update, context: ContextTypes.DEFA
     # update the transaction message to show the new notes
     updated_tx = lunch.get_transaction(tx_id)
     await send_transaction_message(
-        context, transaction=updated_tx, chat_id=update.message.chat_id, message_id=replying_to_msg_id
+        context, transaction=updated_tx, chat_id=chat_id, message_id=replying_to_msg_id
     )
 
-    settings = get_db().get_current_settings(update.message.chat_id)
+    settings = get_db().get_current_settings(chat_id)
     if settings.auto_categorize_after_notes and not message_are_tags:
-        await ai_categorize_transaction(tx_id, update.message.chat_id, context)
+        await ai_categorize_transaction(tx_id, chat_id, context)
 
     await context.bot.set_message_reaction(
-        chat_id=update.message.chat_id, message_id=update.message.message_id, reaction=ReactionEmoji.WRITING_HAND
+        chat_id=chat_id, message_id=update.message.message_id, reaction=ReactionEmoji.WRITING_HAND
     )
 
 
@@ -383,10 +399,13 @@ async def poll_transactions_on_schedule(context: ContextTypes.DEFAULT_TYPE):
 
 
 async def handle_expand_tx_options(update: Update, _: ContextTypes.DEFAULT_TYPE):
+    settings = get_db().get_current_settings(update.effective_chat.id)
+    ai_agent = settings.ai_agent if settings else False
+
     transaction_id = int(update.callback_query.data.split("_")[1])
     logger.info("Expanding transaction options for tx %s", transaction_id)
     await update.callback_query.answer()
-    await update.callback_query.edit_message_reply_markup(reply_markup=get_tx_buttons(transaction_id, collapsed=False))
+    await update.callback_query.edit_message_reply_markup(reply_markup=get_tx_buttons(transaction_id, ai_agent=ai_agent, collapsed=False))
 
 
 async def handle_rename_payee(update: Update, context: ContextTypes.DEFAULT_TYPE):
