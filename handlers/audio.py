@@ -58,6 +58,12 @@ async def handle_audio_transcription(update: Update, context: ContextTypes.DEFAU
         # Transcribe the audio
         transcription, language = transcribe_audio(temp_path)
 
+        # Send the transcription to the user
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=f"I will process now the following transcription:\n{transcription}"
+        )
+
         # Delete the temporary file
         os.unlink(temp_path)
 
@@ -70,11 +76,6 @@ async def handle_audio_transcription(update: Update, context: ContextTypes.DEFAU
     except Exception as e:
         logger.error(f"Error processing audio file: {e}", exc_info=True)
         await context.bot.send_message(chat_id=chat_id, text=f"Error processing audio: {e!s}")
-
-        # # Update reaction to indicate error
-        # await context.bot.set_message_reaction(
-        #     chat_id=chat_id, message_id=message.message_id, reaction=ReactionEmoji.CROSS_MARK
-        # )
 
         return False
 
