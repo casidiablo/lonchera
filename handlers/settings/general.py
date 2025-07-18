@@ -9,6 +9,7 @@ def get_general_settings_buttons() -> InlineKeyboardMarkup:
     kbd = Keyboard()
     kbd += ("🗓️ Schedule & Rendering", "scheduleRenderingSettings")
     kbd += ("💳 Transactions Handling", "transactionsHandlingSettings")
+    kbd += ("🤖 AI Settings", "aiSettings")
     kbd += ("🔑 Session", "sessionSettings")
     kbd += ("Done", "doneSettings")
     return kbd.build(columns=1)

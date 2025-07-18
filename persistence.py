@@ -83,6 +83,9 @@ class Settings(Base):
     # Indicates whether transactions should be automatically categorized after notes are added
     auto_categorize_after_notes: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
+    # Indicates whether AI agent is enabled
+    ai_agent: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
 
 class Analytics(Base):
     __tablename__ = "analytics"
@@ -263,6 +266,12 @@ class Persistence:
     def update_auto_categorize_after_notes(self, chat_id: int, value: bool) -> None:
         with self.Session() as session:
             stmt = update(Settings).where(Settings.chat_id == chat_id).values(auto_categorize_after_notes=value)
+            session.execute(stmt)
+            session.commit()
+
+    def update_ai_agent(self, chat_id: int, ai_agent: bool) -> None:
+        with self.Session() as session:
+            stmt = update(Settings).where(Settings.chat_id == chat_id).values(ai_agent=ai_agent)
             session.execute(stmt)
             session.commit()
 
