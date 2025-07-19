@@ -203,7 +203,8 @@ def add_application_callback_query_handlers(app):
     # Catch any other unknown buttons
     async def handle_unknown_btn(update: Update, _: ContextTypes.DEFAULT_TYPE):
         query = update.callback_query
-        await query.answer(text=f"Unknown command {query.data}", show_alert=True)
+        if query:
+            await query.answer(text=f"Unknown command {query.data}", show_alert=True)
 
     app.add_handler(CallbackQueryHandler(handle_unknown_btn))
 
@@ -219,9 +220,10 @@ def setup_handlers(config):
     add_command_handlers(app)
     add_callback_query_handlers(app)
 
-    app.add_error_handler(handle_errors)
+    app.add_error_handler(handle_errors)  # type: ignore
 
-    app.job_queue.run_repeating(poll_transactions_on_schedule, interval=60, first=5)
+    if app.job_queue:
+        app.job_queue.run_repeating(poll_transactions_on_schedule, interval=60, first=5)
 
     app.add_handler(MessageHandler(filters.TEXT & filters.REPLY, handle_message_reply))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.REPLY, handle_generic_message))
@@ -288,7 +290,8 @@ async def main():
         await app.initialize()
         await app.start()
         update_bot_status(True)  # Mark as running when started
-        await app.updater.start_polling(allowed_updates=Update.ALL_TYPES, error_callback=error_callback)
+        if app.updater:
+            await app.updater.start_polling(allowed_updates=Update.ALL_TYPES, error_callback=error_callback)
 
         # Start the web server
         runner = await run_web_server()
@@ -298,7 +301,8 @@ async def main():
         finally:
             update_bot_status(False)  # Mark as stopped during cleanup
             await runner.cleanup()
-            await app.updater.stop()
+            if app.updater:
+                await app.updater.stop()
             await app.stop()
 
 

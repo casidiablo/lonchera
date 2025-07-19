@@ -60,6 +60,7 @@ class Keyboard(list):
         buttons = [buttons[i : i + columns] for i in range(0, len(buttons), columns)]
         return InlineKeyboardMarkup(buttons)
 
+    @staticmethod
     def build_from(*btns: tuple[str, str]) -> InlineKeyboardMarkup:
         if not btns:
             raise ValueError("At least one button must be provided.")
@@ -123,4 +124,7 @@ def clean_md(text: str) -> str:
 def ensure_token(update: Update) -> Settings:
     # make sure the user has registered a token by trying to get the settings
     # which will raise an exception if the token is not set
-    return get_db().get_current_settings(update.effective_chat.id)
+    if update.effective_chat:
+        return get_db().get_current_settings(update.effective_chat.id)
+    else:
+        raise ValueError("No effective chat found in update")

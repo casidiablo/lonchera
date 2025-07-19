@@ -81,7 +81,3 @@ The bot is designed to support multiple users, meaning the same bot can track tr
 
 # 📄 License
 This project is licensed under the [MIT License](LICENSE.md).
-
----
-
-🍱 Happy expense tracking! 🎉foo

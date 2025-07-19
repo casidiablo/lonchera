@@ -66,6 +66,10 @@ async def handle_audio_transcription(update: Update, context: ContextTypes.DEFAU
         # Process audio transcription
         transcription = await _process_audio_transcription(update, context, audio_file, settings)
 
+        if not transcription:
+            await context.bot.send_message(chat_id=chat_id, text="Failed to transcribe audio")
+            return False
+
         # try to see if the message is a reply to a transaction message
         tx_id = None
         replying_to_msg_id = None
@@ -86,7 +90,9 @@ async def handle_audio_transcription(update: Update, context: ContextTypes.DEFAU
         return False
 
 
-async def _process_audio_transcription(update: Update, context: ContextTypes.DEFAULT_TYPE, audio_file, settings) -> str:
+async def _process_audio_transcription(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, audio_file, settings
+) -> str | None:
     """
     Download and transcribe audio file.
 
@@ -99,7 +105,9 @@ async def _process_audio_transcription(update: Update, context: ContextTypes.DEF
     Returns:
         The transcribed text
     """
-    chat_id = update.effective_chat.id
+    chat_id = update.effective_chat.id if update.effective_chat else None
+    if not chat_id:
+        return None
 
     # Download the audio file
     audio_data = await context.bot.get_file(audio_file.file_id)

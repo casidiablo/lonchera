@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 async def is_authorized(update: Update) -> bool:
     """Check if user is authorized to use admin commands."""
     admin_user_id = os.getenv("ADMIN_USER_ID")
-    return admin_user_id and update.effective_user.id == int(admin_user_id)
+    return bool(admin_user_id and update.effective_user and update.effective_user.id == int(admin_user_id))
 
 
 def collect_metrics_data(metrics, start_of_week):
@@ -68,7 +68,8 @@ def format_metrics_message(all_metrics, has_data):
 async def handle_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("Received /stats command")
     if not await is_authorized(update):
-        await update.message.reply_text("You are not authorized to use this command.")
+        if update.message:
+            await update.message.reply_text("You are not authorized to use this command.")
         return
 
     db = get_db()
@@ -86,14 +87,16 @@ async def handle_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     all_metrics, has_data = collect_metrics_data(metrics, start_of_week)
     message = format_metrics_message(all_metrics, has_data)
 
-    await update.message.reply_text(
-        text=message, parse_mode=ParseMode.MARKDOWN, reply_markup=Keyboard.build_from(("Close", "cancel"))
-    )
+    if update.message:
+        await update.message.reply_text(
+            text=message, parse_mode=ParseMode.MARKDOWN, reply_markup=Keyboard().build_from(("Close", "cancel"))
+        )
 
 
 async def handle_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_authorized(update):
-        await update.message.reply_text("You are not authorized to use this command.")
+        if update.message:
+            await update.message.reply_text("You are not authorized to use this command.")
         return
 
     db = get_db()
@@ -108,4 +111,5 @@ async def handle_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Messages sent: {sent_message_count}\n"
     )
 
-    await update.message.reply_text(text=message, reply_markup=Keyboard.build_from(("Close", "cancel")))
+    if update.message:
+        await update.message.reply_text(text=message, reply_markup=Keyboard().build_from(("Close", "cancel")))

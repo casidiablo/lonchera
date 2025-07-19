@@ -14,6 +14,7 @@ logger = logging.getLogger("aitools")
 
 MAX_TRANSACTION_LIMIT = 100
 
+
 def transaction_to_dict(transaction) -> dict:
     """Convert a transaction object to a dictionary.
 
@@ -73,18 +74,23 @@ def get_plaid_account_balances(chat_id: int) -> str:
 
         accounts_data = []
         for acc in plaid_accounts:
-            logger.debug("Processing account: %s (id: %s, type: %s)", acc.display_name or acc.name, acc.id, acc.type)
+            logger.debug(
+                "Processing account: %s (id: %s, type: %s)",
+                getattr(acc, "display_name", None) or acc.name,
+                acc.id,
+                acc.type,
+            )
             account_info = {
-                "name": acc.display_name or acc.name,
-                "balance": float(acc.balance),
-                "currency": acc.currency.upper(),
+                "name": getattr(acc, "display_name", None) or acc.name,
+                "balance": float(acc.balance) if acc.balance is not None else 0.0,
+                "currency": acc.currency.upper() if acc.currency else "",
                 "type": acc.type,
                 "institution_name": acc.institution_name,
                 "last_update": acc.balance_last_update.isoformat() if acc.balance_last_update else None,
                 "status": acc.status,
             }
             if acc.limit:
-                account_info["limit"] = float(acc.limit)
+                account_info["limit"] = float(acc.limit) if acc.limit is not None else 0.0
             accounts_data.append(account_info)
 
         return json.dumps({"accounts": accounts_data})
@@ -293,16 +299,16 @@ def get_crypto_accounts_balances(chat_id: int) -> str:
         for crypto in crypto_accounts:
             logger.debug(
                 "Processing crypto account: %s (id: %s, currency: %s)",
-                crypto.display_name or crypto.name,
+                getattr(crypto, "display_name", None) or crypto.name,
                 crypto.id,
                 crypto.currency,
             )
             account_info = {
                 "id": crypto.id,
                 "name": crypto.name,
-                "display_name": crypto.display_name,
+                "display_name": getattr(crypto, "display_name", None),
                 "balance": float(crypto.balance),
-                "currency": crypto.currency.upper(),
+                "currency": crypto.currency.upper() if crypto.currency else "",
                 "institution_name": crypto.institution_name,
                 "last_update": crypto.balance_as_of.isoformat() if crypto.balance_as_of else None,
                 "status": crypto.status,
@@ -419,12 +425,7 @@ def update_transaction(
 
         # Prepare update data using helper function
         update_data = prepare_transaction_update_data(
-            payee=payee,
-            notes=notes,
-            tags=tags,
-            category_id=category_id,
-            amount=amount,
-            date=date,
+            payee=payee, notes=notes, tags=tags, category_id=category_id, amount=amount, date=date
         )
 
         # Check if preparation returned an error

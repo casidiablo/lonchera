@@ -71,7 +71,9 @@ def get_tx_buttons(transaction: TransactionObject | int, ai_agent=False, collaps
     if collapsed:
         kbd += ("☷", f"moreOptions_{transaction_id}")
     elif not collapsed:
-        kbd = _add_expanded_buttons(kbd, transaction_id, recurring_type, is_pending, is_reviewed, plaid_id, ai_agent)
+        kbd = _add_expanded_buttons(
+            kbd, transaction_id, recurring_type, is_pending or False, is_reviewed, plaid_id, ai_agent
+        )
 
     if not is_reviewed and not is_pending:
         kbd += ("Reviewed ✓", f"review_{transaction_id}")
@@ -95,7 +97,7 @@ def format_transaction_datetime(transaction: TransactionObject, show_datetime: b
             else:
                 return transaction.date.strftime("%a, %b %d")
         else:
-            return transaction.plaid_metadata.get("date")
+            return transaction.plaid_metadata.get("date") or ""
     elif show_datetime:
         return transaction.date.strftime("%a, %b %d at %I:%M %p")
     else:
@@ -127,14 +129,14 @@ def format_transaction_message(transaction: TransactionObject, tagging: bool, sh
     else:
         reviewed_watermark = "\u200c"
 
-    message = f"*{clean_md(transaction.payee)}* {reviewed_watermark} {recurring} {split_transaction}\n\n"
-    message += f"*Amount*: `{explicit_sign}{abs(transaction.amount):,.2f}` `{transaction.currency.upper()}`\n"
+    message = f"*{clean_md(transaction.payee or '')}* {reviewed_watermark} {recurring} {split_transaction}\n\n"
+    message += f"*Amount*: `{explicit_sign}{abs(transaction.amount):,.2f}` `{transaction.currency.upper() if transaction.currency else ''}`\n"
     message += f"*Date/Time*: {formatted_date_time}\n"
 
     # Get category and category group
     category_group = transaction.category_group_name
     if category_group is not None:
-        category_group = make_tag(category_group, title=True, tagging=tagging, no_emojis=True)
+        category_group = make_tag(category_group or "", title=True, tagging=tagging, no_emojis=True)
         category_group = f"{category_group} / "
     else:
         category_group = ""
@@ -147,7 +149,7 @@ def format_transaction_message(transaction: TransactionObject, tagging: bool, sh
     asset_name = ""
     if (acct_name is None or acct_name == "") and transaction.asset_institution_name:
         acct_name = transaction.asset_institution_name
-        asset_name = make_tag(transaction.asset_name, tagging=tagging)
+        asset_name = make_tag(transaction.asset_name or "", tagging=tagging)
         asset_name = f" / {asset_name}"
 
     if acct_name is None or acct_name == "":
@@ -214,7 +216,10 @@ async def send_plaid_details(
 ):
     """Sends the plaid details of a transaction to the chat_id."""
     await context.bot.send_message(
-        chat_id=chat_id, text=plaid_details, parse_mode=ParseMode.MARKDOWN, reply_to_message_id=query.message.message_id
+        chat_id=chat_id,
+        text=plaid_details,
+        parse_mode=ParseMode.MARKDOWN,
+        reply_to_message_id=query.message.message_id if query.message else None,
     )
 
     lunch = get_lunch_client_for_chat_id(chat_id)
