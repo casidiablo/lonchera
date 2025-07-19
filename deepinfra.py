@@ -85,7 +85,7 @@ DO NOT EXPLAIN YOURSELF. JUST RESPOND WITH THE ID or null.
 
 def send_message_to_llm(content):
     url = "https://api.deepinfra.com/v1/openai/chat/completions"
-    headers = {"Content-Type": "application/json", "Authorization": "Bearer " + os.getenv("DEEPINFRA_API_KEY")}
+    headers = {"Content-Type": "application/json", "Authorization": "Bearer " + os.getenv("DEEPINFRA_API_KEY", "")}
     data = {
         "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
         "temperature": 0.0,
@@ -122,9 +122,9 @@ def auto_categorize(tx_id: int, chat_id: int) -> str:
             if cat.id == int(category_id):
                 settings = get_db().get_current_settings(chat_id)
                 if settings.mark_reviewed_after_categorized:
-                    lunch.update_transaction(tx_id, TransactionUpdateObject(category_id=cat.id, status="cleared"))
+                    lunch.update_transaction(tx_id, TransactionUpdateObject(category_id=cat.id, status="cleared")) # type: ignore
                 else:
-                    lunch.update_transaction(tx_id, TransactionUpdateObject(category_id=cat.id))
+                    lunch.update_transaction(tx_id, TransactionUpdateObject(category_id=cat.id)) # type: ignore
                 return f"Transaction recategorized to {cat.name}"
 
         return "AI failed to categorize the transaction"
@@ -144,7 +144,7 @@ def get_suggested_category_id(
 
     try:
         category_id = send_message_to_llm(prompt)
-        return tx, int(category_id)
+        return tx, int(category_id or 0)
     except Exception as e:
         logger.error(f"Error while categorizing transaction: {e}")
         return tx, -1

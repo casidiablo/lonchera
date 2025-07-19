@@ -1,6 +1,7 @@
 import datetime
 import logging
 import os
+import time
 import uuid
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -71,6 +72,8 @@ def create_lunch_money_agent(chat_id: int):
     if admin_user_id and chat_id == int(admin_user_id) and selected_model and selected_model in openai_models:
         model_name = selected_model
         logger.info(f"Using selected OpenAI model: {model_name}")
+        get_db().inc_metric("ai_agent_openai_model_usage")
+        get_db().inc_metric(f"ai_agent_model_{model_name.replace('-', '_').replace('.', '_')}")
         chat_model = ChatOpenAI(
             model=model_name, api_key=SecretStr(os.environ.get("OPENAI_API_KEY", "")), temperature=0
         )
@@ -78,6 +81,8 @@ def create_lunch_money_agent(chat_id: int):
         # Use default Llama model via DeepInfra for all other cases
         model_name = default_model
         logger.info(f"Using default Llama model: {model_name}")
+        get_db().inc_metric("ai_agent_deepinfra_model_usage")
+        get_db().inc_metric(f"ai_agent_model_{model_name.replace('-', '_').replace('.', '_').replace('/', '_')}")
         chat_model = ChatOpenAI(
             model=model_name,
             base_url="https://api.deepinfra.com/v1/openai",
@@ -126,11 +131,19 @@ def get_agent_response(
     Returns:
         str: The final response from the agent
     """
+    start_time = time.time()
+    get_db().inc_metric("ai_agent_requests")
+
     logger.info("Creating Lunch Money agent for chat_id: %s (verbose? %s)", chat_id, verbose)
     agent = create_lunch_money_agent(chat_id)
 
     if verbose:
         logger.info("User message: %s", user_prompt)
+
+    # Track prompt characteristics
+    get_db().inc_metric("ai_agent_prompt_chars", len(user_prompt))
+    if tx_id:
+        get_db().inc_metric("ai_agent_requests_with_tx_context")
 
     config: RunnableConfig = {"configurable": {"thread_id": str(uuid.uuid4())}, "recursion_limit": 30}
 
@@ -220,8 +233,39 @@ def get_agent_response(
     initial_message = HumanMessage(content=user_prompt)
     initial_state = {"messages": [system_message, initial_message]}
 
-    response = agent.invoke(initial_state, config)
-    return response["structured_response"]
+    try:
+        response = agent.invoke(initial_state, config)
+        structured_response = response["structured_response"]
+
+        # Track successful responses and their characteristics
+        processing_time = time.time() - start_time
+        get_db().inc_metric("ai_agent_requests_successful")
+        get_db().inc_metric("ai_agent_processing_time_seconds", processing_time)
+        get_db().inc_metric("ai_agent_response_chars", len(structured_response.message))
+
+        # Track response status
+        get_db().inc_metric(f"ai_agent_response_status_{structured_response.status}")
+
+        # Track specific actions taken
+        if structured_response.transactions_created_ids:
+            get_db().inc_metric("ai_agent_transactions_created", len(structured_response.transactions_created_ids))
+
+        if structured_response.transaction_updated_ids:
+            get_db().inc_metric("ai_agent_transactions_updated", len(structured_response.transaction_updated_ids))
+
+        # Track language preference usage
+        settings = get_db().get_current_settings(chat_id)
+        if settings and settings.ai_response_language:
+            get_db().inc_metric(f"ai_agent_language_{settings.ai_response_language.lower()}")
+
+        return structured_response
+
+    except Exception as e:
+        processing_time = time.time() - start_time
+        get_db().inc_metric("ai_agent_requests_failed")
+        get_db().inc_metric("ai_agent_processing_time_seconds", processing_time)
+        logger.error(f"Error in agent processing: {e}", exc_info=True)
+        raise
 
 
 async def handle_generic_message_with_ai(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -233,6 +277,9 @@ async def handle_generic_message_with_ai(update: Update, context: ContextTypes.D
     try:
         user_message = update.message.text
         chat_id = update.effective_chat.id
+
+        # Track text message processing
+        get_db().inc_metric("ai_agent_text_messages")
 
         # try to see if the message is a reply to a transaction message
         tx_id = None
@@ -252,7 +299,10 @@ async def handle_generic_message_with_ai(update: Update, context: ContextTypes.D
         response = get_agent_response(user_message, chat_id, tx_id, replying_to_msg_id, verbose=True)
         await handle_ai_response(update, context, response)
 
+        get_db().inc_metric("ai_agent_text_messages_successful")
+
     except Exception as e:
+        get_db().inc_metric("ai_agent_text_messages_failed")
         logger.error(f"Error in handle_generic_message_with_ai: {e}", exc_info=True)
         await message.reply_text("Sorry, I encountered an error processing your request. Please try again.")
 
@@ -267,14 +317,18 @@ async def handle_ai_response(update: Update, context: ContextTypes.DEFAULT_TYPE,
     logger.info(f"Handling message from AI: {response}")
 
     chat_id = update.effective_chat.id
+    get_db().inc_metric("ai_agent_responses_sent")
+
     try:
         await message.reply_text(
             text=response.message, parse_mode=ParseMode.MARKDOWN, reply_to_message_id=message.message_id
         )
+        get_db().inc_metric("ai_agent_responses_sent_markdown")
     except Exception as se:
         if "Can't parse entities" in str(se):
             # try to send without markdown
             await message.reply_text(text=response.message, reply_to_message_id=message.message_id)
+            get_db().inc_metric("ai_agent_responses_sent_plaintext")
         else:
             raise se
 

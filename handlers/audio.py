@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 from tempfile import NamedTemporaryFile
 
 import requests
@@ -62,13 +63,20 @@ async def handle_audio_transcription(update: Update, context: ContextTypes.DEFAU
         chat_id=chat_id, message_id=message.message_id, reaction=ReactionEmoji.HIGH_VOLTAGE_SIGN
     )
 
+    get_db().inc_metric("audio_processing_requests")
+
     try:
         # Process audio transcription
         transcription = await _process_audio_transcription(update, context, audio_file, settings)
 
         if not transcription:
+            get_db().inc_metric("audio_processing_failed")
             await context.bot.send_message(chat_id=chat_id, text="Failed to transcribe audio")
             return False
+
+        # Track transcription metrics
+        get_db().inc_metric("audio_transcription_successful")
+        get_db().inc_metric("audio_transcription_chars", len(transcription))
 
         # try to see if the message is a reply to a transaction message
         tx_id = None
@@ -81,10 +89,14 @@ async def handle_audio_transcription(update: Update, context: ContextTypes.DEFAU
         ai_response = get_agent_response(transcription, chat_id, tx_id, replying_to_msg_id, verbose=True)
         await handle_ai_response(update, context, ai_response)
 
+        # Track successful end-to-end processing
+        get_db().inc_metric("audio_processing_successful")
+
         return True
 
     except Exception as e:
         logger.error(f"Error processing audio file: {e}", exc_info=True)
+        get_db().inc_metric("audio_processing_failed")
         await context.bot.send_message(chat_id=chat_id, text=f"Error processing audio: {e!s}")
 
         return False
@@ -112,13 +124,20 @@ async def _process_audio_transcription(
     # Download the audio file
     audio_data = await context.bot.get_file(audio_file.file_id)
 
+    # Track audio file size
+    file_size = getattr(audio_file, 'file_size', 0) or 0
+    get_db().inc_metric("audio_file_size_bytes", file_size)
+
     # Save to a temporary file
     with NamedTemporaryFile(delete=False, suffix=".ogg") as temp_file:
         await audio_data.download_to_drive(temp_file.name)
         temp_path = temp_file.name
 
     # Transcribe the audio
+    transcription_start = time.time()
     transcription, language = transcribe_audio(temp_path)
+    transcription_time = time.time() - transcription_start
+    get_db().inc_metric("audio_transcription_time_seconds", transcription_time)
 
     # Send the transcription to the user if enabled in settings
     if settings.show_transcription:
@@ -181,14 +200,20 @@ def transcribe_audio(file_path: str) -> tuple[str, str]:
                 cost = response_json["inference_status"]["cost"]
                 get_db().inc_metric("deepinfra_whisper_estimated_cost", cost)
 
+            # Track language detection
+            if language:
+                get_db().inc_metric(f"audio_language_{language.lower()}")
+
             logger.info(f"Transcription successful: {transcription}")
             logger.info(f"Detected language: {language}")
 
             return transcription, language
         else:
+            get_db().inc_metric("deepinfra_whisper_requests_failed")
             logger.error(f"Transcription failed with status code: {response.status_code}", exc_info=True)
             response.raise_for_status()
             return "", ""
     except Exception as e:
+        get_db().inc_metric("deepinfra_whisper_requests_failed")
         logger.error(f"Error during transcription: {e}", exc_info=True)
         raise
