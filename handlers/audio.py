@@ -63,34 +63,8 @@ async def handle_audio_transcription(update: Update, context: ContextTypes.DEFAU
     )
 
     try:
-        # Download the audio file
-        audio_data = await context.bot.get_file(audio_file.file_id)
-
-        # Save to a temporary file
-        with NamedTemporaryFile(delete=False, suffix=".ogg") as temp_file:
-            await audio_data.download_to_drive(temp_file.name)
-            temp_path = temp_file.name
-
-        # Transcribe the audio
-        transcription, language = transcribe_audio(temp_path)
-
-        # Send the transcription to the user if enabled in settings
-        if settings.show_transcription:
-            try:
-                await context.bot.send_message(
-                    chat_id=chat_id,
-                    text=f"I will process now the following transcription:\n> {transcription.replace('.', '\\.')}",
-                    parse_mode=ParseMode.MARKDOWN_V2,
-                )
-            except Exception as se:
-                if "Can't parse entities" in str(se):
-                    # try to send without markdown
-                    await context.bot.send_message(
-                        chat_id=chat_id, text=f"I will process now the following transcription:\n{transcription}"
-                    )
-
-        # Delete the temporary file
-        os.unlink(temp_path)
+        # Process audio transcription
+        transcription = await _process_audio_transcription(update, context, audio_file, settings)
 
         # try to see if the message is a reply to a transaction message
         tx_id = None
@@ -110,6 +84,53 @@ async def handle_audio_transcription(update: Update, context: ContextTypes.DEFAU
         await context.bot.send_message(chat_id=chat_id, text=f"Error processing audio: {e!s}")
 
         return False
+
+
+async def _process_audio_transcription(update: Update, context: ContextTypes.DEFAULT_TYPE, audio_file, settings) -> str:
+    """
+    Download and transcribe audio file.
+
+    Args:
+        update: The update containing the audio file
+        context: The context
+        audio_file: The audio file object
+        settings: User settings
+
+    Returns:
+        The transcribed text
+    """
+    chat_id = update.effective_chat.id
+
+    # Download the audio file
+    audio_data = await context.bot.get_file(audio_file.file_id)
+
+    # Save to a temporary file
+    with NamedTemporaryFile(delete=False, suffix=".ogg") as temp_file:
+        await audio_data.download_to_drive(temp_file.name)
+        temp_path = temp_file.name
+
+    # Transcribe the audio
+    transcription, language = transcribe_audio(temp_path)
+
+    # Send the transcription to the user if enabled in settings
+    if settings.show_transcription:
+        try:
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=f"I will process now the following transcription:\n> {transcription.replace('.', '\\.')}",
+                parse_mode=ParseMode.MARKDOWN_V2,
+            )
+        except Exception as se:
+            if "Can't parse entities" in str(se):
+                # try to send without markdown
+                await context.bot.send_message(
+                    chat_id=chat_id, text=f"I will process now the following transcription:\n{transcription}"
+                )
+
+    # Delete the temporary file
+    os.unlink(temp_path)
+
+    return transcription
 
 
 def transcribe_audio(file_path: str) -> tuple[str, str]:
