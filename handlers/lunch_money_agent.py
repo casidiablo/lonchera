@@ -23,6 +23,8 @@ from handlers.aitools.tools import (
     parse_date_reference,
     get_crypto_accounts_balances,
     get_single_transaction,
+    get_recent_transactions,
+    get_transactions,
     update_transaction,
 )
 from lunch import get_lunch_client_for_chat_id
@@ -96,6 +98,8 @@ def create_lunch_money_agent(chat_id: int):
             parse_date_reference,
             calculate,
             get_single_transaction,
+            get_recent_transactions,
+            get_transactions,
             update_transaction,
         ],
         response_format=LunchMoneyAgentResponse,
