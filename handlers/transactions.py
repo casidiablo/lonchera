@@ -11,8 +11,8 @@ from telegram.ext import ContextTypes
 from constants import NOTES_MAX_LENGTH
 from deepinfra import auto_categorize
 from handlers.categorization import ai_categorize_transaction
-from handlers.lunch_money_agent import handle_generic_message_with_ai
 from handlers.expectations import EDIT_NOTES, RENAME_PAYEE, SET_TAGS, set_expectation
+from handlers.lunch_money_agent import handle_generic_message_with_ai
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
 from tx_messaging import get_tx_buttons, send_plaid_details, send_transaction_message

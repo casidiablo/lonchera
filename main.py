@@ -15,7 +15,6 @@ from handlers.amz import (
     handle_update_amz_settings,
 )
 from handlers.analytics import handle_stats, handle_status
-from handlers.lunch_money_agent import handle_generic_message_with_ai
 from handlers.audio import handle_audio_transcription
 from handlers.balances import handle_btn_accounts_balances, handle_done_balances, handle_show_balances
 from handlers.budget import (
@@ -38,8 +37,8 @@ from handlers.settings.ai import (
     handle_btn_toggle_ai_agent,
     handle_btn_toggle_show_transcription,
     handle_set_ai_language,
-    handle_set_language,
     handle_set_ai_model,
+    handle_set_language,
     handle_set_model,
 )
 from handlers.settings.general import handle_btn_done_settings, handle_settings, handle_settings_menu
@@ -82,9 +81,9 @@ from handlers.transactions import (
     handle_check_transactions,
     handle_edit_notes,
     handle_expand_tx_options,
+    handle_message_reply,
     handle_rename_payee,
     handle_set_tags,
-    handle_message_reply,
     poll_transactions_on_schedule,
 )
 from manual_tx import handle_manual_tx, handle_web_app_data

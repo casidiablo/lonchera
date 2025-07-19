@@ -683,10 +683,10 @@ def calculate(expression: str) -> str:
         return json.dumps({"error": "Division by zero"})
     except (SyntaxError, NameError, TypeError, ValueError) as e:
         logger.warning("Invalid expression %r: %s", expression, str(e))
-        return json.dumps({"error": f"Invalid expression: {str(e)}"})
+        return json.dumps({"error": f"Invalid expression: {e!s}"})
     except Exception as e:
         logger.error("Error calculating expression %r: %s", expression, str(e), exc_info=True)
-        return json.dumps({"error": f"Calculation error: {str(e)}"})
+        return json.dumps({"error": f"Calculation error: {e!s}"})
 
 
 @tool

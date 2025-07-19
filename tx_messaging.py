@@ -8,7 +8,6 @@ from telegram import CallbackQuery, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
-from handlers.settings import ai
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
 from utils import Keyboard, clean_md, make_tag

@@ -12,7 +12,6 @@ from telegram.ext import ContextTypes
 from constants import NOTES_MAX_LENGTH
 from errors import NoLunchTokenError
 from handlers.amz import handle_amazon_export
-from handlers.lunch_money_agent import handle_generic_message_with_ai
 from handlers.categorization import ai_categorize_transaction
 from handlers.expectations import (
     AMAZON_EXPORT,
@@ -25,6 +24,7 @@ from handlers.expectations import (
     get_expectation,
     set_expectation,
 )
+from handlers.lunch_money_agent import handle_generic_message_with_ai
 from handlers.settings.schedule_rendering import get_schedule_rendering_buttons, get_schedule_rendering_text
 from handlers.settings.session import handle_register_token
 from lunch import get_lunch_client_for_chat_id
