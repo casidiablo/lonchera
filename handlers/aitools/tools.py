@@ -315,6 +315,67 @@ def get_crypto_accounts_balances(chat_id: int) -> str:
         return json.dumps({"error": str(e)})
 
 
+def prepare_transaction_update_data(
+    payee: str | None = None,
+    notes: str | None = None,
+    tags: list[str] | None = None,
+    category_id: int | None = None,
+    amount: float | None = None,
+    date: str | None = None,
+) -> dict | str:
+    """Prepare update data dictionary for transaction update.
+
+    Args:
+        payee: New payee name (optional)
+        notes: New notes text (optional, max 350 characters)
+        tags: List of tags to set (optional, without # prefix)
+        category_id: New category ID (optional)
+        amount: New transaction amount (optional)
+        date: New transaction date in YYYY-MM-DD format (optional)
+
+    Returns:
+        Dictionary with update data or error string if validation fails
+    """
+    update_data = {}
+
+    if payee is not None:
+        update_data["payee"] = payee
+
+    if notes is not None:
+        # Truncate notes if too long (same as in general.py)
+        if len(notes) > NOTES_MAX_LENGTH:
+            notes = notes[:NOTES_MAX_LENGTH]
+            logger.warning("Notes truncated to %d characters", NOTES_MAX_LENGTH)
+        update_data["notes"] = notes
+
+    if tags is not None:
+        # Ensure tags don't have # prefix
+        clean_tags = [tag.lstrip("#") for tag in tags]
+        update_data["tags"] = clean_tags
+
+    if category_id is not None:
+        if category_id == 0:
+            category_id = None  # 0 means uncategorized
+        update_data["category_id"] = category_id
+
+    if amount is not None:
+        update_data["amount"] = amount
+
+    if date is not None:
+        try:
+            transaction_date = datetime.datetime.strptime(date, "%Y-%m-%d")
+            update_data["date"] = transaction_date
+        except ValueError:
+            logger.warning("Invalid date format: %s", date)
+            return "Invalid date format. Use YYYY-MM-DD"
+
+    if not update_data:
+        logger.warning("No fields provided to update")
+        return "No fields provided to update"
+
+    return update_data
+
+
 @tool
 def update_transaction(
     chat_id: int,
@@ -355,49 +416,19 @@ def update_transaction(
     try:
         lunch_client = get_lunch_client_for_chat_id(chat_id)
 
-        # Build update object with only the fields that were provided
-        update_data = {}
+        # Prepare update data using helper function
+        update_data = prepare_transaction_update_data(
+            payee=payee,
+            notes=notes,
+            tags=tags,
+            category_id=category_id,
+            amount=amount,
+            date=date,
+        )
 
-        if payee is not None:
-            update_data["payee"] = payee
-            logger.debug("Setting payee to: %s", payee)
-
-        if notes is not None:
-            # Truncate notes if too long (same as in general.py)
-            if len(notes) > NOTES_MAX_LENGTH:
-                notes = notes[:NOTES_MAX_LENGTH]
-                logger.warning("Notes truncated to %d characters", NOTES_MAX_LENGTH)
-            update_data["notes"] = notes
-            logger.debug("Setting notes to: %s", notes)
-
-        if tags is not None:
-            # Ensure tags don't have # prefix
-            clean_tags = [tag.lstrip("#") for tag in tags]
-            update_data["tags"] = clean_tags
-            logger.debug("Setting tags to: %s", clean_tags)
-
-        if category_id is not None:
-            if category_id == 0:
-                category_id = None  # 0 means uncategorized
-            update_data["category_id"] = category_id
-            logger.debug("Setting category_id to: %s", category_id)
-
-        if amount is not None:
-            update_data["amount"] = amount
-            logger.debug("Setting amount to: %s", amount)
-
-        if date is not None:
-            try:
-                transaction_date = datetime.datetime.strptime(date, "%Y-%m-%d")
-                update_data["date"] = transaction_date
-                logger.debug("Setting date to: %s", date)
-            except ValueError:
-                logger.warning("Invalid date format: %s", date)
-                return json.dumps({"error": "Invalid date format. Use YYYY-MM-DD"})
-
-        if not update_data:
-            logger.warning("No fields provided to update")
-            return json.dumps({"error": "No fields provided to update"})
+        # Check if preparation returned an error
+        if isinstance(update_data, str):
+            return json.dumps({"error": update_data})
 
         # Update the transaction
         logger.info("Updating transaction %s with fields: %s", transaction_id, list(update_data.keys()))
