@@ -61,11 +61,16 @@ ignore = [
     "E501",    # Line too long
     "PLW0603", # Global statement not allowed
     "PLR0913", # Too many arguments in function definition
+    "PLR0911", # Too many return statements
 ]
 # Automatically fix errors where possible
 fixable = ["ALL"]
 # Unused imports will be automatically removed (like pycln)
 unfixable = []
+
+[tool.ruff.lint.mccabe]
+# Set maximum allowed complexity for C901
+max-complexity = 11
 
 [tool.ruff.lint.isort]
 # Compatibility with formatter

@@ -12,6 +12,7 @@ from lunch import get_lunch_client_for_chat_id
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("aitools")
 
+MAX_TRANSACTION_LIMIT = 100
 
 def transaction_to_dict(transaction) -> dict:
     """Convert a transaction object to a dictionary.
@@ -515,8 +516,8 @@ def get_transactions(
                 return json.dumps({"error": "Invalid end_date format. Use YYYY-MM-DD"})
 
         # Limit validation
-        if limit > 100:
-            limit = 100
+        if limit > MAX_TRANSACTION_LIMIT:
+            limit = MAX_TRANSACTION_LIMIT
             logger.warning("Limit capped at 100")
 
         logger.info("Fetching transactions with filters")
