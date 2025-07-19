@@ -16,15 +16,13 @@ import datetime
 from handlers.aitools.tools import (
     add_manual_transaction,
     calculate,
-    get_account_balances,
+    get_plaid_account_balances,
     get_categories,
-    get_manual_asset_accounts,
+    get_manual_accounts_balances,
     get_my_lunch_money_user_info,
     parse_date_reference,
-    get_crypto_accounts,
-    get_recent_transactions,
+    get_crypto_accounts_balances,
     get_single_transaction,
-    get_transactions,
     update_transaction,
 )
 from lunch import get_lunch_client_for_chat_id
@@ -80,12 +78,12 @@ def create_lunch_money_agent(chat_id: int):
         model=chat_model,
         tools=[
             get_my_lunch_money_user_info,
-            get_account_balances,
-            get_manual_asset_accounts,
+            get_manual_accounts_balances,
+            get_plaid_account_balances,
+            get_crypto_accounts_balances,
             get_categories,
             add_manual_transaction,
             parse_date_reference,
-            get_crypto_accounts,
             calculate,
             get_single_transaction,
             update_transaction,
@@ -122,6 +120,10 @@ def get_agent_response(
 
     config: RunnableConfig = {"configurable": {"thread_id": str(uuid.uuid4())}, "recursion_limit": 30}
 
+    # Get user's language preference
+    settings = get_db().get_current_settings(chat_id)
+    user_language = settings.ai_response_language if settings else None
+
     tx_prompt = ""
     if tx_id:
         tx_prompt = f"""
@@ -135,21 +137,29 @@ def get_agent_response(
         to get the right category ID.
         """
 
+    # Language instruction based on user preference
+    language_instruction = ""
+    if user_language:
+        language_instruction = f"""
+        IMPORTANT: You must respond in {user_language}. All your responses, explanations,
+        and messages should be written in {user_language}.
+        """
+    else:
+        language_instruction = """
+        User input can be in any language. Respond in the same language as the user's input.
+        """
+
     system_message = SystemMessage(
         content=f"""
         You are a helpful assistant that can provide Lunch Money information and help users manage their finances.
 
-        User input can be in any language. However, when things like category names are in
-        a different language than the user message is in, make sure to include the actual
-        category name in the original language in parenthesis.
-
         When user asks for balances, remember to include the currency when possible.
-        If the user asks for the balance of an account and it could not be found with
-        `get_account_balances`, try to find it in the manually-managed accounts calling
-        `get_manual_asset_accounts`.
+        If the user asks for the balance of one or more accounts make sure to use
+        `get_plaid_account_balances`, `get_manual_accounts_balances`, and `get_crypto_accounts_balances`
+        before providing an answer.
 
         Note that when user asks for how much money they have in cash, you must bias
-        towards using `get_manual_asset_accounts`.
+        towards using `get_manual_accounts_balances`.
 
         When using tools that require a chat_id, always use this chat_id: {chat_id}
         Today's date is {datetime.date.today().strftime("%Y-%m-%d")}
@@ -161,7 +171,7 @@ def get_agent_response(
 
         For manual transactions:
         - Only manually-managed accounts support manual transactions
-        - Use get_manual_asset_accounts to see which accounts are available
+        - Use get_manual_accounts_balances to see which accounts are available
         - Use get_categories to see available categories
         - When adding transactions, expenses must have is_received=False and income must have is_received=True
         - Date format should be YYYY-MM-DD. ALWAYS try to source the date of the transaction using `parse_date_reference`
@@ -189,8 +199,11 @@ def get_agent_response(
         - NEVER TELL THE USER WHAT YOU INTENT TO DO, JUST DO IT.
         - NEVER TELL TO USER TO CONFIRM OR APPROVE YOUR ACTIONS.
         - ONLY add a transaction when the user asks you to.
+
+        {language_instruction}
         """
     )
+    print(system_message.content)
     initial_message = HumanMessage(content=user_prompt)
     initial_state = {"messages": [system_message, initial_message]}
 

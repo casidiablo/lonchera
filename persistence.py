@@ -89,6 +89,9 @@ class Settings(Base):
     # Indicates whether to show transcription message after processing audio
     show_transcription: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
+    # The language for AI agent responses (None means auto-detect from user input)
+    ai_response_language: Mapped[str | None] = mapped_column(String, nullable=True)
+
 
 class Analytics(Base):
     __tablename__ = "analytics"
@@ -281,6 +284,12 @@ class Persistence:
     def update_show_transcription(self, chat_id: int, show_transcription: bool) -> None:
         with self.Session() as session:
             stmt = update(Settings).where(Settings.chat_id == chat_id).values(show_transcription=show_transcription)
+            session.execute(stmt)
+            session.commit()
+
+    def update_ai_response_language(self, chat_id: int, language: str | None) -> None:
+        with self.Session() as session:
+            stmt = update(Settings).where(Settings.chat_id == chat_id).values(ai_response_language=language)
             session.execute(stmt)
             session.commit()
 

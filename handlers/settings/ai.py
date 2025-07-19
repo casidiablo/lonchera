@@ -26,6 +26,9 @@ def get_ai_settings_text(chat_id: int) -> str | None:
 
         2️⃣ *Show Transcription*: {"🟢 ᴏɴ" if settings.show_transcription else "🔴 ᴏꜰꜰ"}
         > When enabled, the transcription of audio messages will be shown before processing\\.
+
+        3️⃣ *Response Language*: {settings.ai_response_language or "🌐 Auto\\-detect"}
+        > Sets the language for AI agent responses\\. When set to auto\\-detect, the agent will respond in the same language as your input\\.
         """
     )
 
@@ -34,6 +37,7 @@ def get_ai_settings_buttons(settings: Settings) -> InlineKeyboardMarkup:
     kbd = Keyboard()
     kbd += ("1️⃣ Toggle AI Mode", "toggleAIAgent")
     kbd += ("2️⃣ Toggle Show Transcription", "toggleShowTranscription")
+    kbd += ("3️⃣ Set Response Language", "setAILanguage")
     kbd += ("Back", "settingsMenu")
     return kbd.build()
 
@@ -89,4 +93,57 @@ async def handle_btn_toggle_show_transcription(update: Update, _: ContextTypes.D
     await update.callback_query.answer()
     await update.callback_query.edit_message_text(
         text=settings_text, reply_markup=get_ai_settings_buttons(updated_settings), parse_mode=ParseMode.MARKDOWN_V2
+    )
+
+
+def get_language_selection_buttons() -> InlineKeyboardMarkup:
+    kbd = Keyboard()
+    kbd += ("🌐 Auto-detect", "setLanguage_none")
+    kbd += ("🇺🇸 English", "setLanguage_English")
+    kbd += ("🇪🇸 Español", "setLanguage_Spanish")
+    kbd += ("🇨🇳 中文", "setLanguage_Chinese")
+    kbd += ("🇮🇳 हिन्दी", "setLanguage_Hindi")
+    kbd += ("🇸🇦 العربية", "setLanguage_Arabic")
+    kbd += ("🇧🇷 Português", "setLanguage_Portuguese")
+    kbd += ("🇷🇺 Русский", "setLanguage_Russian")
+    kbd += ("🇫🇷 Français", "setLanguage_French")
+    kbd += ("Back", "aiSettings")
+    return kbd.build()
+
+
+async def handle_set_ai_language(update: Update, _: ContextTypes.DEFAULT_TYPE):
+    if not update.effective_chat or not update.callback_query:
+        return
+
+    await update.callback_query.edit_message_text(
+        text="🌍 *Choose AI Response Language*\n\nSelect the language for AI agent responses:",
+        reply_markup=get_language_selection_buttons(),
+        parse_mode=ParseMode.MARKDOWN_V2
+    )
+
+
+async def handle_set_language(update: Update, _: ContextTypes.DEFAULT_TYPE):
+    if not update.effective_chat or not update.callback_query:
+        return
+
+    # Extract language from callback data
+    callback_data = update.callback_query.data
+    if not callback_data or not callback_data.startswith("setLanguage_"):
+        return
+
+    language_code = callback_data.replace("setLanguage_", "")
+    language = None if language_code == "none" else language_code
+
+    get_db().update_ai_response_language(update.effective_chat.id, language)
+
+    # Return to AI settings
+    settings = get_db().get_current_settings(update.effective_chat.id)
+    settings_text = get_ai_settings_text(update.effective_chat.id)
+
+    if settings_text is None:
+        return
+
+    await update.callback_query.answer()
+    await update.callback_query.edit_message_text(
+        text=settings_text, reply_markup=get_ai_settings_buttons(settings), parse_mode=ParseMode.MARKDOWN_V2
     )

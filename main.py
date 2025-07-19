@@ -33,7 +33,13 @@ from handlers.general import (
     handle_generic_message,
     handle_start,
 )
-from handlers.settings.ai import handle_ai_settings, handle_btn_toggle_ai_agent, handle_btn_toggle_show_transcription
+from handlers.settings.ai import (
+    handle_ai_settings,
+    handle_btn_toggle_ai_agent,
+    handle_btn_toggle_show_transcription,
+    handle_set_ai_language,
+    handle_set_language,
+)
 from handlers.settings.general import handle_btn_done_settings, handle_settings, handle_settings_menu
 from handlers.settings.schedule_rendering import (
     handle_btn_cancel_poll_interval_change,
@@ -157,6 +163,8 @@ def add_callback_query_handlers(app):
     )
     app.add_handler(CallbackQueryHandler(handle_btn_toggle_ai_agent, pattern=r"^toggleAIAgent"))
     app.add_handler(CallbackQueryHandler(handle_btn_toggle_show_transcription, pattern=r"^toggleShowTranscription"))
+    app.add_handler(CallbackQueryHandler(handle_set_ai_language, pattern=r"^setAILanguage"))
+    app.add_handler(CallbackQueryHandler(handle_set_language, pattern=r"^setLanguage_"))
     app.add_handler(CallbackQueryHandler(handle_btn_cancel_poll_interval_change, pattern=r"^cancelPollIntervalChange$"))
     app.add_handler(CallbackQueryHandler(handle_done_budget, pattern=r"^doneBudget$"))
     app.add_handler(CallbackQueryHandler(handle_update_amz_settings, pattern=r"^update_amz_settings_"))

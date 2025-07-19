@@ -27,9 +27,9 @@ async def get_my_lunch_money_user_info(chat_id: int) -> str:
 
 
 @tool
-def get_account_balances(chat_id: int) -> str:
-    """Get current balance for all accounts"""
-    logger.info("Calling get_account_balances for chat_id: %s", chat_id)
+def get_plaid_account_balances(chat_id: int) -> str:
+    """Get current balance for all Plaid-managed accounts"""
+    logger.info("Calling get_plaid_account_balances for chat_id: %s", chat_id)
     try:
         lunch_client = get_lunch_client_for_chat_id(chat_id)
         plaid_accounts = lunch_client.get_plaid_accounts()
@@ -58,9 +58,9 @@ def get_account_balances(chat_id: int) -> str:
 
 
 @tool
-def get_manual_asset_accounts(chat_id: int) -> str:
+def get_manual_accounts_balances(chat_id: int) -> str:
     """Get manually-managed asset accounts that can be used for manual transactions"""
-    logger.info("Calling get_manual_asset_accounts for chat_id: %s", chat_id)
+    logger.info("Calling get_manual_accounts_balances for chat_id: %s", chat_id)
     try:
         lunch_client = get_lunch_client_for_chat_id(chat_id)
 
@@ -245,9 +245,9 @@ def add_manual_transaction(
 
 
 @tool
-def get_crypto_accounts(chat_id: int) -> str:
+def get_crypto_accounts_balances(chat_id: int) -> str:
     """Get all cryptocurrency accounts and their balances"""
-    logger.info("Calling get_crypto_accounts for chat_id: %s", chat_id)
+    logger.info("Calling get_crypto_accounts_balances for chat_id: %s", chat_id)
     try:
         lunch_client = get_lunch_client_for_chat_id(chat_id)
         crypto_accounts = lunch_client.get_crypto()
