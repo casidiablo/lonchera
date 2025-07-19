@@ -224,7 +224,6 @@ def application_running():
 
 
 def validate_init_data(init_data: str, bot_token: str):
-    print("REMOVE", init_data, bot_token)
     vals = {k: unquote(v) for k, v in [s.split("=", 1) for s in init_data.split("&")]}
     data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(vals.items()) if k != "hash")
     secret_key = hmac.new(b"WebAppData", bot_token.encode(), hashlib.sha256).digest()

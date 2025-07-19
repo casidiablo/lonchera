@@ -101,8 +101,6 @@ def extract_api_token(input_string: str) -> str:
     # Define the regex pattern for the API token
     pattern = r"\b[a-f0-9]{50}\b"
 
-    print("checking for token", pattern, input_string)
-
     # Search for the pattern in the input string
     match = re.search(pattern, input_string)
 

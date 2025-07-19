@@ -92,6 +92,9 @@ class Settings(Base):
     # The language for AI agent responses (None means auto-detect from user input)
     ai_response_language: Mapped[str | None] = mapped_column(String, nullable=True)
 
+    # The AI model to use for agent responses (None means default model)
+    ai_model: Mapped[str | None] = mapped_column(String, nullable=True)
+
 
 class Analytics(Base):
     __tablename__ = "analytics"
@@ -290,6 +293,12 @@ class Persistence:
     def update_ai_response_language(self, chat_id: int, language: str | None) -> None:
         with self.Session() as session:
             stmt = update(Settings).where(Settings.chat_id == chat_id).values(ai_response_language=language)
+            session.execute(stmt)
+            session.commit()
+
+    def update_ai_model(self, chat_id: int, model: str | None) -> None:
+        with self.Session() as session:
+            stmt = update(Settings).where(Settings.chat_id == chat_id).values(ai_model=model)
             session.execute(stmt)
             session.commit()
 

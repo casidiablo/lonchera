@@ -8,6 +8,22 @@ from persistence import Settings, get_db
 from utils import Keyboard
 
 
+def get_model_display_name(model: str | None) -> str:
+    """Get user-friendly display name for AI model."""
+    if not model:
+        return "Llama \\(Default\\)"
+
+    model_names = {
+        "gpt-4.1-nano": "GPT\\-4\\.1 Nano",
+        "gpt-4.1-mini": "GPT\\-4\\.1 Mini",
+        "gpt-4.1": "GPT\\-4\\.1",
+        "gpt-4o": "GPT\\-4o",
+        "gpt-4o-mini": "GPT\\-4o Mini",
+        "o4-mini": "o4\\-mini",
+    }
+    return model_names.get(model, f"{model}")
+
+
 def get_ai_settings_text(chat_id: int) -> str | None:
     settings = get_db().get_current_settings(chat_id)
     if settings is None:
@@ -29,6 +45,9 @@ def get_ai_settings_text(chat_id: int) -> str | None:
 
         3️⃣ *Response Language*: {settings.ai_response_language or "🌐 Auto\\-detect"}
         > Sets the language for AI agent responses\\. When set to auto\\-detect, the agent will respond in the same language as your input\\.
+
+        4️⃣ *AI Model*: {get_model_display_name(settings.ai_model)}
+        > Choose the AI model for processing your requests\\. Advanced models may provide better responses\\.
         """
     )
 
@@ -38,6 +57,7 @@ def get_ai_settings_buttons(settings: Settings) -> InlineKeyboardMarkup:
     kbd += ("1️⃣ Toggle AI Mode", "toggleAIAgent")
     kbd += ("2️⃣ Toggle Show Transcription", "toggleShowTranscription")
     kbd += ("3️⃣ Set Response Language", "setAILanguage")
+    kbd += ("4️⃣ Select AI Model", "setAIModel")
     kbd += ("Back", "settingsMenu")
     return kbd.build()
 
@@ -118,7 +138,7 @@ async def handle_set_ai_language(update: Update, _: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.edit_message_text(
         text="🌍 *Choose AI Response Language*\n\nSelect the language for AI agent responses:",
         reply_markup=get_language_selection_buttons(),
-        parse_mode=ParseMode.MARKDOWN_V2
+        parse_mode=ParseMode.MARKDOWN_V2,
     )
 
 
@@ -135,6 +155,65 @@ async def handle_set_language(update: Update, _: ContextTypes.DEFAULT_TYPE):
     language = None if language_code == "none" else language_code
 
     get_db().update_ai_response_language(update.effective_chat.id, language)
+
+    # Return to AI settings
+    settings = get_db().get_current_settings(update.effective_chat.id)
+    settings_text = get_ai_settings_text(update.effective_chat.id)
+
+    if settings_text is None:
+        return
+
+    await update.callback_query.answer()
+    await update.callback_query.edit_message_text(
+        text=settings_text, reply_markup=get_ai_settings_buttons(settings), parse_mode=ParseMode.MARKDOWN_V2
+    )
+
+
+def get_model_selection_buttons(chat_id: int) -> InlineKeyboardMarkup:
+    kbd = Keyboard()
+    # Only show advanced models for authorized chat_id
+    if chat_id == 378659027:
+        kbd += ("🦙 Llama (Default)", "setModel_none")
+        kbd += ("GPT-4.1 Nano", "setModel_gpt-4.1-nano")
+        kbd += ("GPT-4.1 Mini", "setModel_gpt-4.1-mini")
+        kbd += ("GPT-4.1", "setModel_gpt-4.1")
+        kbd += ("GPT-4o", "setModel_gpt-4o")
+        kbd += ("GPT-4o Mini", "setModel_gpt-4o-mini")
+        kbd += ("o4-mini", "setModel_o4-mini")
+    else:
+        kbd += ("🦙 Llama (Only Available)", "setModel_none")
+    kbd += ("Back", "aiSettings")
+    return kbd.build()
+
+
+async def handle_set_ai_model(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.effective_chat or not update.callback_query:
+        return
+
+    chat_id = update.effective_chat.id
+    if chat_id == 378659027:
+        message_text = "🤖 *Choose AI Model*\n\nSelect the AI model for processing your requests:"
+    else:
+        message_text = "🤖 *AI Model Selection*\n\nOnly Llama model is available for your account:"
+
+    await update.callback_query.edit_message_text(
+        text=message_text, reply_markup=get_model_selection_buttons(chat_id), parse_mode=ParseMode.MARKDOWN_V2
+    )
+
+
+async def handle_set_model(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.effective_chat or not update.callback_query:
+        return
+
+    # Extract model from callback data
+    callback_data = update.callback_query.data
+    if not callback_data or not callback_data.startswith("setModel_"):
+        return
+
+    model_code = callback_data.replace("setModel_", "")
+    model = None if model_code == "none" else model_code
+
+    get_db().update_ai_model(update.effective_chat.id, model)
 
     # Return to AI settings
     settings = get_db().get_current_settings(update.effective_chat.id)

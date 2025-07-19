@@ -55,17 +55,27 @@ class LunchMoneyAgentResponse(BaseModel):
 
 def create_lunch_money_agent(chat_id: int):
     """Create and return a Lunch Money agent with the configured model and tools."""
-    use_openai = os.environ.get("USE_OPEN_AI", "false").lower() == "true"
-    # For now only use OpenAI for chat_id 378659027 since it's in beta
-    if use_openai and chat_id == 378659027:
-        model_name = "gpt-4.1-nano"
-        logger.info(f"Using model: {model_name}")
+    # Get user's model preference from settings
+    settings = get_db().get_current_settings(chat_id)
+    selected_model = settings.ai_model if settings else None
+
+    # Default model (Llama via DeepInfra)
+    default_model = "meta-llama/Llama-4-Scout-17B-16E-Instruct"
+
+    # OpenAI models that should use OpenAI API
+    openai_models = ["gpt-4.1-nano", "gpt-4.1-mini", "gpt-4.1", "gpt-4o", "gpt-4o-mini", "o4-mini"]
+
+    # Only allow advanced models for authorized chat_id
+    if chat_id == 378659027 and selected_model and selected_model in openai_models:
+        model_name = selected_model
+        logger.info(f"Using selected OpenAI model: {model_name}")
         chat_model = ChatOpenAI(
             model=model_name, api_key=SecretStr(os.environ.get("OPENAI_API_KEY", "")), temperature=0
         )
     else:
-        model_name = "meta-llama/Llama-4-Scout-17B-16E-Instruct"
-        logger.info(f"Using model: {model_name}")
+        # Use default Llama model via DeepInfra for all other cases
+        model_name = default_model
+        logger.info(f"Using default Llama model: {model_name}")
         chat_model = ChatOpenAI(
             model=model_name,
             base_url="https://api.deepinfra.com/v1/openai",
@@ -203,7 +213,6 @@ def get_agent_response(
         {language_instruction}
         """
     )
-    print(system_message.content)
     initial_message = HumanMessage(content=user_prompt)
     initial_state = {"messages": [system_message, initial_message]}
 

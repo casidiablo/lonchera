@@ -107,7 +107,6 @@ def build_budget_message(budget: list[BudgetObject], budget_date: datetime, tagg
             total_spent += spending_to_base
             if budget_item.is_income:
                 spending_to_base = -spending_to_base
-                print(f"income before {total_income_budget} + {budgeted} = {total_income_budget + budgeted}")
                 total_income_budget += budgeted
                 total_income += spending_to_base
             else:

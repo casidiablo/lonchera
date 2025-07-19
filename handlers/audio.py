@@ -152,11 +152,9 @@ def transcribe_audio(file_path: str) -> tuple[str, str]:
                 cost = response_json["inference_status"]["cost"]
                 get_db().inc_metric("deepinfra_whisper_estimated_cost", cost)
 
-            logger.info(f"Transcription successful: {transcription[:50]}...")
+            logger.info(f"Transcription successful: {transcription}")
             logger.info(f"Detected language: {language}")
 
-            # Print the full transcription to stdout for debugging
-            print(f"\n\n===== AUDIO TRANSCRIPTION =====\n{transcription}\n==============================\n\n")
             return transcription, language
         else:
             logger.error(f"Transcription failed with status code: {response.status_code}", exc_info=True)
