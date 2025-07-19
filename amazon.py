@@ -24,53 +24,12 @@ def parse_date_time(d: str) -> datetime:
         return datetime.strptime(d, "%Y-%m-%dT%H:%M:%SZ")
 
 
-def parse_csv_and_filter(
-    file_path: str, target_date: str, target_price: float, target_currency: str | None, allow_days: int
+def find_closest_match(
+    order_data: dict, target_date_dt: datetime, target_price: float, target_currency: str, margin_of_error: float
 ) -> dict[str, str] | None:
-    if target_currency is None:
-        target_currency = "USD"
-
-    class OrderData:
-        def __init__(self):
-            self.total_owed: float = 0.0
-            self.currency: str = ""
-            self.product_names: list[str] = []
-            self.rows: list[dict[str, str]] = []
-
-    # Convert target_date string to a datetime object
-    target_date_dt = datetime.strptime(target_date, "%Y-%m-%d")
-
-    # Define the date range for filtering
-    start_date = target_date_dt - timedelta(days=allow_days)
-    end_date = target_date_dt + timedelta(days=allow_days)
-
+    """Find the closest matching order from the processed order data."""
     closest_result = None
     closest_date_diff = timedelta.max
-    order_data = defaultdict(OrderData)
-
-    margin_of_error = 0.5
-
-    # Read and parse the CSV file
-    with open(file_path, newline="") as csvfile:
-        reader = csv.DictReader(csvfile)
-
-        for row in reader:
-            # Convert the "Order Date" in the row to a datetime object
-            order_date = parse_date_time(row["Order Date"])
-
-            # Remove commas from the "Total Owed" string and convert to float
-            total_owed = float(row["Total Owed"].replace(",", ""))
-            currency = row["Currency"]
-            order_id = row["Order ID"]
-            product_name = row["Product Name"]
-
-            # Aggregate data by order ID
-            if start_date <= order_date <= end_date:
-                od = order_data[order_id]
-                od.total_owed += total_owed
-                od.currency = currency
-                od.product_names.append(product_name)
-                od.rows.append(row)
 
     # Check aggregated data against target price and currency
     for order_id, data in order_data.items():
@@ -101,6 +60,55 @@ def parse_csv_and_filter(
                         }
 
     return closest_result
+
+
+def parse_csv_and_filter(
+    file_path: str, target_date: str, target_price: float, target_currency: str | None, allow_days: int
+) -> dict[str, str] | None:
+    if target_currency is None:
+        target_currency = "USD"
+
+    class OrderData:
+        def __init__(self):
+            self.total_owed: float = 0.0
+            self.currency: str = ""
+            self.product_names: list[str] = []
+            self.rows: list[dict[str, str]] = []
+
+    # Convert target_date string to a datetime object
+    target_date_dt = datetime.strptime(target_date, "%Y-%m-%d")
+
+    # Define the date range for filtering
+    start_date = target_date_dt - timedelta(days=allow_days)
+    end_date = target_date_dt + timedelta(days=allow_days)
+
+    order_data = defaultdict(OrderData)
+    margin_of_error = 0.5
+
+    # Read and parse the CSV file
+    with open(file_path, newline="") as csvfile:
+        reader = csv.DictReader(csvfile)
+
+        for row in reader:
+            # Convert the "Order Date" in the row to a datetime object
+            order_date = parse_date_time(row["Order Date"])
+
+            # Remove commas from the "Total Owed" string and convert to float
+            total_owed = float(row["Total Owed"].replace(",", ""))
+            currency = row["Currency"]
+            order_id = row["Order ID"]
+            product_name = row["Product Name"]
+
+            # Aggregate data by order ID
+            if start_date <= order_date <= end_date:
+                od = order_data[order_id]
+                od.total_owed += total_owed
+                od.currency = currency
+                od.product_names.append(product_name)
+                od.rows.append(row)
+
+    # Find the closest matching transaction
+    return find_closest_match(order_data, target_date_dt, target_price, target_currency, margin_of_error)
 
 
 def get_amazon_transactions_summary(file_path: str):

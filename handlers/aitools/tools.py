@@ -13,6 +13,41 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("aitools")
 
 
+def transaction_to_dict(transaction) -> dict:
+    """Convert a transaction object to a dictionary.
+
+    Args:
+        transaction: The transaction object from the API
+
+    Returns:
+        Dictionary representation of the transaction
+    """
+    # Handle tags - they might be strings or objects with name attribute
+    tags_list = []
+    if transaction.tags:
+        tags_list = [tag.name if hasattr(tag, "name") else tag for tag in transaction.tags]
+
+    transaction_info = {
+        "id": transaction.id,
+        "date": transaction.date.isoformat(),
+        "payee": transaction.payee,
+        "amount": float(transaction.amount),
+        "currency": transaction.currency.upper() if transaction.currency else "USD",
+        "category_name": transaction.category_name if transaction.category_name else "Uncategorized",
+        "category_id": transaction.category_id,
+        "notes": transaction.notes,
+        "tags": tags_list,
+        "status": transaction.status,
+        "asset_id": transaction.asset_id,
+        "asset_name": transaction.asset_name,
+        "is_income": float(transaction.amount) < 0,  # Negative amounts are income in Lunch Money
+        "original_name": getattr(transaction, "original_name", None),
+        "is_pending": getattr(transaction, "is_pending", None),
+    }
+
+    return transaction_info
+
+
 @tool
 async def get_my_lunch_money_user_info(chat_id: int) -> str:
     """get my lunch money user info"""
@@ -372,27 +407,12 @@ def update_transaction(
         updated_transaction = lunch_client.get_transaction(transaction_id)
         logger.info("Transaction %s updated successfully", transaction_id)
 
-        tags_list = []
-        if updated_transaction.tags:
-            tags_list = [tag.name for tag in updated_transaction.tags]
-
         return json.dumps(
             {
                 "success": True,
                 "transaction_id": transaction_id,
                 "updated_fields": list(update_data.keys()),
-                "transaction": {
-                    "id": updated_transaction.id,
-                    "date": updated_transaction.date.isoformat(),
-                    "payee": updated_transaction.payee,
-                    "amount": float(updated_transaction.amount),
-                    "currency": updated_transaction.currency.upper() if updated_transaction.currency else "USD",
-                    "category_name": updated_transaction.category_name
-                    if updated_transaction.category_name
-                    else "Uncategorized",
-                    "notes": updated_transaction.notes,
-                    "tags": tags_list,
-                },
+                "transaction": transaction_to_dict(updated_transaction),
             }
         )
     except Exception as e:
@@ -496,21 +516,7 @@ def get_transactions(
         transactions_data = []
         for transaction in transactions:
             logger.debug("Processing transaction: %s (id: %s)", transaction.payee, transaction.id)
-            transaction_info = {
-                "id": transaction.id,
-                "date": transaction.date.isoformat(),
-                "payee": transaction.payee,
-                "amount": float(transaction.amount),
-                "currency": transaction.currency.upper() if transaction.currency else "USD",
-                "category_name": transaction.category_name if transaction.category_name else "Uncategorized",
-                "category_id": transaction.category_id,
-                "notes": transaction.notes,
-                "tags": transaction.tags or [],
-                "status": transaction.status,
-                "asset_id": transaction.asset_id,
-                "asset_name": transaction.asset_name,
-                "is_income": float(transaction.amount) < 0,  # Negative amounts are income in Lunch Money
-            }
+            transaction_info = transaction_to_dict(transaction)
             transactions_data.append(transaction_info)
 
         logger.info("Successfully processed %d transactions", len(transactions_data))
@@ -555,27 +561,7 @@ def get_single_transaction(chat_id: int, transaction_id: int) -> str:
 
         logger.info("Successfully retrieved transaction: %s", transaction.payee)
 
-        tags_list = []
-        if transaction.tags:
-            tags_list = [tag.name for tag in transaction.tags]
-
-        transaction_info = {
-            "id": transaction.id,
-            "date": transaction.date.isoformat(),
-            "payee": transaction.payee,
-            "amount": float(transaction.amount),
-            "currency": transaction.currency.upper() if transaction.currency else "USD",
-            "category_name": transaction.category_name if transaction.category_name else "Uncategorized",
-            "category_id": transaction.category_id,
-            "notes": transaction.notes,
-            "tags": tags_list,
-            "status": transaction.status,
-            "asset_id": transaction.asset_id,
-            "asset_name": transaction.asset_name,
-            "is_income": float(transaction.amount) < 0,  # Negative amounts are income in Lunch Money
-            "original_name": transaction.original_name,
-            "is_pending": transaction.is_pending,
-        }
+        transaction_info = transaction_to_dict(transaction)
 
         return json.dumps({"success": True, "transaction": transaction_info})
     except Exception as e:
@@ -615,25 +601,7 @@ def get_recent_transactions(chat_id: int, days: int = 7, limit: int = 20) -> str
 
         transactions_data = []
         for transaction in transactions:
-            tags_list = []
-            if transaction.tags:
-                tags_list = [tag.name for tag in transaction.tags]
-
-            transaction_info = {
-                "id": transaction.id,
-                "date": transaction.date.isoformat(),
-                "payee": transaction.payee,
-                "amount": float(transaction.amount),
-                "currency": transaction.currency.upper() if transaction.currency else "USD",
-                "category_name": transaction.category_name if transaction.category_name else "Uncategorized",
-                "category_id": transaction.category_id,
-                "notes": transaction.notes,
-                "tags": tags_list,
-                "status": transaction.status,
-                "asset_id": transaction.asset_id,
-                "asset_name": transaction.asset_name,
-                "is_income": float(transaction.amount) < 0,
-            }
+            transaction_info = transaction_to_dict(transaction)
             transactions_data.append(transaction_info)
 
         return json.dumps(
