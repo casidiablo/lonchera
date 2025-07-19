@@ -114,7 +114,8 @@ def add_command_handlers(app):
     app.add_handler(CommandHandler("balances", handle_show_balances))
 
 
-def add_callback_query_handlers(app):
+def add_settings_callback_query_handlers(app):
+    # Settings menu navigation
     app.add_handler(CallbackQueryHandler(handle_settings_menu, pattern=r"^settingsMenu$"))
     app.add_handler(CallbackQueryHandler(handle_schedule_rendering_settings, pattern=r"^scheduleRenderingSettings$"))
     app.add_handler(
@@ -122,19 +123,47 @@ def add_callback_query_handlers(app):
     )
     app.add_handler(CallbackQueryHandler(handle_ai_settings, pattern=r"^aiSettings$"))
     app.add_handler(CallbackQueryHandler(handle_session_settings, pattern=r"^sessionSettings$"))
-    app.add_handler(CallbackQueryHandler(handle_btn_skip_transaction, pattern=r"^skip_"))
-    app.add_handler(CallbackQueryHandler(handle_btn_collapse_transaction, pattern=r"^collapse_"))
-    app.add_handler(CallbackQueryHandler(handle_btn_show_budget_categories, pattern=r"^showBudgetCategories_"))
-    app.add_handler(CallbackQueryHandler(handle_btn_hide_budget_categories, pattern=r"^exitBudgetDetails_"))
-    app.add_handler(CallbackQueryHandler(handle_btn_show_budget_for_category, pattern=r"^showBudgetDetails_"))
-    app.add_handler(CallbackQueryHandler(handle_show_budget, pattern=r"^showBudget_"))
+    app.add_handler(CallbackQueryHandler(handle_btn_done_settings, pattern=r"^doneSettings$"))
+
+    # Schedule rendering settings
     app.add_handler(CallbackQueryHandler(handle_btn_change_poll_interval, pattern=r"^changePollInterval"))
+    app.add_handler(CallbackQueryHandler(handle_btn_cancel_poll_interval_change, pattern=r"^cancelPollIntervalChange$"))
+    app.add_handler(CallbackQueryHandler(handle_btn_toggle_poll_pending, pattern=r"^togglePollPending"))
+    app.add_handler(CallbackQueryHandler(handle_btn_toggle_show_datetime, pattern=r"^toggleShowDateTime"))
+    app.add_handler(CallbackQueryHandler(handle_btn_toggle_tagging, pattern=r"^toggleTagging"))
+    app.add_handler(CallbackQueryHandler(handle_btn_change_timezone, pattern=r"^changeTimezone"))
+
+    # Transaction handling settings
+    app.add_handler(CallbackQueryHandler(handle_btn_toggle_auto_mark_reviewed, pattern=r"^toggleAutoMarkReviewed"))
+    app.add_handler(
+        CallbackQueryHandler(
+            handle_btn_toggle_mark_reviewed_after_categorized, pattern=r"^toggleMarkReviewedAfterCategorized$"
+        )
+    )
+    app.add_handler(
+        CallbackQueryHandler(handle_btn_toggle_auto_categorize_after_notes, pattern=r"^toggleAutoCategorizeAfterNotes")
+    )
+
+    # AI settings
+    app.add_handler(CallbackQueryHandler(handle_btn_toggle_ai_agent, pattern=r"^toggleAIAgent"))
+    app.add_handler(CallbackQueryHandler(handle_btn_toggle_show_transcription, pattern=r"^toggleShowTranscription"))
+    app.add_handler(CallbackQueryHandler(handle_set_ai_language, pattern=r"^setAILanguage"))
+    app.add_handler(CallbackQueryHandler(handle_set_language, pattern=r"^setLanguage_"))
+    app.add_handler(CallbackQueryHandler(handle_set_ai_model, pattern=r"^setAIModel"))
+    app.add_handler(CallbackQueryHandler(handle_set_model, pattern=r"^setModel_"))
+
+    # Session settings
     app.add_handler(CallbackQueryHandler(handle_btn_set_token_from_button, pattern=r"^registerToken$"))
     app.add_handler(CallbackQueryHandler(handle_logout, pattern=r"^logout$"))
     app.add_handler(CallbackQueryHandler(handle_logout_confirm, pattern=r"^logout_confirm$"))
-    app.add_handler(CallbackQueryHandler(handle_btn_toggle_auto_mark_reviewed, pattern=r"^toggleAutoMarkReviewed"))
     app.add_handler(CallbackQueryHandler(handle_logout_cancel, pattern=r"^logout_cancel$"))
-    app.add_handler(CallbackQueryHandler(handle_btn_done_settings, pattern=r"^doneSettings$"))
+    app.add_handler(CallbackQueryHandler(handle_btn_trigger_plaid_refresh, pattern=r"^triggerPlaidRefresh$"))
+
+
+def add_application_callback_query_handlers(app):
+    # Transaction handlers
+    app.add_handler(CallbackQueryHandler(handle_btn_skip_transaction, pattern=r"^skip_"))
+    app.add_handler(CallbackQueryHandler(handle_btn_collapse_transaction, pattern=r"^collapse_"))
     app.add_handler(CallbackQueryHandler(handle_btn_cancel_categorization, pattern=r"^cancelCategorization_"))
     app.add_handler(CallbackQueryHandler(handle_btn_show_categories, pattern=r"^categorize_"))
     app.add_handler(CallbackQueryHandler(handle_btn_ai_categorize, pattern=r"^aicategorize_"))
@@ -147,29 +176,19 @@ def add_callback_query_handlers(app):
     app.add_handler(CallbackQueryHandler(handle_rename_payee, pattern=r"^renamePayee_"))
     app.add_handler(CallbackQueryHandler(handle_edit_notes, pattern=r"^editNotes_"))
     app.add_handler(CallbackQueryHandler(handle_set_tags, pattern=r"^setTags_"))
+
+    # Budget handlers
+    app.add_handler(CallbackQueryHandler(handle_btn_show_budget_categories, pattern=r"^showBudgetCategories_"))
+    app.add_handler(CallbackQueryHandler(handle_btn_hide_budget_categories, pattern=r"^exitBudgetDetails_"))
+    app.add_handler(CallbackQueryHandler(handle_btn_show_budget_for_category, pattern=r"^showBudgetDetails_"))
+    app.add_handler(CallbackQueryHandler(handle_show_budget, pattern=r"^showBudget_"))
+    app.add_handler(CallbackQueryHandler(handle_done_budget, pattern=r"^doneBudget$"))
+
+    # Balance handlers
     app.add_handler(CallbackQueryHandler(handle_btn_accounts_balances, pattern=r"^accountsBalances_"))
     app.add_handler(CallbackQueryHandler(handle_done_balances, pattern=r"^doneBalances$"))
-    app.add_handler(CallbackQueryHandler(handle_btn_trigger_plaid_refresh, pattern=r"^triggerPlaidRefresh$"))
-    app.add_handler(CallbackQueryHandler(handle_btn_toggle_poll_pending, pattern=r"^togglePollPending"))
-    app.add_handler(CallbackQueryHandler(handle_btn_toggle_show_datetime, pattern=r"^toggleShowDateTime"))
-    app.add_handler(CallbackQueryHandler(handle_btn_toggle_tagging, pattern=r"^toggleTagging"))
-    app.add_handler(
-        CallbackQueryHandler(
-            handle_btn_toggle_mark_reviewed_after_categorized, pattern=r"^toggleMarkReviewedAfterCategorized$"
-        )
-    )
-    app.add_handler(CallbackQueryHandler(handle_btn_change_timezone, pattern=r"^changeTimezone"))
-    app.add_handler(
-        CallbackQueryHandler(handle_btn_toggle_auto_categorize_after_notes, pattern=r"^toggleAutoCategorizeAfterNotes")
-    )
-    app.add_handler(CallbackQueryHandler(handle_btn_toggle_ai_agent, pattern=r"^toggleAIAgent"))
-    app.add_handler(CallbackQueryHandler(handle_btn_toggle_show_transcription, pattern=r"^toggleShowTranscription"))
-    app.add_handler(CallbackQueryHandler(handle_set_ai_language, pattern=r"^setAILanguage"))
-    app.add_handler(CallbackQueryHandler(handle_set_language, pattern=r"^setLanguage_"))
-    app.add_handler(CallbackQueryHandler(handle_set_ai_model, pattern=r"^setAIModel"))
-    app.add_handler(CallbackQueryHandler(handle_set_model, pattern=r"^setModel_"))
-    app.add_handler(CallbackQueryHandler(handle_btn_cancel_poll_interval_change, pattern=r"^cancelPollIntervalChange$"))
-    app.add_handler(CallbackQueryHandler(handle_done_budget, pattern=r"^doneBudget$"))
+
+    # Amazon sync handlers
     app.add_handler(CallbackQueryHandler(handle_update_amz_settings, pattern=r"^update_amz_settings_"))
     app.add_handler(
         CallbackQueryHandler(
@@ -177,7 +196,8 @@ def add_callback_query_handlers(app):
         )
     )
     app.add_handler(CallbackQueryHandler(handle_process_amazon_transactions, pattern=r"^process_amazon_transactions$"))
-    # Add a generic cancel handler for any leftover cancel buttons
+
+    # Generic cancel handler for any leftover cancel buttons
     app.add_handler(CallbackQueryHandler(handle_cancel, pattern=r"^cancel$"))
 
     # Catch any other unknown buttons
@@ -186,6 +206,11 @@ def add_callback_query_handlers(app):
         await query.answer(text=f"Unknown command {query.data}", show_alert=True)
 
     app.add_handler(CallbackQueryHandler(handle_unknown_btn))
+
+
+def add_callback_query_handlers(app):
+    add_settings_callback_query_handlers(app)
+    add_application_callback_query_handlers(app)
 
 
 def setup_handlers(config):

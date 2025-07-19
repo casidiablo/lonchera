@@ -1,3 +1,4 @@
+import os
 from textwrap import dedent
 
 from telegram import InlineKeyboardMarkup, Update
@@ -172,7 +173,8 @@ async def handle_set_language(update: Update, _: ContextTypes.DEFAULT_TYPE):
 def get_model_selection_buttons(chat_id: int) -> InlineKeyboardMarkup:
     kbd = Keyboard()
     # Only show advanced models for authorized chat_id
-    if chat_id == 378659027:
+    admin_user_id = os.getenv("ADMIN_USER_ID")
+    if admin_user_id and chat_id == int(admin_user_id):
         kbd += ("🦙 Llama (Default)", "setModel_none")
         kbd += ("GPT-4.1 Nano", "setModel_gpt-4.1-nano")
         kbd += ("GPT-4.1 Mini", "setModel_gpt-4.1-mini")
@@ -191,7 +193,8 @@ async def handle_set_ai_model(update: Update, context: ContextTypes.DEFAULT_TYPE
         return
 
     chat_id = update.effective_chat.id
-    if chat_id == 378659027:
+    admin_user_id = os.getenv("ADMIN_USER_ID")
+    if admin_user_id and chat_id == int(admin_user_id):
         message_text = "🤖 *Choose AI Model*\n\nSelect the AI model for processing your requests:"
     else:
         message_text = "🤖 *AI Model Selection*\n\nOnly Llama model is available for your account:"

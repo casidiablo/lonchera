@@ -67,7 +67,8 @@ def create_lunch_money_agent(chat_id: int):
     openai_models = ["gpt-4.1-nano", "gpt-4.1-mini", "gpt-4.1", "gpt-4o", "gpt-4o-mini", "o4-mini"]
 
     # Only allow advanced models for authorized chat_id
-    if chat_id == 378659027 and selected_model and selected_model in openai_models:
+    admin_user_id = os.getenv("ADMIN_USER_ID")
+    if admin_user_id and chat_id == int(admin_user_id) and selected_model and selected_model in openai_models:
         model_name = selected_model
         logger.info(f"Using selected OpenAI model: {model_name}")
         chat_model = ChatOpenAI(
@@ -303,11 +304,3 @@ async def handle_ai_response(update: Update, context: ContextTypes.DEFAULT_TYPE,
             await send_transaction_message(
                 context, transaction=updated_tx, chat_id=chat_id, message_id=telegram_message_id
             )
-
-
-# this allows testing the agent outside of the bot
-if __name__ == "__main__":
-    user_message = "I just spent 1000 COP in efectivo"
-    chat_id = 420420420  # debug chat id
-    result = get_agent_response(user_message, chat_id)
-    logger.info("Final result: %s", result)
