@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timedelta
 
 from lunchable import LunchMoney
-from telegram import Update
+from telegram import Update, Message
 from telegram.ext import ContextTypes
 
 from budget_messaging import hide_budget_categories, send_budget, show_budget_categories, show_bugdget_for_category
@@ -50,11 +50,15 @@ def get_default_budget(lunch: LunchMoney):
 
 async def handle_show_budget(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Sends a message with the current budget."""
+    if not update.effective_chat:
+        return
+
     message_id = None
-    if update.callback_query:
+    if update.callback_query and update.callback_query.data:
         budget_date = update.callback_query.data.split("_")[1]
         budget_date, budget_end_date = get_budget_range_from(datetime.fromisoformat(budget_date))
-        message_id = update.callback_query.message.message_id
+        if update.callback_query.message:
+            message_id = update.callback_query.message.message_id
     else:
         budget_date, budget_end_date = get_default_budget_range()
 
@@ -71,6 +75,9 @@ async def handle_show_budget(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 async def handle_btn_show_budget_categories(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Updates the message to show the budget categories available."""
+    if not update.callback_query or not update.callback_query.data or not update.callback_query.message:
+        return
+
     budget_date = update.callback_query.data.split("_")[1]
     budget_date = datetime.fromisoformat(budget_date)
 
@@ -85,6 +92,9 @@ async def handle_btn_show_budget_categories(update: Update, context: ContextType
 
 async def handle_btn_hide_budget_categories(update: Update, _: ContextTypes.DEFAULT_TYPE):
     """Updates the message to hide the budget categories."""
+    if not update.callback_query or not update.callback_query.data or not update.callback_query.message:
+        return
+
     budget_date = update.callback_query.data.split("_")[1]
     budget_date = datetime.fromisoformat(budget_date)
 
@@ -99,6 +109,9 @@ async def handle_btn_hide_budget_categories(update: Update, _: ContextTypes.DEFA
 
 async def handle_btn_show_budget_for_category(update: Update, _: ContextTypes.DEFAULT_TYPE):
     """Updates the message to show the budget for a specific category"""
+    if not update.callback_query or not update.callback_query.data or not update.callback_query.message:
+        return
+
     parts = update.callback_query.data.split("_")
     budget_date = parts[1]
     budget_date = datetime.fromisoformat(budget_date)
@@ -111,12 +124,17 @@ async def handle_btn_show_budget_for_category(update: Update, _: ContextTypes.DE
 
     # get super category
     category = lunch.get_category(category_id)
-    children_categories_ids = [child.id for child in category.children]
+    children_categories_ids = []
+    if category and category.children:
+        children_categories_ids = [child.id for child in category.children]
 
     sub_budget = []
     for budget_item in all_budget:
         if budget_item.category_id in children_categories_ids:
             sub_budget.append(budget_item)
+
+    if not update.effective_chat:
+        return
 
     settings = get_db().get_current_settings(update.effective_chat.id)
     tagging = settings.tagging if settings else True
@@ -127,4 +145,7 @@ async def handle_btn_show_budget_for_category(update: Update, _: ContextTypes.DE
 
 async def handle_done_budget(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Deletes the budget message."""
-    await update.callback_query.message.delete()
+    if update.callback_query and update.callback_query.message:
+        # Check if the message is accessible (not MaybeInaccessibleMessage)
+        if isinstance(update.callback_query.message, Message):
+            await update.callback_query.message.delete()

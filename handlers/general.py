@@ -35,6 +35,9 @@ logger = logging.getLogger("handlers")
 
 
 async def handle_start(update: Update, _: ContextTypes.DEFAULT_TYPE):
+    if not update.message or not update.effective_chat:
+        return
+
     msg = await update.message.reply_text(
         text=dedent(
             """
@@ -52,7 +55,7 @@ async def handle_start(update: Update, _: ContextTypes.DEFAULT_TYPE):
         disable_web_page_preview=True,
     )
 
-    set_expectation(update.effective_chat.id, {"expectation": EXPECTING_TOKEN, "msg_id": msg.message_id})
+    set_expectation(update.effective_chat.id, {"expectation": EXPECTING_TOKEN, "msg_id": str(msg.message_id)})
 
 
 async def handle_errors(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -61,6 +64,11 @@ async def handle_errors(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update is None:
         logger.error("Update is None", exc_info=context.error)
         return
+
+    if not update.effective_chat:
+        logger.error("No effective chat in update", exc_info=context.error)
+        return
+
     if isinstance(context.error, NoLunchTokenError):
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -70,13 +78,17 @@ async def handle_errors(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     if os.environ.get("DEBUG"):
         error = context.error
+        if error:
+            error_traceback = traceback.format_exception(type(error), error, error.__traceback__)
+        else:
+            error_traceback = ["Unknown error"]
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text=dedent(
                 f"""
                 An error occurred:
                 ```
-                {"".join(traceback.format_exception(type(error), error, error.__traceback__))}
+                {"".join(error_traceback)}
                 ```
                 """
             ),
@@ -86,11 +98,15 @@ async def handle_errors(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def handle_generic_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    if not update.effective_chat or not update.message or not update.message.text:
+        return False
+
     chat_id = update.effective_chat.id
     # if waiting for a token, register it
     expectation = get_expectation(chat_id)
     if expectation and expectation["expectation"] == EXPECTING_TOKEN:
-        await handle_register_token(update, context, token_msg=update.message.text, hello_msg_id=expectation["msg_id"])
+        msg_id = int(expectation["msg_id"]) if isinstance(expectation["msg_id"], str) else expectation["msg_id"]
+        await handle_register_token(update, context, token_msg=update.message.text, hello_msg_id=msg_id)
         return True
 
     # if waiting for a time zone, persist it
@@ -115,6 +131,9 @@ async def handle_generic_message(update: Update, context: ContextTypes.DEFAULT_T
 
 
 async def clear_cache(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not update.message:
+        return
+
     get_db().delete_transactions_for_chat(update.message.chat_id)
     await context.bot.set_message_reaction(
         chat_id=update.message.chat_id, message_id=update.message.message_id, reaction=ReactionEmoji.THUMBS_UP
@@ -124,12 +143,18 @@ async def clear_cache(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 async def handle_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Generic handler for cancel buttons that simply deletes the message."""
     query = update.callback_query
+    if not query or not query.message or not update.effective_chat:
+        return
+
     await query.answer()
     await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=query.message.message_id)
 
 
 async def handle_rename_payee(update: Update, context: ContextTypes.DEFAULT_TYPE, expectation: dict) -> bool:
     """Handle renaming a payee for a transaction."""
+    if not update.effective_chat or not update.message or not update.message.text:
+        return False
+
     clear_expectation(update.effective_chat.id)
 
     # updates the transaction with the new payee
@@ -153,6 +178,9 @@ async def handle_rename_payee(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 async def handle_edit_notes(update: Update, context: ContextTypes.DEFAULT_TYPE, expectation: dict) -> bool:
     """Handle editing notes for a transaction."""
+    if not update.effective_chat or not update.message or not update.message.text:
+        return False
+
     clear_expectation(update.effective_chat.id)
 
     # updates the transaction with the new notes
@@ -171,7 +199,7 @@ async def handle_edit_notes(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     )
 
     settings = get_db().get_current_settings(update.effective_chat.id)
-    if settings.auto_categorize_after_notes:
+    if settings and settings.auto_categorize_after_notes:
         await ai_categorize_transaction(transaction_id, update.effective_chat.id, context)
 
     # react to the message
@@ -183,6 +211,9 @@ async def handle_edit_notes(update: Update, context: ContextTypes.DEFAULT_TYPE, 
 
 async def handle_timezone_setting(update: Update, context: ContextTypes.DEFAULT_TYPE, expectation: dict) -> bool:
     """Handle setting the timezone for a user."""
+    if not update.message or not update.message.text or not update.effective_chat:
+        return False
+
     await context.bot.delete_message(chat_id=update.message.chat_id, message_id=update.message.message_id)
 
     # validate the time zone
@@ -200,18 +231,23 @@ async def handle_timezone_setting(update: Update, context: ContextTypes.DEFAULT_
     get_db().update_timezone(update.effective_chat.id, update.message.text)
 
     settings = get_db().get_current_settings(update.effective_chat.id)
-    await context.bot.edit_message_text(
-        message_id=expectation["msg_id"],
-        text=get_schedule_rendering_text(update.effective_chat.id),
-        chat_id=update.effective_chat.id,
-        reply_markup=get_schedule_rendering_buttons(settings),
-        parse_mode=ParseMode.MARKDOWN_V2,
-    )
+    schedule_text = get_schedule_rendering_text(update.effective_chat.id)
+    if schedule_text:
+        await context.bot.edit_message_text(
+            message_id=int(expectation["msg_id"]),
+            text=schedule_text,
+            chat_id=update.effective_chat.id,
+            reply_markup=get_schedule_rendering_buttons(settings),
+            parse_mode=ParseMode.MARKDOWN_V2,
+        )
     return True
 
 
 async def handle_set_tags(update: Update, context: ContextTypes.DEFAULT_TYPE, expectation: dict) -> bool:
     """Handle setting tags for a transaction."""
+    if not update.message or not update.message.text or not update.effective_chat:
+        return False
+
     # make sure they look like tags
     message_are_tags = True
     for word in update.message.text.split(" "):
@@ -258,6 +294,9 @@ async def handle_set_tags(update: Update, context: ContextTypes.DEFAULT_TYPE, ex
 
 async def handle_file_upload(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Generic handler for file uploads"""
+    if not update.effective_chat or not update.message:
+        return False
+
     expectation = get_expectation(update.effective_chat.id)
     logger.info(f"Expectation for chat {update.effective_chat.id}: {expectation}")
     if expectation and expectation["expectation"] == AMAZON_EXPORT:

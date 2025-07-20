@@ -1,5 +1,5 @@
 from lunchable.models import AssetsObject, CryptoObject, PlaidAccountObject
-from telegram import InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardMarkup, Update, Message
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
@@ -57,11 +57,14 @@ def get_accounts_buttons(current_mask: int) -> InlineKeyboardMarkup:
 
 def get_plaid_account_summary_text(acct: PlaidAccountObject, show_details: bool) -> str:
     """Returns a message with the accounts and their balances."""
+    display_name = getattr(acct, 'display_name', None)
+    name_to_show = display_name or acct.name
+
     if show_details:
         institution = ""
-        if acct.institution_name and acct.institution_name != (acct.display_name or acct.name):
+        if acct.institution_name and acct.institution_name != name_to_show:
             institution = f" (_{acct.institution_name}_)"
-        txt = f"*{acct.display_name or acct.name}* {institution}\n"
+        txt = f"*{name_to_show}* {institution}\n"
         txt += f"Balance: `${acct.balance:,.2f}` {acct.currency.upper()}"
         if acct.limit:
             txt += f" / `${acct.limit:,.2f}` {acct.currency.upper()}\n"
@@ -70,7 +73,7 @@ def get_plaid_account_summary_text(acct: PlaidAccountObject, show_details: bool)
         txt += f"Last update: {acct.balance_last_update.strftime('%a, %b %d at %I:%M %p')}\n"
         return txt + f"Status: {acct.status}\n\n"
     else:
-        return f" • *{acct.display_name or acct.name}*: `${acct.balance:,.2f}` {acct.currency.upper()}\n"
+        return f" • *{name_to_show}*: `${acct.balance:,.2f}` {acct.currency.upper()}\n"
 
 
 def get_asset_summary_text(asset: AssetsObject, show_details: bool) -> str:
@@ -81,19 +84,26 @@ def get_asset_summary_text(asset: AssetsObject, show_details: bool) -> str:
             institution = f" (_{asset.institution_name}_)"
         txt = f"*{asset.display_name or asset.name}* {institution}\n"
         txt += f"Balance: `${asset.balance:,.2f}` {asset.currency.upper()}\n"
-        return txt + f"Last update: {asset.balance_as_of.strftime('%a, %b %d at %I:%M %p')}\n\n"
+        if asset.balance_as_of:
+            txt += f"Last update: {asset.balance_as_of.strftime('%a, %b %d at %I:%M %p')}\n\n"
+        else:
+            txt += "\n"
+        return txt
     else:
         return f" • *{asset.display_name or asset.name}*: `${asset.balance:,.2f}` {asset.currency.upper()}\n"
 
 
 def get_crypto_summary_text(acct: CryptoObject, show_details: bool) -> str:
+    currency_symbol = get_crypto_symbol(acct.currency) if acct.currency else acct.currency or ""
+
     if show_details:
         txt = f"*{acct.name}* _({acct.institution_name})_\n"
-        txt += f"Balance: `${acct.balance:,.2f}` {get_crypto_symbol(acct.currency)}\n"
-        txt += f"Last update: {acct.balance_as_of.strftime('%a, %b %d at %I:%M %p')}\n"
+        txt += f"Balance: `${acct.balance:,.2f}` {currency_symbol}\n"
+        if acct.balance_as_of:
+            txt += f"Last update: {acct.balance_as_of.strftime('%a, %b %d at %I:%M %p')}\n"
         return txt + f"Status: {acct.status}\n\n"
     else:
-        return f" • *{acct.name}*: `${acct.balance:,.2f}` {get_crypto_symbol(acct.currency)}\n"
+        return f" • *{acct.name}*: `${acct.balance:,.2f}` {currency_symbol}\n"
 
 
 def get_accounts_summary_text(
@@ -129,6 +139,9 @@ async def handle_show_balances(
     update: Update, context: ContextTypes.DEFAULT_TYPE, mask: int = SHOW_BALANCES, message_id: int | None = None
 ):
     """Shows all the Plaid accounts and its balances to the user."""
+    if not update.effective_chat:
+        return
+
     lunch = get_lunch_client_for_chat_id(update.effective_chat.id)
 
     all_accounts = []
@@ -163,19 +176,27 @@ async def handle_show_balances(
         )
 
         # delete the command message
-        await update.message.delete()
+        if update.message:
+            await update.message.delete()
 
 
 async def handle_btn_accounts_balances(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handles the button press to show the balances of the accounts."""
+    if not update.callback_query or not update.callback_query.data:
+        return
+
     mask = int(update.callback_query.data.split("_")[1])
     if not is_show_balances(mask) and not is_show_assets(mask) and not is_show_crypto(mask):
         # do not allow to hide all of them
         return await update.callback_query.answer()
 
-    await handle_show_balances(update, context, mask=mask, message_id=update.callback_query.message.message_id)
+    if update.callback_query.message:
+        await handle_show_balances(update, context, mask=mask, message_id=update.callback_query.message.message_id)
 
 
 async def handle_done_balances(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handles the 'Done' button press to delete the balances message."""
-    await update.callback_query.message.delete()
+    if update.callback_query and update.callback_query.message:
+        # Check if the message is accessible (not MaybeInaccessibleMessage)
+        if isinstance(update.callback_query.message, Message):
+            await update.callback_query.message.delete()
