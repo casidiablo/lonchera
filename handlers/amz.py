@@ -193,7 +193,6 @@ async def extract_amazon_csv_file(update: Update, file_name: str, downloads_path
 
             # Remove the zip file to free up space
             os.remove(download_path)
-            return target_csv_path
 
         except Exception as e:
             logger.exception("Error extracting CSV from zip")
@@ -205,6 +204,8 @@ async def extract_amazon_csv_file(update: Update, file_name: str, downloads_path
             if update.message:
                 await update.message.reply_text(f"Error extracting CSV from zip file: {e}")
             return None
+        else:
+            return target_csv_path
 
     return download_path
 

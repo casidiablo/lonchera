@@ -43,9 +43,10 @@ async def get_bot_info():
             bot_data = await bot_instance.get_me()
             link = f'<a href="https://t.me/{bot_data.username}">@{bot_data.username}</a>'
             bot_info_cache = f"{link} ({bot_data.first_name})"
-            return bot_info_cache
         except Exception as e:
             return f"Error getting bot info: {e!s}"
+        else:
+            return bot_info_cache
     return "Bot instance not available. Did you set the token?"
 
 

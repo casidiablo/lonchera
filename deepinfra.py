@@ -126,11 +126,11 @@ def auto_categorize(tx_id: int, chat_id: int) -> str:
                 else:
                     lunch.update_transaction(tx_id, TransactionUpdateObject(category_id=cat.id))  # type: ignore
                 return f"Transaction recategorized to {cat.name}"
-
-        return "AI failed to categorize the transaction"
     except Exception:
         logger.exception("Error while categorizing transaction")
         return "AI crashed while categorizing the transaction"
+    else:
+        return "AI failed to categorize the transaction"
 
 
 def get_suggested_category_id(
