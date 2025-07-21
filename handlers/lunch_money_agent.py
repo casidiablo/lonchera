@@ -265,7 +265,20 @@ def get_agent_response(
         get_db().inc_metric("ai_agent_requests_failed")
         get_db().inc_metric("ai_agent_processing_time_seconds", processing_time)
         logger.error(f"Error in agent processing: {e}", exc_info=True)
-        raise
+        # Return a default LunchMoneyAgentResponse on error for type compliance
+        return LunchMoneyAgentResponse(
+            message=f"Agent failed to process request: {e}",
+            status="error",
+            transactions_created_ids=[],
+            transaction_updated_ids={},
+        )
+    # Default error return for type compliance
+    return LunchMoneyAgentResponse(
+        message="Agent failed to process request: unknown error",
+        status="error",
+        transactions_created_ids=[],
+        transaction_updated_ids={},
+    )
 
 
 async def handle_generic_message_with_ai(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -330,7 +343,7 @@ async def handle_ai_response(update: Update, context: ContextTypes.DEFAULT_TYPE,
             await message.reply_text(text=response.message, reply_to_message_id=message.message_id)
             get_db().inc_metric("ai_agent_responses_sent_plaintext")
         else:
-            raise se
+            raise
 
     if response.transactions_created_ids:
         lunch_client = get_lunch_client_for_chat_id(chat_id)

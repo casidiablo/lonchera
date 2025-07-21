@@ -91,11 +91,10 @@ async def handle_audio_transcription(update: Update, context: ContextTypes.DEFAU
 
         # Track successful end-to-end processing
         get_db().inc_metric("audio_processing_successful")
-
         return True
 
     except Exception as e:
-        logger.error(f"Error processing audio file: {e}", exc_info=True)
+        logger.exception(f"Error processing audio file: {e}")
         get_db().inc_metric("audio_processing_failed")
         await context.bot.send_message(chat_id=chat_id, text=f"Error processing audio: {e!s}")
 
@@ -210,10 +209,10 @@ def transcribe_audio(file_path: str) -> tuple[str, str]:
             return transcription, language
         else:
             get_db().inc_metric("deepinfra_whisper_requests_failed")
-            logger.error(f"Transcription failed with status code: {response.status_code}", exc_info=True)
+            logger.exception(f"Transcription failed with status code: {response.status_code}")
             response.raise_for_status()
             return "", ""
     except Exception as e:
         get_db().inc_metric("deepinfra_whisper_requests_failed")
-        logger.error(f"Error during transcription: {e}", exc_info=True)
+        logger.exception(f"Error during transcription: {e}")
         raise

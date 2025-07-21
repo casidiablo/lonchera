@@ -45,6 +45,7 @@ select = [
     "PIE", # flake8-pie
     "PL",  # pylint
     "RUF", # ruff-specific rules
+    "TRY", # flake8-try
 ]
 # Same ignores as in your flake8 configuration
 ignore = [

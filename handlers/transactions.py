@@ -426,7 +426,7 @@ async def poll_transactions_on_schedule(context: ContextTypes.DEFAULT_TYPE):
                     # If that is the case, we should set the API token to 'revoked'.
                     if "Access token does not exist" in str(e):
                         get_db().set_api_token(chat_id, "revoked")
-                        logger.error(
+                        logger.exception(
                             f"User in chat {chat_id} has revoked access to the app. Setting API token to None."
                         )
             get_db().update_last_poll_at(chat_id, datetime.now().isoformat())

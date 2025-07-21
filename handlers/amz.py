@@ -196,7 +196,7 @@ async def extract_amazon_csv_file(update: Update, file_name: str, downloads_path
             return target_csv_path
 
         except Exception as e:
-            logger.error(f"Error extracting CSV from zip: {e}")
+            logger.exception(f"Error extracting CSV from zip: {e}")
             # Clean up on error
             if os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir, ignore_errors=True)
@@ -316,15 +316,9 @@ async def handle_preview_process_amazon_transactions(update: Update, context: Co
         found_transactions = result.get("found_transactions", 0)
         will_update_transactions = result.get("will_update_transactions", 0)
 
-        update_details = _build_update_details(
-            result.get("updates", []),
-            will_update_transactions
-        )
+        update_details = _build_update_details(result.get("updates", []), will_update_transactions)
 
-        will_update_text = _get_will_update_text(
-            will_update_transactions,
-            found_transactions
-        )
+        will_update_text = _get_will_update_text(will_update_transactions, found_transactions)
 
         message = dedent(
             f"""

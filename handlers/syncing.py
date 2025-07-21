@@ -65,14 +65,14 @@ async def handle_resync(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 else:
                     get_db().mark_as_unreviewed(tx.message_id, chat_id)
             except Exception as e:
-                logger.error(f"Error sending transaction message for tx_id {tx.tx_id}: {e}")
+                logger.exception(f"Error sending transaction message for tx_id {tx.tx_id}: {e}")
                 errors += 1
         else:
             try:
                 lunch_tx = lunch.get_transaction(tx.tx_id)
                 await send_transaction_message(context, lunch_tx, chat_id, tx.message_id)
             except Exception as e:
-                logger.error(f"Error fetching transaction {tx.tx_id}: {e}")
+                logger.exception(f"Error fetching transaction {tx.tx_id}: {e}")
                 missing += 1
 
     logger.info(f"Resynced {len(chat_txs) - errors - missing} transactions, {errors} errors, {missing} missing")

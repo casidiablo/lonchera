@@ -198,7 +198,7 @@ async def send_transaction_message(
             if "Message is not modified" in str(e):
                 logger.debug(f"Message is not modified, skipping edit ({message_id})")
             else:
-                raise e
+                raise
         return message_id
     else:
         msg = await context.bot.send_message(
