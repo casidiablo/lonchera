@@ -63,6 +63,7 @@ ignore = [
     "PLW0603", # Global statement not allowed
     "PLR0913", # Too many arguments in function definition
     "PLR0911", # Too many return statements
+    "TRY003",  # Long messages outside the exception class
 ]
 # Automatically fix errors where possible
 fixable = ["ALL"]
