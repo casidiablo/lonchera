@@ -46,6 +46,7 @@ select = [
     "PL",  # pylint
     "RUF", # ruff-specific rules
     "TRY", # flake8-try
+    "TC",  # flake8-type-checking (type errors)
 ]
 # Same ignores as in your flake8 configuration
 ignore = [

@@ -5,7 +5,6 @@ import time
 import uuid
 
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_core.runnables import RunnableConfig
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
 from pydantic import BaseModel, Field, SecretStr
@@ -145,7 +144,7 @@ def get_agent_response(
     if tx_id:
         get_db().inc_metric("ai_agent_requests_with_tx_context")
 
-    config: RunnableConfig = {"configurable": {"thread_id": str(uuid.uuid4())}, "recursion_limit": 30}
+    config = {"configurable": {"thread_id": str(uuid.uuid4())}, "recursion_limit": 30}
 
     # Get user's language preference
     settings = get_db().get_current_settings(chat_id)

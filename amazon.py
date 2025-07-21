@@ -262,4 +262,4 @@ if __name__ == "__main__":
     result = process_amazon_transactions(
         args.file_path, args.days_back, args.dry_run, args.allow_days, args.auto_categorize
     )
-    print(result)
+    logger.info(result)
