@@ -11,14 +11,14 @@ from telegram import InlineKeyboardMarkup, Update
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
-# Constants
-MAX_PREVIEW_UPDATES = 3
-
 from amazon import get_amazon_transactions_summary, process_amazon_transactions
 from handlers.expectations import AMAZON_EXPORT, clear_expectation, set_expectation
 from lunch import get_lunch_money_token_for_chat_id
 from persistence import get_db
 from utils import Keyboard
+
+# Constants
+MAX_PREVIEW_UPDATES = 3
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("amz")
@@ -316,36 +316,15 @@ async def handle_preview_process_amazon_transactions(update: Update, context: Co
         found_transactions = result.get("found_transactions", 0)
         will_update_transactions = result.get("will_update_transactions", 0)
 
-        update_details = ""
-        updates = result.get("updates", [])[:MAX_PREVIEW_UPDATES]
-        if updates:
-            first_n = MAX_PREVIEW_UPDATES if len(updates) >= MAX_PREVIEW_UPDATES else len(updates)
-            update_details = f"Here are the first {first_n} transactions that will be updated:\n\n"
-            update_details += "\n".join(
-                [
-                    f"- *Date*: {update_item.get('date', 'N/A')}\n"
-                    f"  *Amount*: `{update_item.get('amount', 'N/A')}` {update_item.get('currency', 'USD').upper()}\n"
-                    f"  *Notes*: {update_item.get('notes', 'N/A')}\n"
-                    + (
-                        f"  *Category*: {update_item.get('previous_category_name', 'N/A')} `=>` {update_item.get('new_category_name', 'N/A')}\n"
-                        if update_item.get("previous_category_name") != update_item.get("new_category_name")
-                        else ""
-                    )
-                    for update_item in updates
-                ]
-            )
+        update_details = _build_update_details(
+            result.get("updates", []),
+            will_update_transactions
+        )
 
-            more_updates = will_update_transactions - 3
-            if more_updates > 0:
-                update_details += f"\n\nAnd {more_updates} more transactions will be updated."
-
-        will_update_text = ""
-        if will_update_transactions > 0:
-            will_update_text = f"Will update {will_update_transactions} transactions."
-        elif found_transactions == 0:
-            will_update_text = "No transactions will be updated since none were found in the Amazon export."
-        else:
-            will_update_text = "No transactions will be updated since all seem to have notes."
+        will_update_text = _get_will_update_text(
+            will_update_transactions,
+            found_transactions
+        )
 
         message = dedent(
             f"""
@@ -377,6 +356,50 @@ Processed {processed_transactions} Amazon transactions from Lunch Money,
     except Exception as e:
         if query:
             await query.edit_message_text(f"Error processing Amazon transactions: {e}")
+
+
+def _build_update_details(updates: list, will_update_transactions: int) -> str:
+    """Build the update details string for preview."""
+    if not updates:
+        return ""
+
+    updates = updates[:MAX_PREVIEW_UPDATES]
+    first_n = MAX_PREVIEW_UPDATES if len(updates) >= MAX_PREVIEW_UPDATES else len(updates)
+    update_details = f"Here are the first {first_n} transactions that will be updated:\n\n"
+
+    update_lines = []
+    for update_item in updates:
+        line = (
+            f"- *Date*: {update_item.get('date', 'N/A')}\n"
+            f"  *Amount*: `{update_item.get('amount', 'N/A')}` "
+            f"{update_item.get('currency', 'USD').upper()}\n"
+            f"  *Notes*: {update_item.get('notes', 'N/A')}\n"
+        )
+
+        prev_cat = update_item.get("previous_category_name")
+        new_cat = update_item.get("new_category_name")
+        if prev_cat != new_cat:
+            line += f"  *Category*: {prev_cat or 'N/A'} `=>` {new_cat or 'N/A'}\n"
+
+        update_lines.append(line)
+
+    update_details += "\n".join(update_lines)
+
+    more_updates = will_update_transactions - 3
+    if more_updates > 0:
+        update_details += f"\n\nAnd {more_updates} more transactions will be updated."
+
+    return update_details
+
+
+def _get_will_update_text(will_update_transactions: int, found_transactions: int) -> str:
+    """Get the text describing what will be updated."""
+    if will_update_transactions > 0:
+        return f"Will update {will_update_transactions} transactions."
+    elif found_transactions == 0:
+        return "No transactions will be updated since none were found in the Amazon export."
+    else:
+        return "No transactions will be updated since all seem to have notes."
 
 
 async def handle_process_amazon_transactions(update: Update, context: ContextTypes.DEFAULT_TYPE):
