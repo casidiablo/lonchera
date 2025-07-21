@@ -23,7 +23,7 @@ def set_expectation(chat_id: int, expectation: dict[str, str]):
     expectations[chat_id] = expectation
 
 
-def clear_expectation(chat_id: int) -> dict[str, str]:
-    prev = expectations[chat_id]
+def clear_expectation(chat_id: int) -> dict[str, str] | None:
+    prev = expectations.get(chat_id)
     expectations[chat_id] = None
     return prev

@@ -183,7 +183,9 @@ async def extract_amazon_csv_file(update: Update, file_name: str, downloads_path
 
                 if not csv_found:
                     if update.message:
-                        await update.message.reply_text("Could not find the CSV file in the Retail.OrderHistory.1/ folder.")
+                        await update.message.reply_text(
+                            "Could not find the CSV file in the Retail.OrderHistory.1/ folder."
+                        )
                     # Clean up
                     shutil.rmtree(temp_dir, ignore_errors=True)
                     os.remove(download_path)
@@ -431,7 +433,9 @@ async def handle_process_amazon_transactions(update: Update, context: ContextTyp
         )
 
         if context.bot and update.effective_chat:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text=message, parse_mode=ParseMode.MARKDOWN)
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id, text=message, parse_mode=ParseMode.MARKDOWN
+            )
             # Delete the original message
             if query.message:
                 await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=query.message.message_id)

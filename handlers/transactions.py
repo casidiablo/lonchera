@@ -112,6 +112,9 @@ async def handle_check_transactions(update: Update, context: ContextTypes.DEFAUL
 
 
 async def check_pending_transactions(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if update.effective_chat is None or update.message is None:
+        return
+
     transactions = await check_pending_transactions_and_telegram_them(context, chat_id=update.effective_chat.id)
 
     if not transactions:
@@ -119,6 +122,9 @@ async def check_pending_transactions(update: Update, context: ContextTypes.DEFAU
 
 
 async def handle_btn_skip_transaction(update: Update, _: ContextTypes.DEFAULT_TYPE):
+    if update.callback_query is None:
+        return
+
     await update.callback_query.edit_message_reply_markup(reply_markup=None)
     await update.callback_query.answer(
         text="Transaction was left intact. You must review it manually from lunchmoney.app", show_alert=True
@@ -126,8 +132,14 @@ async def handle_btn_skip_transaction(update: Update, _: ContextTypes.DEFAULT_TY
 
 
 async def handle_btn_collapse_transaction(update: Update, _: ContextTypes.DEFAULT_TYPE):
+    if update.callback_query is None or update.effective_chat is None:
+        return
+
     settings = get_db().get_current_settings(update.effective_chat.id)
     ai_agent = settings.ai_agent if settings else False
+
+    if update.callback_query.data is None:
+        return
 
     await update.callback_query.edit_message_reply_markup(
         reply_markup=get_tx_buttons(int(update.callback_query.data.split("_")[1]), ai_agent=ai_agent, collapsed=True)
@@ -136,10 +148,16 @@ async def handle_btn_collapse_transaction(update: Update, _: ContextTypes.DEFAUL
 
 
 async def handle_btn_cancel_categorization(update: Update, _: ContextTypes.DEFAULT_TYPE):
+    if update.callback_query is None or update.effective_chat is None:
+        return
+
     settings = get_db().get_current_settings(update.effective_chat.id)
     ai_agent = settings.ai_agent if settings else False
 
     query = update.callback_query
+    if query.data is None:
+        return
+
     transaction_id = int(query.data.split("_")[1])
     await query.edit_message_reply_markup(reply_markup=get_tx_buttons(transaction_id, ai_agent=ai_agent))
     await query.answer()
@@ -147,7 +165,13 @@ async def handle_btn_cancel_categorization(update: Update, _: ContextTypes.DEFAU
 
 async def handle_btn_show_categories(update: Update, _: ContextTypes.DEFAULT_TYPE):
     """Updates the message to show the parent categories available"""
+    if update.callback_query is None:
+        return
+
     query = update.callback_query
+    if query.message is None or query.message.chat is None or query.data is None:
+        return
+
     chat_id = query.message.chat.id
     lunch = get_lunch_client_for_chat_id(chat_id)
     transaction_id = int(query.data.split("_")[1])
@@ -169,7 +193,13 @@ async def handle_btn_show_categories(update: Update, _: ContextTypes.DEFAULT_TYP
 
 async def handle_btn_show_subcategories(update: Update, _: ContextTypes.DEFAULT_TYPE):
     """Updates the transaction with the selected category."""
+    if update.callback_query is None:
+        return
+
     query = update.callback_query
+    if query.data is None or query.message is None or query.message.chat is None:
+        return
+
     transaction_id, category_id = query.data.split("_")[1:]
 
     chat_id = query.message.chat.id
@@ -187,7 +217,13 @@ async def handle_btn_show_subcategories(update: Update, _: ContextTypes.DEFAULT_
 
 async def handle_btn_apply_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Updates the transaction with the selected category."""
+    if update.callback_query is None:
+        return
+
     query = update.callback_query
+    if query.message is None or query.message.chat is None or query.data is None:
+        return
+
     chat_id = query.message.chat.id
 
     transaction_id, category_id = query.data.split("_")[1:]
@@ -397,14 +433,20 @@ async def poll_transactions_on_schedule(context: ContextTypes.DEFAULT_TYPE):
 
 
 async def handle_expand_tx_options(update: Update, _: ContextTypes.DEFAULT_TYPE):
+    if update.callback_query is None or update.effective_chat is None:
+        return
+
     settings = get_db().get_current_settings(update.effective_chat.id)
     ai_agent = settings.ai_agent if settings else False
 
-    transaction_id = int(update.callback_query.data.split("_")[1])
-    logger.info("Expanding transaction options for tx %s", transaction_id)
+    if update.callback_query.data is None:
+        return
+
+    tx_id = int(update.callback_query.data.split("_")[1])
+    await update.callback_query.edit_message_reply_markup(reply_markup=get_tx_buttons(tx_id, ai_agent=ai_agent))
     await update.callback_query.answer()
     await update.callback_query.edit_message_reply_markup(
-        reply_markup=get_tx_buttons(transaction_id, ai_agent=ai_agent, collapsed=False)
+        reply_markup=get_tx_buttons(tx_id, ai_agent=ai_agent, collapsed=False)
     )
 
 

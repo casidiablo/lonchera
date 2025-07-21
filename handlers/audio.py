@@ -125,7 +125,7 @@ async def _process_audio_transcription(
     audio_data = await context.bot.get_file(audio_file.file_id)
 
     # Track audio file size
-    file_size = getattr(audio_file, 'file_size', 0) or 0
+    file_size = getattr(audio_file, "file_size", 0) or 0
     get_db().inc_metric("audio_file_size_bytes", file_size)
 
     # Save to a temporary file

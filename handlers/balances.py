@@ -1,5 +1,5 @@
 from lunchable.models import AssetsObject, CryptoObject, PlaidAccountObject
-from telegram import InlineKeyboardMarkup, Update, Message
+from telegram import InlineKeyboardMarkup, Message, Update
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
@@ -57,7 +57,7 @@ def get_accounts_buttons(current_mask: int) -> InlineKeyboardMarkup:
 
 def get_plaid_account_summary_text(acct: PlaidAccountObject, show_details: bool) -> str:
     """Returns a message with the accounts and their balances."""
-    display_name = getattr(acct, 'display_name', None)
+    display_name = getattr(acct, "display_name", None)
     name_to_show = display_name or acct.name
 
     if show_details:

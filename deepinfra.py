@@ -122,9 +122,9 @@ def auto_categorize(tx_id: int, chat_id: int) -> str:
             if cat.id == int(category_id):
                 settings = get_db().get_current_settings(chat_id)
                 if settings.mark_reviewed_after_categorized:
-                    lunch.update_transaction(tx_id, TransactionUpdateObject(category_id=cat.id, status="cleared")) # type: ignore
+                    lunch.update_transaction(tx_id, TransactionUpdateObject(category_id=cat.id, status="cleared"))  # type: ignore
                 else:
-                    lunch.update_transaction(tx_id, TransactionUpdateObject(category_id=cat.id)) # type: ignore
+                    lunch.update_transaction(tx_id, TransactionUpdateObject(category_id=cat.id))  # type: ignore
                 return f"Transaction recategorized to {cat.name}"
 
         return "AI failed to categorize the transaction"

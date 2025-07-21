@@ -13,6 +13,9 @@ logger = logging.getLogger("messaging")
 
 async def handle_resync(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /resync command."""
+    if not update.message or not update.message.text or not update.effective_chat:
+        return
+
     parts = update.message.text.split(" ")
     last_n_days = 15  # default to last 15 days
     if len(parts) > 1:

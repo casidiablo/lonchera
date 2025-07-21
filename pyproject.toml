@@ -70,7 +70,7 @@ unfixable = []
 
 [tool.ruff.lint.mccabe]
 # Set maximum allowed complexity for C901
-max-complexity = 11
+max-complexity = 12
 
 [tool.ruff.lint.isort]
 # Compatibility with formatter

@@ -160,7 +160,7 @@ async def handle_rename_payee(update: Update, context: ContextTypes.DEFAULT_TYPE
     # updates the transaction with the new payee
     lunch = get_lunch_client_for_chat_id(update.effective_chat.id)
     transaction_id = int(expectation["transaction_id"])
-    lunch.update_transaction(transaction_id, TransactionUpdateObject(payee=update.message.text))
+    lunch.update_transaction(transaction_id, TransactionUpdateObject(payee=update.message.text))  # type: ignore
 
     # edit the message to reflect the new payee
     updated_transaction = lunch.get_transaction(transaction_id)
@@ -189,7 +189,7 @@ async def handle_edit_notes(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     notes = update.message.text
     if len(notes) > NOTES_MAX_LENGTH:
         notes = notes[:NOTES_MAX_LENGTH]
-    lunch.update_transaction(transaction_id, TransactionUpdateObject(notes=notes))
+    lunch.update_transaction(transaction_id, TransactionUpdateObject(notes=notes))  # type: ignore
 
     # edit the message to reflect the new notes
     updated_transaction = lunch.get_transaction(transaction_id)
@@ -276,7 +276,7 @@ async def handle_set_tags(update: Update, context: ContextTypes.DEFAULT_TYPE, ex
 
     tags_without_hashtag = [tag[1:] for tag in update.message.text.split(" ") if tag.startswith("#")]
     logger.info(f"Setting tags to transaction ({transaction_id}): {tags_without_hashtag}")
-    lunch.update_transaction(transaction_id, TransactionUpdateObject(tags=tags_without_hashtag))
+    lunch.update_transaction(transaction_id, TransactionUpdateObject(tags=tags_without_hashtag))  # type: ignore
 
     # edit the message to reflect the new notes
     updated_transaction = lunch.get_transaction(transaction_id)
