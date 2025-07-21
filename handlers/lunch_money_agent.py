@@ -258,8 +258,6 @@ def get_agent_response(
         if settings and settings.ai_response_language:
             get_db().inc_metric(f"ai_agent_language_{settings.ai_response_language.lower()}")
 
-        return structured_response
-
     except Exception as e:
         processing_time = time.time() - start_time
         get_db().inc_metric("ai_agent_requests_failed")
@@ -272,13 +270,8 @@ def get_agent_response(
             transactions_created_ids=[],
             transaction_updated_ids={},
         )
-    # Default error return for type compliance
-    return LunchMoneyAgentResponse(
-        message="Agent failed to process request: unknown error",
-        status="error",
-        transactions_created_ids=[],
-        transaction_updated_ids={},
-    )
+    else:
+        return structured_response
 
 
 async def handle_generic_message_with_ai(update: Update, context: ContextTypes.DEFAULT_TYPE):

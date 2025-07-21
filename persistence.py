@@ -211,7 +211,7 @@ class Persistence:
         with self.Session() as session:
             settings = session.query(Settings).filter_by(chat_id=chat_id).first()
             if settings is None:
-                raise NoLunchTokenError("No settings found for this chat")
+                raise NoLunchTokenError("No settings found")
             return settings
 
     def update_poll_interval(self, chat_id: int, interval: int) -> None:

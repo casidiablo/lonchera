@@ -53,7 +53,7 @@ def get_tx_buttons(transaction: TransactionObject | int, ai_agent=False, collaps
         # assume the transaction is persisted if a transaction_id is provided
         tx = get_db().get_tx_by_id(transaction_id)
         if tx is None:
-            raise ValueError(f"Transaction {transaction_id} not in the database")
+            raise ValueError(f"Transaction {transaction_id} not found")
         recurring_type, is_pending, is_reviewed, plaid_id = (
             tx.recurring_type,
             tx.pending,

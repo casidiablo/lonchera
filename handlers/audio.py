@@ -89,16 +89,16 @@ async def handle_audio_transcription(update: Update, context: ContextTypes.DEFAU
         ai_response = get_agent_response(transcription, chat_id, tx_id, replying_to_msg_id, verbose=True)
         await handle_ai_response(update, context, ai_response)
 
-        # Track successful end-to-end processing
-        get_db().inc_metric("audio_processing_successful")
-        return True
-
     except Exception as e:
         logger.exception("Error processing audio file")
         get_db().inc_metric("audio_processing_failed")
         await context.bot.send_message(chat_id=chat_id, text=f"Error processing audio: {e!s}")
 
         return False
+    else:
+        # Track successful end-to-end processing
+        get_db().inc_metric("audio_processing_successful")
+        return True
 
 
 async def _process_audio_transcription(
@@ -173,7 +173,7 @@ def transcribe_audio(file_path: str) -> tuple[str, str]:
     api_key = os.getenv("DEEPINFRA_API_KEY")
 
     if not api_key:
-        raise ValueError("DEEPINFRA_API_KEY environment variable is not set")
+        raise ValueError("DEEPINFRA_API_KEY not set")
 
     headers = {"Authorization": f"Bearer {api_key}"}
 
@@ -212,7 +212,7 @@ def transcribe_audio(file_path: str) -> tuple[str, str]:
             logger.exception(f"Transcription failed with status code: {response.status_code}")
             response.raise_for_status()
             return "", ""
-    except Exception as e:
+    except Exception:
         get_db().inc_metric("deepinfra_whisper_requests_failed")
         logger.exception("Error during transcription")
         raise

@@ -128,7 +128,7 @@ def auto_categorize(tx_id: int, chat_id: int) -> str:
                 return f"Transaction recategorized to {cat.name}"
 
         return "AI failed to categorize the transaction"
-    except Exception as e:
+    except Exception:
         logger.exception("Error while categorizing transaction")
         return "AI crashed while categorizing the transaction"
 
@@ -145,6 +145,6 @@ def get_suggested_category_id(
     try:
         category_id = send_message_to_llm(prompt)
         return tx, int(category_id or 0)
-    except Exception as e:
+    except Exception:
         logger.exception("Error while categorizing transaction")
         return tx, -1
