@@ -59,7 +59,7 @@ async def get_my_lunch_money_user_info(chat_id: int) -> str:
         user_info = lunch_client.get_user()
         return json.dumps(user_info.model_dump())
     except Exception as e:
-        logger.exception("Error fetching user info: %s", str(e))
+        logger.exception("Error fetching user info")
         return json.dumps({"error": str(e)})
 
 
@@ -95,7 +95,7 @@ def get_plaid_account_balances(chat_id: int) -> str:
 
         return json.dumps({"accounts": accounts_data})
     except Exception as e:
-        logger.exception("Error fetching account balances: %s", str(e))
+        logger.exception("Error fetching account balances")
         return json.dumps({"error": str(e)})
 
 
@@ -135,7 +135,7 @@ def get_manual_accounts_balances(chat_id: int) -> str:
         logger.info("Successfully processed %d manual accounts", len(accounts_data))
         return json.dumps({"manual_accounts": accounts_data})
     except Exception as e:
-        logger.exception("Error fetching manual asset accounts: %s", str(e))
+        logger.exception("Error fetching manual asset accounts")
         return json.dumps({"error": str(e)})
 
 
@@ -157,7 +157,7 @@ def get_categories(chat_id: int) -> str:
 
         return json.dumps({"categories": categories_data})
     except Exception as e:
-        logger.exception("Error fetching categories: %s", str(e))
+        logger.exception("Error fetching categories")
         return json.dumps({"error": str(e)})
 
 
@@ -282,7 +282,7 @@ def add_manual_transaction(
             }
         )
     except Exception as e:
-        logger.exception(f"Error adding manual transaction: {e}")
+        logger.exception("Error adding manual transaction")
         return json.dumps({"error": str(e)})
 
 
@@ -318,7 +318,7 @@ def get_crypto_accounts_balances(chat_id: int) -> str:
         logger.info("Successfully processed %d crypto accounts", len(accounts_data))
         return json.dumps({"crypto_accounts": accounts_data})
     except Exception as e:
-        logger.exception("Error fetching crypto accounts: %s", str(e))
+        logger.exception("Error fetching crypto accounts")
         return json.dumps({"error": str(e)})
 
 
@@ -449,7 +449,7 @@ def update_transaction(
             }
         )
     except Exception as e:
-        logger.exception("Error updating transaction %s: %s", transaction_id, str(e))
+        logger.exception("Error updating transaction %s", transaction_id)
         return json.dumps({"error": str(e)})
 
 
@@ -570,7 +570,7 @@ def get_transactions(
             }
         )
     except Exception as e:
-        logger.exception("Error fetching transactions: %s", str(e))
+        logger.exception("Error fetching transactions")
         return json.dumps({"error": str(e)})
 
 
@@ -598,7 +598,7 @@ def get_single_transaction(chat_id: int, transaction_id: int) -> str:
 
         return json.dumps({"success": True, "transaction": transaction_info})
     except Exception as e:
-        logger.exception("Error fetching transaction %s: %s", transaction_id, str(e))
+        logger.exception("Error fetching transaction %s", transaction_id)
         return json.dumps({"error": str(e)})
 
 
@@ -647,7 +647,7 @@ def get_recent_transactions(chat_id: int, days: int = 7, limit: int = 20) -> str
         )
 
     except Exception as e:
-        logger.exception("Error fetching recent transactions: %s", str(e))
+        logger.exception("Error fetching recent transactions")
         return json.dumps({"error": str(e)})
 
 
@@ -686,7 +686,7 @@ def calculate(expression: str) -> str:
         logger.warning("Invalid expression %r: %s", expression, str(e))
         return json.dumps({"error": f"Invalid expression: {e!s}"})
     except Exception as e:
-        logger.exception("Error calculating expression %r: %s", expression, str(e))
+        logger.exception("Error calculating expression %r", expression)
         return json.dumps({"error": f"Calculation error: {e!s}"})
 
 
@@ -737,5 +737,5 @@ def parse_date_reference(date_reference: str) -> str:
         )
 
     except Exception as e:
-        logger.exception("Error parsing date reference %r: %s", date_reference, str(e))
+        logger.exception("Error parsing date reference %r", date_reference)
         return json.dumps({"error": str(e)})

@@ -129,7 +129,7 @@ def auto_categorize(tx_id: int, chat_id: int) -> str:
 
         return "AI failed to categorize the transaction"
     except Exception as e:
-        logger.exception(f"Error while categorizing transaction: {e}")
+        logger.exception("Error while categorizing transaction")
         return "AI crashed while categorizing the transaction"
 
 
@@ -146,5 +146,5 @@ def get_suggested_category_id(
         category_id = send_message_to_llm(prompt)
         return tx, int(category_id or 0)
     except Exception as e:
-        logger.exception(f"Error while categorizing transaction: {e}")
+        logger.exception("Error while categorizing transaction")
         return tx, -1

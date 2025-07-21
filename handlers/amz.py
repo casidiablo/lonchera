@@ -196,7 +196,7 @@ async def extract_amazon_csv_file(update: Update, file_name: str, downloads_path
             return target_csv_path
 
         except Exception as e:
-            logger.exception(f"Error extracting CSV from zip: {e}")
+            logger.exception("Error extracting CSV from zip")
             # Clean up on error
             if os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir, ignore_errors=True)
@@ -470,4 +470,4 @@ async def handle_process_amazon_transactions(update: Update, context: ContextTyp
                 if os.path.basename(parent_dir).startswith("tmp") and len(os.listdir(parent_dir)) == 0:
                     shutil.rmtree(parent_dir, ignore_errors=True)
             except Exception as e:
-                logger.error(f"Error cleaning up temporary files: {e}")
+                logger.exception("Error cleaning up temporary files")

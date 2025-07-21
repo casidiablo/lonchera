@@ -23,7 +23,7 @@ async def handle_web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE
         try:
             await do_save_transaction(update, context, payload)
         except Exception as e:
-            logger.exception(f"Error saving transaction {payload}: {e}")
+            logger.exception(f"Error saving transaction {payload}")
             await context.bot.send_message(chat_id=update.effective_chat.id, text=f"Could not save transaction: {e}")
     else:
         await context.bot.send_message(
