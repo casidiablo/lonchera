@@ -174,8 +174,7 @@ async def handle_show_balances(
         )
 
         # delete the command message
-        if update.message:
-            await update.message.delete()
+        await update.safe_delete_message()
 
 
 async def handle_btn_accounts_balances(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -194,7 +193,4 @@ async def handle_btn_accounts_balances(update: Update, context: ContextTypes.DEF
 
 async def handle_done_balances(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handles the 'Done' button press to delete the balances message."""
-    if update.callback_query and update.callback_query.message:
-        # Check if the message is accessible (not MaybeInaccessibleMessage)
-        if isinstance(update.callback_query.message, Message):
-            await update.callback_query.message.delete()
+    await update.safe_delete_message()

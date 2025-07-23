@@ -70,8 +70,7 @@ async def handle_show_budget(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await send_budget(update, context, budget, budget_date, message_id)
 
     # delete command message
-    if update.message:
-        await update.message.delete()
+    await update.safe_delete_message()
 
 
 async def handle_btn_show_budget_categories(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -142,8 +141,5 @@ async def handle_btn_show_budget_for_category(update: Update, _: ContextTypes.DE
 
 
 async def handle_done_budget(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Deletes the budget message."""
-    if update.callback_query and update.callback_query.message:
-        # Check if the message is accessible (not MaybeInaccessibleMessage)
-        if isinstance(update.callback_query.message, Message):
-            await update.callback_query.message.delete()
+    """Handles the 'Done' button press to delete the budget message."""
+    await update.safe_delete_message()

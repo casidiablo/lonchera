@@ -459,9 +459,7 @@ async def handle_process_amazon_transactions(update: Update, context: ContextTyp
 
         if context.bot and update.effective_chat:
             await context.bot.send_message(chat_id=update.chat_id, text=message, parse_mode=ParseMode.MARKDOWN)
-            # Delete the original message
-            if query.message:
-                await context.bot.delete_message(chat_id=update.chat_id, message_id=query.message.message_id)
+            await update.safe_delete_message()
     except Exception as e:
         if query:
             await update.safe_edit_message_text(f"Error processing Amazon transactions: {e}")

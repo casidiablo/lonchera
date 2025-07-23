@@ -79,6 +79,25 @@ if TYPE_CHECKING:
                 The edited message object if successful, None otherwise
             """
             ...
+
+        async def safe_delete_message(self, answer_text: str | None = None, show_alert: bool = False, **kwargs) -> bool:
+            """
+            Safely delete message with automatic callback query handling.
+
+            This method provides a safe way to delete a message that:
+            - Does nothing if callback_query is None
+            - Automatically calls answer() on the callback query
+            - Deletes the message safely
+
+            Args:
+                answer_text: Text to show in the callback query answer
+                show_alert: Whether to show the answer as an alert
+                **kwargs: Additional arguments passed to delete
+
+            Returns:
+                True if successful, False otherwise
+            """
+            ...
 else:
     # At runtime, we monkey patch the actual Update class
     def _chat_id_property(self: TelegramUpdate) -> int:
@@ -184,10 +203,48 @@ else:
         # Edit the message reply markup and return the result
         return await self.callback_query.edit_message_reply_markup(reply_markup=reply_markup, **kwargs)
 
+    async def _safe_delete_message(
+        self: TelegramUpdate, answer_text: str | None = None, show_alert: bool = False, **kwargs
+    ) -> bool:
+        """
+        Safely delete message with automatic callback query handling.
+
+        This method provides a safe way to delete a message that:
+        - Does nothing if callback_query is None
+        - Automatically calls answer() on the callback query
+        - Deletes the message safely
+
+        Args:
+            answer_text: Text to show in the callback query answer
+            show_alert: Whether to show the answer as an alert
+            **kwargs: Additional arguments passed to delete
+
+        Returns:
+            True if successful, False otherwise
+        """
+        # Do nothing if callback_query is None
+        if self.callback_query is None:
+            return False
+
+        # Answer the callback query first
+        try:
+            await self.callback_query.answer(text=answer_text, show_alert=show_alert)
+        except Exception:
+            # does not matter much
+            ...
+
+        # Delete the message and return the result
+        try:
+            await self.callback_query.message.delete(**kwargs)
+            return True
+        except Exception:
+            return False
+
     # Add the property and methods to the Update class
     TelegramUpdate.chat_id = property(_chat_id_property)
     TelegramUpdate.safe_edit_message_text = _safe_edit_message_text
     TelegramUpdate.safe_edit_message_reply_markup = _safe_edit_message_reply_markup
+    TelegramUpdate.safe_delete_message = _safe_delete_message
 
     # For runtime, Update is just the monkey-patched original class
     Update = TelegramUpdate

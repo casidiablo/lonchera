@@ -216,10 +216,16 @@ async def send_plaid_details(
     update: Update, context: ContextTypes.DEFAULT_TYPE, chat_id: int, transaction_id: int, plaid_details: str
 ):
     """Sends the plaid details of a transaction to the chat_id."""
+    # Create close button for the plaid details message
+    close_kbd = Keyboard()
+    close_kbd += ("❌ Close", f"closeplaid_{transaction_id}")
+    close_keyboard = close_kbd.build(columns=1)
+
     await context.bot.send_message(
         chat_id=chat_id,
         text=plaid_details,
         parse_mode=ParseMode.MARKDOWN,
+        reply_markup=close_keyboard,
         reply_to_message_id=update.callback_query.message.message_id
         if update.callback_query and update.callback_query.message
         else None,

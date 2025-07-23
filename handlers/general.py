@@ -142,11 +142,7 @@ async def clear_cache(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
 async def handle_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Generic handler for cancel buttons that simply deletes the message."""
-    query = update.callback_query
-    if not query or not query.message or not update.effective_chat:
-        return
-
-    await context.bot.delete_message(chat_id=update.chat_id, message_id=query.message.message_id)
+    await update.safe_delete_message()
 
 
 async def handle_rename_payee(update: Update, context: ContextTypes.DEFAULT_TYPE, expectation: dict) -> bool:

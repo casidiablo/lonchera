@@ -72,16 +72,14 @@ async def handle_logout_confirm(update: Update, _: ContextTypes.DEFAULT_TYPE):
     get_db().logout(update.chat_id)
     get_db().delete_transactions_for_chat(update.chat_id)
 
-    await update.callback_query.delete_message()
-    await update.callback_query.answer(
-        "Your API token has been removed, as well as the transaction history. It was a pleasure to serve you 🖖"
+    await update.safe_delete_message(
+        answer_text="Your API token has been removed, as well as the transaction history. It was a pleasure to serve you 🖖"
     )
 
 
 async def handle_logout_cancel(update: Update, _: ContextTypes.DEFAULT_TYPE):
     if update.callback_query:
-        await update.callback_query.answer()
-        await update.callback_query.delete_message()
+        await update.safe_delete_message()
 
 
 async def handle_btn_trigger_plaid_refresh(update: Update, context: ContextTypes.DEFAULT_TYPE):
