@@ -207,6 +207,13 @@ class Persistence:
             session.execute(stmt)
             session.commit()
 
+    def update_pending_status(self, tx_id: int, pending: bool) -> None:
+        """Update the pending status of a transaction by its Lunch Money tx_id."""
+        with self.Session() as session:
+            stmt = update(Transaction).where(Transaction.tx_id == tx_id).values(pending=pending)
+            session.execute(stmt)
+            session.commit()
+
     def get_current_settings(self, chat_id: str | int) -> Settings:
         with self.Session() as session:
             settings = session.query(Settings).filter_by(chat_id=chat_id).first()
@@ -392,6 +399,11 @@ class Persistence:
     def get_sent_message_count(self) -> int:
         with self.Session() as session:
             return session.query(Transaction).count()
+
+    def get_sent_pending_transactions(self, chat_id: int) -> list[Transaction]:
+        """Get all previously sent pending transactions for a specific chat."""
+        with self.Session() as session:
+            return session.query(Transaction).filter_by(chat_id=chat_id, pending=True).all()
 
 
 db = None

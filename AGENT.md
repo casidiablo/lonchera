@@ -13,7 +13,13 @@ Use type hints as much as possible.
 
 # coding conventions
 
-# logging
+## logging
 
 Avoid using print statements for logging. Use the `logging` package instead. Create a logger the
 root of the file that makes sense for the context.
+
+Prefer using `logger.exception` over `logger.error` when logging exceptions.
+
+## imports
+
+Avoid adding import statements mid-file. Import statements should be at the top of the file.

@@ -58,9 +58,7 @@ def get_schedule_rendering_text(chat_id: int) -> str | None:
         > This is the default mode and, because of the way Lunch Money/Plaid work, will allow categorizing
         > the transactions and mark them as reviewed from Telegram\\.
         >
-        > When `pending` the bot will only poll for pending transactions\\.
-        > This sends you more timely notifications, but you would need to either manually review them or
-        > enable auto\\-mark transactions as reviewed\\.
+        > When `pending` the bot will poll for pending transactions, which sends you more timely notifications\\.
 
 
         ➌ *Show full date/time*: {"🟢 ᴏɴ" if settings.show_datetime else "🔴 ᴏꜰꜰ"}
