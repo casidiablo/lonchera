@@ -236,9 +236,10 @@ else:
         # Delete the message and return the result
         try:
             await self.callback_query.message.delete(**kwargs)
-            return True
         except Exception:
             return False
+        else:
+            return True
 
     # Add the property and methods to the Update class
     TelegramUpdate.chat_id = property(_chat_id_property)

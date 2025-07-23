@@ -2,7 +2,6 @@ import logging
 from datetime import datetime, timedelta
 
 from lunchable import LunchMoney
-from telegram import Message
 from telegram.ext import ContextTypes
 
 from budget_messaging import hide_budget_categories, send_budget, show_budget_categories, show_bugdget_for_category
