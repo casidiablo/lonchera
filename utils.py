@@ -1,8 +1,9 @@
 import emoji
 from lunchable.models import TransactionObject
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from persistence import Settings, get_db
+from telegram_extensions import Update, get_chat_id as _get_chat_id
 
 
 def is_emoji(char):
@@ -121,31 +122,12 @@ def clean_md(text: str) -> str:
     return text.replace("_", " ").replace("*", " ").replace("`", " ")
 
 
-def get_chat_id(update: Update) -> int:
-    """
-    Safely extracts the chat ID from a Telegram update.
-
-    Args:
-        update: The Telegram update object
-
-    Returns:
-        The chat ID as an integer
-
-    Raises:
-        ValueError: If effective_chat is None or if the chat ID is not available
-    """
-    if update.effective_chat is None:
-        raise ValueError("No effective chat found in update")
-
-    chat_id = update.effective_chat.id
-    if chat_id is None:
-        raise ValueError("Chat ID is None")
-
-    return chat_id
+# Re-export the get_chat_id function from telegram_extensions module
+get_chat_id = _get_chat_id
 
 
 def ensure_token(update: Update) -> Settings:
     # make sure the user has registered a token by trying to get the settings
     # which will raise an exception if the token is not set
-    chat_id = get_chat_id(update)
+    chat_id = update.chat_id
     return get_db().get_current_settings(chat_id)

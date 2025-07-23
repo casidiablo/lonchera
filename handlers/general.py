@@ -5,7 +5,7 @@ from textwrap import dedent
 
 import pytz
 from lunchable import TransactionUpdateObject
-from telegram import Update
+from telegram_extensions import Update
 from telegram.constants import ParseMode, ReactionEmoji
 from telegram.ext import ContextTypes
 
@@ -30,7 +30,6 @@ from handlers.settings.session import handle_register_token
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
 from tx_messaging import send_transaction_message
-from utils import get_chat_id
 
 logger = logging.getLogger("handlers")
 
@@ -56,7 +55,7 @@ async def handle_start(update: Update, _: ContextTypes.DEFAULT_TYPE):
         disable_web_page_preview=True,
     )
 
-    set_expectation(get_chat_id(update), {"expectation": EXPECTING_TOKEN, "msg_id": str(msg.message_id)})
+    set_expectation(update.chat_id, {"expectation": EXPECTING_TOKEN, "msg_id": str(msg.message_id)})
 
 
 async def handle_errors(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -72,7 +71,7 @@ async def handle_errors(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if isinstance(context.error, NoLunchTokenError):
         await context.bot.send_message(
-            chat_id=get_chat_id(update),
+            chat_id=update.chat_id,
             text="No Lunch Money API token found. Please register a token using /start",
             parse_mode=ParseMode.MARKDOWN,
         )
@@ -84,7 +83,7 @@ async def handle_errors(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             error_traceback = ["Unknown error"]
         await context.bot.send_message(
-            chat_id=get_chat_id(update),
+            chat_id=update.chat_id,
             text=dedent(
                 f"""
                 An error occurred:
@@ -102,7 +101,7 @@ async def handle_generic_message(update: Update, context: ContextTypes.DEFAULT_T
     if not update.effective_chat or not update.message or not update.message.text:
         return False
 
-    chat_id = get_chat_id(update)
+    chat_id = update.chat_id
     # if waiting for a token, register it
     expectation = get_expectation(chat_id)
     if expectation and expectation["expectation"] == EXPECTING_TOKEN:
@@ -148,7 +147,7 @@ async def handle_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     await query.answer()
-    await context.bot.delete_message(chat_id=get_chat_id(update), message_id=query.message.message_id)
+    await context.bot.delete_message(chat_id=update.chat_id, message_id=query.message.message_id)
 
 
 async def handle_rename_payee(update: Update, context: ContextTypes.DEFAULT_TYPE, expectation: dict) -> bool:
@@ -156,10 +155,10 @@ async def handle_rename_payee(update: Update, context: ContextTypes.DEFAULT_TYPE
     if not update.effective_chat or not update.message or not update.message.text:
         return False
 
-    clear_expectation(get_chat_id(update))
+    clear_expectation(update.chat_id)
 
     # updates the transaction with the new payee
-    lunch = get_lunch_client_for_chat_id(get_chat_id(update))
+    lunch = get_lunch_client_for_chat_id(update.chat_id)
     transaction_id = int(expectation["transaction_id"])
     lunch.update_transaction(transaction_id, TransactionUpdateObject(payee=update.message.text))  # type: ignore
 
@@ -167,7 +166,7 @@ async def handle_rename_payee(update: Update, context: ContextTypes.DEFAULT_TYPE
     updated_transaction = lunch.get_transaction(transaction_id)
     msg_id = int(expectation["msg_id"])
     await send_transaction_message(
-        context=context, transaction=updated_transaction, chat_id=get_chat_id(update), message_id=msg_id
+        context=context, transaction=updated_transaction, chat_id=update.chat_id, message_id=msg_id
     )
 
     # react to the message
@@ -182,10 +181,10 @@ async def handle_edit_notes(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     if not update.effective_chat or not update.message or not update.message.text:
         return False
 
-    clear_expectation(get_chat_id(update))
+    clear_expectation(update.chat_id)
 
     # updates the transaction with the new notes
-    lunch = get_lunch_client_for_chat_id(get_chat_id(update))
+    lunch = get_lunch_client_for_chat_id(update.chat_id)
     transaction_id = int(expectation["transaction_id"])
     notes = update.message.text
     if len(notes) > NOTES_MAX_LENGTH:
@@ -196,12 +195,12 @@ async def handle_edit_notes(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     updated_transaction = lunch.get_transaction(transaction_id)
     msg_id = int(expectation["msg_id"])
     await send_transaction_message(
-        context=context, transaction=updated_transaction, chat_id=get_chat_id(update), message_id=msg_id
+        context=context, transaction=updated_transaction, chat_id=update.chat_id, message_id=msg_id
     )
 
-    settings = get_db().get_current_settings(get_chat_id(update))
+    settings = get_db().get_current_settings(update.chat_id)
     if settings and settings.auto_categorize_after_notes:
-        await ai_categorize_transaction(transaction_id, get_chat_id(update), context)
+        await ai_categorize_transaction(transaction_id, update.chat_id, context)
 
     # react to the message
     await context.bot.set_message_reaction(
@@ -220,24 +219,24 @@ async def handle_timezone_setting(update: Update, context: ContextTypes.DEFAULT_
     # validate the time zone
     if update.message.text not in pytz.all_timezones:
         await context.bot.send_message(
-            chat_id=get_chat_id(update),
+            chat_id=update.chat_id,
             text=f"`{update.message.text}` is an invalid timezone. Please try again.",
             parse_mode=ParseMode.MARKDOWN,
         )
         return True
 
-    clear_expectation(get_chat_id(update))
+    clear_expectation(update.chat_id)
 
     # save the time zone
-    get_db().update_timezone(get_chat_id(update), update.message.text)
+    get_db().update_timezone(update.chat_id, update.message.text)
 
-    settings = get_db().get_current_settings(get_chat_id(update))
-    schedule_text = get_schedule_rendering_text(get_chat_id(update))
+    settings = get_db().get_current_settings(update.chat_id)
+    schedule_text = get_schedule_rendering_text(update.chat_id)
     if schedule_text:
         await context.bot.edit_message_text(
             message_id=int(expectation["msg_id"]),
             text=schedule_text,
-            chat_id=get_chat_id(update),
+            chat_id=update.chat_id,
             reply_markup=get_schedule_rendering_buttons(settings),
             parse_mode=ParseMode.MARKDOWN_V2,
         )
@@ -258,7 +257,7 @@ async def handle_set_tags(update: Update, context: ContextTypes.DEFAULT_TYPE, ex
 
     if not message_are_tags:
         await context.bot.send_message(
-            chat_id=get_chat_id(update),
+            chat_id=update.chat_id,
             text=dedent(
                 """
                 The message should only contain words suffixed with a hashtag `#`.
@@ -269,10 +268,10 @@ async def handle_set_tags(update: Update, context: ContextTypes.DEFAULT_TYPE, ex
         )
         return True
 
-    clear_expectation(get_chat_id(update))
+    clear_expectation(update.chat_id)
 
     # updates the transaction with the new notes
-    lunch = get_lunch_client_for_chat_id(get_chat_id(update))
+    lunch = get_lunch_client_for_chat_id(update.chat_id)
     transaction_id = int(expectation["transaction_id"])
 
     tags_without_hashtag = [tag[1:] for tag in update.message.text.split(" ") if tag.startswith("#")]
@@ -283,7 +282,7 @@ async def handle_set_tags(update: Update, context: ContextTypes.DEFAULT_TYPE, ex
     updated_transaction = lunch.get_transaction(transaction_id)
     msg_id = int(expectation["msg_id"])
     await send_transaction_message(
-        context=context, transaction=updated_transaction, chat_id=get_chat_id(update), message_id=msg_id
+        context=context, transaction=updated_transaction, chat_id=update.chat_id, message_id=msg_id
     )
 
     # react to the message
@@ -298,14 +297,14 @@ async def handle_file_upload(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if not update.effective_chat or not update.message:
         return False
 
-    expectation = get_expectation(get_chat_id(update))
-    logger.info(f"Expectation for chat {get_chat_id(update)}: {expectation}")
+    expectation = get_expectation(update.chat_id)
+    logger.info(f"Expectation for chat {update.chat_id}: {expectation}")
     if expectation and expectation["expectation"] == AMAZON_EXPORT:
         # React to the file attachment
         await context.bot.set_message_reaction(
-            chat_id=get_chat_id(update), message_id=update.message.message_id, reaction=ReactionEmoji.CLAPPING_HANDS
+            chat_id=update.chat_id, message_id=update.message.message_id, reaction=ReactionEmoji.CLAPPING_HANDS
         )
         await handle_amazon_export(update, context)
     else:
-        await context.bot.send_message(chat_id=get_chat_id(update), text="I'm not expecting a file right now.")
+        await context.bot.send_message(chat_id=update.chat_id, text="I'm not expecting a file right now.")
     return True

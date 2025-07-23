@@ -1,8 +1,9 @@
-from telegram import InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardMarkup
+from telegram_extensions import Update
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
-from utils import Keyboard, ensure_token, get_chat_id
+from utils import Keyboard, ensure_token
 
 
 def get_general_settings_buttons() -> InlineKeyboardMarkup:
@@ -39,6 +40,4 @@ async def handle_settings_menu(update: Update, context: ContextTypes.DEFAULT_TYP
 async def handle_btn_done_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # delete message
     if update.effective_chat and update.callback_query and update.callback_query.message:
-        await context.bot.delete_message(
-            chat_id=get_chat_id(update), message_id=update.callback_query.message.message_id
-        )
+        await context.bot.delete_message(chat_id=update.chat_id, message_id=update.callback_query.message.message_id)

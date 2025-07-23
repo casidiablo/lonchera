@@ -8,7 +8,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
 from pydantic import BaseModel, Field, SecretStr
-from telegram import Update
+from telegram_extensions import Update
 from telegram.constants import ParseMode, ReactionEmoji
 from telegram.ext import ContextTypes
 
@@ -29,7 +29,6 @@ from handlers.aitools.tools import (
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
 from tx_messaging import send_transaction_message
-from utils import get_chat_id
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -282,7 +281,7 @@ async def handle_generic_message_with_ai(update: Update, context: ContextTypes.D
         return
     try:
         user_message = update.message.text
-        chat_id = get_chat_id(update)
+        chat_id = update.chat_id
 
         # Track text message processing
         get_db().inc_metric("ai_agent_text_messages")
@@ -322,7 +321,7 @@ async def handle_ai_response(update: Update, context: ContextTypes.DEFAULT_TYPE,
 
     logger.info(f"Handling message from AI: {response}")
 
-    chat_id = get_chat_id(update)
+    chat_id = update.chat_id
     get_db().inc_metric("ai_agent_responses_sent")
 
     try:
@@ -347,7 +346,7 @@ async def handle_ai_response(update: Update, context: ContextTypes.DEFAULT_TYPE,
             )
             get_db().mark_as_sent(
                 tx.id,
-                get_chat_id(update),
+                update.chat_id,
                 msg_id,
                 tx.recurring_type,
                 reviewed=True,

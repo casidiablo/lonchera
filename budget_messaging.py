@@ -2,12 +2,13 @@ import logging
 from datetime import datetime, timedelta
 
 from lunchable.models import BudgetObject
-from telegram import InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardMarkup
+from telegram_extensions import Update
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
 from persistence import get_db
-from utils import Keyboard, make_tag, get_chat_id
+from utils import Keyboard, make_tag
 
 logger = logging.getLogger("messaging")
 
@@ -156,14 +157,14 @@ async def send_budget(
     first_day_of_budget: datetime,
     message_id: int | None,
 ) -> None:
-    settings = get_db().get_current_settings(get_chat_id(update))
+    settings = get_db().get_current_settings(update.chat_id)
     tagging = settings.tagging if settings else True
 
     msg = build_budget_message(budget, first_day_of_budget, tagging=tagging)
 
     if message_id:
         await context.bot.edit_message_text(
-            chat_id=get_chat_id(update),
+            chat_id=update.chat_id,
             message_id=message_id,
             text=msg,
             parse_mode=ParseMode.MARKDOWN,
@@ -171,7 +172,7 @@ async def send_budget(
         )
     else:
         await context.bot.send_message(
-            chat_id=get_chat_id(update),
+            chat_id=update.chat_id,
             text=msg,
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=get_bugdet_buttons(first_day_of_budget),
@@ -192,7 +193,7 @@ async def show_budget_categories(
 
 
 async def hide_budget_categories(update: Update, budget: list[BudgetObject], budget_date: datetime) -> None:
-    settings = get_db().get_current_settings(get_chat_id(update))
+    settings = get_db().get_current_settings(update.chat_id)
     tagging = settings.tagging if settings else True
 
     msg = build_budget_message(budget, budget_date, tagging=tagging)

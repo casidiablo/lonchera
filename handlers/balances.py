@@ -1,11 +1,12 @@
 from lunchable.models import AssetsObject, CryptoObject, PlaidAccountObject
-from telegram import InlineKeyboardMarkup, Message, Update
+from telegram import InlineKeyboardMarkup, Message
+from telegram_extensions import Update
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
-from utils import Keyboard, get_crypto_symbol, get_emoji_for_account_type, make_tag, get_chat_id
+from utils import Keyboard, get_crypto_symbol, get_emoji_for_account_type, make_tag
 
 # Constants for button states
 SHOW_DETAILS = 1 << 0
@@ -142,7 +143,7 @@ async def handle_show_balances(
     if not update.effective_chat:
         return
 
-    lunch = get_lunch_client_for_chat_id(get_chat_id(update))
+    lunch = get_lunch_client_for_chat_id(update.chat_id)
 
     all_accounts = []
     if is_show_balances(mask):
@@ -154,14 +155,14 @@ async def handle_show_balances(
     if is_show_crypto(mask):
         all_accounts += lunch.get_crypto()
 
-    settings = get_db().get_current_settings(get_chat_id(update))
+    settings = get_db().get_current_settings(update.chat_id)
     tagging = settings.tagging if settings else True
 
     msg = get_accounts_summary_text(all_accounts, is_show_details(mask), tagging=tagging)
 
     if message_id:
         await context.bot.edit_message_text(
-            chat_id=get_chat_id(update),
+            chat_id=update.chat_id,
             message_id=message_id,
             text=msg,
             parse_mode=ParseMode.MARKDOWN,
@@ -169,10 +170,7 @@ async def handle_show_balances(
         )
     else:
         await context.bot.send_message(
-            chat_id=get_chat_id(update),
-            text=msg,
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=get_accounts_buttons(mask),
+            chat_id=update.chat_id, text=msg, parse_mode=ParseMode.MARKDOWN, reply_markup=get_accounts_buttons(mask)
         )
 
         # delete the command message

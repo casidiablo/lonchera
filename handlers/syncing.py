@@ -1,13 +1,13 @@
 import logging
 from datetime import timedelta
 
-from telegram import Update
+from telegram_extensions import Update
 from telegram.ext import ContextTypes
 
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
 from tx_messaging import send_transaction_message
-from utils import get_chat_id
+
 
 logger = logging.getLogger("messaging")
 
@@ -22,7 +22,7 @@ async def handle_resync(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(parts) > 1:
         last_n_days = int(parts[1])
 
-    chat_id = get_chat_id(update)
+    chat_id = update.chat_id
     lunch = get_lunch_client_for_chat_id(chat_id)
     chat_txs = get_db().get_all_tx_by_chat_id(chat_id)
 

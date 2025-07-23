@@ -2,13 +2,14 @@ import logging
 from datetime import datetime, timedelta
 
 from lunchable import LunchMoney
-from telegram import Message, Update
+from telegram import Message
+from telegram_extensions import Update
 from telegram.ext import ContextTypes
 
 from budget_messaging import hide_budget_categories, send_budget, show_budget_categories, show_bugdget_for_category
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
-from utils import get_chat_id
+
 
 logger = logging.getLogger("budget_handler")
 
@@ -63,8 +64,8 @@ async def handle_show_budget(update: Update, context: ContextTypes.DEFAULT_TYPE)
     else:
         budget_date, budget_end_date = get_default_budget_range()
 
-    lunch = get_lunch_client_for_chat_id(get_chat_id(update))
-    logger.info(f"Pulling budget for chat id {get_chat_id(update)}...")
+    lunch = get_lunch_client_for_chat_id(update.chat_id)
+    logger.info(f"Pulling budget for chat id {update.chat_id}...")
 
     budget = lunch.get_budgets(start_date=budget_date, end_date=budget_end_date)
     await send_budget(update, context, budget, budget_date, message_id)
@@ -137,7 +138,7 @@ async def handle_btn_show_budget_for_category(update: Update, _: ContextTypes.DE
     if not update.effective_chat:
         return
 
-    settings = get_db().get_current_settings(get_chat_id(update))
+    settings = get_db().get_current_settings(update.chat_id)
     tagging = settings.tagging if settings else True
 
     await update.callback_query.answer()

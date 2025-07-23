@@ -1,14 +1,15 @@
 import re
 from textwrap import dedent
 
-from telegram import InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardMarkup
+from telegram_extensions import Update
 from telegram.constants import ParseMode, ReactionEmoji
 from telegram.ext import ContextTypes
 
 from handlers.expectations import EXPECTING_TOKEN, clear_expectation, set_expectation
 from lunch import get_lunch_client, get_lunch_client_for_chat_id
 from persistence import Settings, get_db
-from utils import Keyboard, get_chat_id
+from utils import Keyboard
 
 
 def get_session_text(chat_id: int) -> str | None:
@@ -34,9 +35,9 @@ def get_session_buttons(settings: Settings) -> InlineKeyboardMarkup:
 
 
 async def handle_session_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    settings = get_db().get_current_settings(get_chat_id(update))
+    settings = get_db().get_current_settings(update.chat_id)
     await update.callback_query.edit_message_text(
-        text=get_session_text(get_chat_id(update)),
+        text=get_session_text(update.chat_id),
         reply_markup=get_session_buttons(settings),
         parse_mode=ParseMode.MARKDOWN_V2,
     )
@@ -44,7 +45,7 @@ async def handle_session_settings(update: Update, context: ContextTypes.DEFAULT_
 
 async def handle_btn_set_token_from_button(update: Update, _: ContextTypes.DEFAULT_TYPE):
     msg = await update.callback_query.edit_message_text(text="Please provide a token to register")
-    set_expectation(get_chat_id(update), {"expectation": EXPECTING_TOKEN, "msg_id": msg.message_id})
+    set_expectation(update.chat_id, {"expectation": EXPECTING_TOKEN, "msg_id": msg.message_id})
 
 
 async def handle_logout(update: Update, _: ContextTypes.DEFAULT_TYPE):
@@ -67,8 +68,8 @@ async def handle_logout(update: Update, _: ContextTypes.DEFAULT_TYPE):
 
 
 async def handle_logout_confirm(update: Update, _: ContextTypes.DEFAULT_TYPE):
-    get_db().logout(get_chat_id(update))
-    get_db().delete_transactions_for_chat(get_chat_id(update))
+    get_db().logout(update.chat_id)
+    get_db().delete_transactions_for_chat(update.chat_id)
 
     await update.callback_query.delete_message()
     await update.callback_query.answer(
@@ -88,8 +89,8 @@ async def handle_btn_trigger_plaid_refresh(update: Update, context: ContextTypes
         chat_id=update.message.chat_id, message_id=update.message.message_id, reaction=ReactionEmoji.HANDSHAKE
     )
 
-    settings_text = get_session_text(get_chat_id(update))
-    settings = get_db().get_current_settings(get_chat_id(update))
+    settings_text = get_session_text(update.chat_id)
+    settings = get_db().get_current_settings(update.chat_id)
     await update.callback_query.edit_message_text(
         text=f"_Plaid refresh triggered_\n\n{settings_text}",
         reply_markup=get_session_buttons(settings),
@@ -136,7 +137,7 @@ async def handle_register_token(update: Update, context: ContextTypes.DEFAULT_TY
 
         clear_expectation(hello_msg_id)
 
-        await context.bot.delete_message(chat_id=get_chat_id(update), message_id=hello_msg_id)
+        await context.bot.delete_message(chat_id=update.chat_id, message_id=hello_msg_id)
 
         await context.bot.send_message(
             chat_id=update.message.chat_id,

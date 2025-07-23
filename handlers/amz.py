@@ -7,7 +7,8 @@ import zipfile
 from datetime import datetime
 from textwrap import dedent
 
-from telegram import InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardMarkup
+from telegram_extensions import Update
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
@@ -15,7 +16,7 @@ from amazon import get_amazon_transactions_summary, process_amazon_transactions
 from handlers.expectations import AMAZON_EXPORT, clear_expectation, set_expectation
 from lunch import get_lunch_money_token_for_chat_id
 from persistence import get_db
-from utils import Keyboard, get_chat_id
+from utils import Keyboard
 
 # Constants
 MAX_PREVIEW_UPDATES = 3
@@ -125,7 +126,7 @@ async def pre_processing_amazon_transactions(
             text=text,
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=get_process_amazon_tx_buttons(ai_categorization_enabled),
-            chat_id=get_chat_id(update),
+            chat_id=update.chat_id,
             message_id=msg_id,
         )
     elif update.message:
@@ -154,7 +155,7 @@ async def extract_amazon_csv_file(update: Update, file_name: str, downloads_path
     current_time_path = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     file = await update.message.document.get_file()
     os.makedirs(downloads_path, exist_ok=True)
-    download_path = f"{downloads_path}/{current_time_path}_{get_chat_id(update)}_{file_name}"
+    download_path = f"{downloads_path}/{current_time_path}_{update.chat_id}_{file_name}"
     logger.info(f"Downloading file to {download_path}")
     await file.download_to_drive(custom_path=download_path)
 
@@ -255,7 +256,7 @@ async def handle_amazon_export(update: Update, context: ContextTypes.DEFAULT_TYP
         if update.message.chat_id:
             prev = clear_expectation(update.message.chat_id)
             if prev and prev.get("msg_id") and context.bot and update.effective_chat:
-                await context.bot.delete_message(chat_id=get_chat_id(update), message_id=int(prev["msg_id"]))
+                await context.bot.delete_message(chat_id=update.chat_id, message_id=int(prev["msg_id"]))
     except Exception as e:
         await update.message.reply_text(f"Error processing the file: {e}")
 
@@ -302,7 +303,7 @@ async def handle_preview_process_amazon_transactions(update: Update, context: Co
             logger.error("No effective_chat in update")
             return
 
-        lunch_money_token = get_lunch_money_token_for_chat_id(get_chat_id(update))
+        lunch_money_token = get_lunch_money_token_for_chat_id(update.chat_id)
 
         result = process_amazon_transactions(
             file_path=export_file,
@@ -342,7 +343,7 @@ Processed {processed_transactions} Amazon transactions from Lunch Money,
 
         if context.bot and update.effective_chat and query.message:
             await context.bot.edit_message_text(
-                chat_id=get_chat_id(update),
+                chat_id=update.chat_id,
                 text=message,
                 parse_mode=ParseMode.MARKDOWN,
                 message_id=query.message.message_id,
@@ -420,7 +421,7 @@ async def handle_process_amazon_transactions(update: Update, context: ContextTyp
             logger.error("No effective_chat in update")
             return
 
-        lunch_money_token = get_lunch_money_token_for_chat_id(get_chat_id(update))
+        lunch_money_token = get_lunch_money_token_for_chat_id(update.chat_id)
 
         result = process_amazon_transactions(
             file_path=export_file,
@@ -451,10 +452,10 @@ async def handle_process_amazon_transactions(update: Update, context: ContextTyp
         )
 
         if context.bot and update.effective_chat:
-            await context.bot.send_message(chat_id=get_chat_id(update), text=message, parse_mode=ParseMode.MARKDOWN)
+            await context.bot.send_message(chat_id=update.chat_id, text=message, parse_mode=ParseMode.MARKDOWN)
             # Delete the original message
             if query.message:
-                await context.bot.delete_message(chat_id=get_chat_id(update), message_id=query.message.message_id)
+                await context.bot.delete_message(chat_id=update.chat_id, message_id=query.message.message_id)
     except Exception as e:
         if query:
             await query.edit_message_text(f"Error processing Amazon transactions: {e}")

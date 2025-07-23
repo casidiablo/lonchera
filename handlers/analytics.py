@@ -2,7 +2,7 @@ import logging
 import os
 from datetime import datetime, timedelta
 
-from telegram import Update
+from telegram_extensions import Update
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 

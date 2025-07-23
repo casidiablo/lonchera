@@ -4,13 +4,12 @@ import time
 from tempfile import NamedTemporaryFile
 
 import requests
-from telegram import Update
+from telegram_extensions import Update
 from telegram.constants import ParseMode, ReactionEmoji
 from telegram.ext import ContextTypes
 
 from handlers.lunch_money_agent import get_agent_response, handle_ai_response
 from persistence import get_db
-from utils import get_chat_id
 
 logger = logging.getLogger("handlers.audio")
 
@@ -34,7 +33,7 @@ async def handle_audio_transcription(update: Update, context: ContextTypes.DEFAU
         logger.info("No message or chat found")
         return False
 
-    chat_id = get_chat_id(update)
+    chat_id = update.chat_id
 
     # Check if AI agent is enabled for this chat
     settings = get_db().get_current_settings(chat_id)
@@ -118,7 +117,7 @@ async def _process_audio_transcription(
         The transcribed text
     """
     try:
-        chat_id = get_chat_id(update)
+        chat_id = update.chat_id
     except ValueError:
         return None
 

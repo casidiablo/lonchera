@@ -4,7 +4,7 @@ import os
 import signal
 
 from dotenv import load_dotenv
-from telegram import Update
+from telegram_extensions import Update
 from telegram.error import Conflict, TelegramError
 from telegram.ext import Application, CallbackQueryHandler, CommandHandler, ContextTypes, MessageHandler, filters
 
