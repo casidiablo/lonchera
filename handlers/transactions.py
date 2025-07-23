@@ -133,14 +133,10 @@ async def mark_posted_txs_as_reviewed(
         posted_transactions = lunch.get_transactions(
             status="uncleared", pending=False, start_date=start_date, end_date=end_date
         )
-        logger.info(f"Found {len(posted_transactions)} posted transactions for {chat_id}")
+        logger.info(f"Found {len(posted_transactions)} posted transactions for {chat_id} that are not reviewed")
 
         # Create lookup dictionaries for efficient matching
         posted_by_id = {tx.id: tx for tx in posted_transactions}
-        posted_by_plaid_id = {}
-        for tx in posted_transactions:
-            if tx.plaid_metadata and "transaction_id" in tx.plaid_metadata:
-                posted_by_plaid_id[tx.plaid_metadata["transaction_id"]] = tx
 
         # Check each sent pending transaction
         for sent_tx in sent_pending_txs:
@@ -149,9 +145,9 @@ async def mark_posted_txs_as_reviewed(
             # First try to match by transaction ID
             if sent_tx.tx_id in posted_by_id:
                 posted_tx = posted_by_id[sent_tx.tx_id]
-            # If not found and we have a plaid_id, try matching by that
-            elif sent_tx.plaid_id and sent_tx.plaid_id in posted_by_plaid_id:
-                posted_tx = posted_by_plaid_id[sent_tx.plaid_id]
+            else:
+                logger.warning(f"Could not find posted transaction for sent pending transaction {sent_tx.id}")
+                continue
 
             # If we found a match and it's uncleared, mark it as reviewed
             logger.info(
