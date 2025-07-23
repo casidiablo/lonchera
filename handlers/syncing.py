@@ -13,7 +13,7 @@ logger = logging.getLogger("messaging")
 
 async def handle_resync(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /resync command."""
-    if not update.message or not update.message.text or not update.effective_chat:
+    if not update.message or not update.message.text:
         return
 
     parts = update.message.text.split(" ")

@@ -35,7 +35,7 @@ logger = logging.getLogger("handlers")
 
 
 async def handle_start(update: Update, _: ContextTypes.DEFAULT_TYPE):
-    if not update.message or not update.effective_chat:
+    if not update.message:
         return
 
     msg = await update.message.reply_text(
@@ -63,10 +63,6 @@ async def handle_errors(update: Update, context: ContextTypes.DEFAULT_TYPE):
     get_db().inc_metric("errors_handled")
     if update is None:
         logger.error("Update is None", exc_info=context.error)
-        return
-
-    if not update.effective_chat:
-        logger.error("No effective chat in update", exc_info=context.error)
         return
 
     if isinstance(context.error, NoLunchTokenError):
@@ -98,7 +94,7 @@ async def handle_errors(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def handle_generic_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
-    if not update.effective_chat or not update.message or not update.message.text:
+    if not update.message or not update.message.text:
         return False
 
     chat_id = update.chat_id
@@ -147,7 +143,7 @@ async def handle_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_rename_payee(update: Update, context: ContextTypes.DEFAULT_TYPE, expectation: dict) -> bool:
     """Handle renaming a payee for a transaction."""
-    if not update.effective_chat or not update.message or not update.message.text:
+    if not update.message or not update.message.text:
         return False
 
     clear_expectation(update.chat_id)
@@ -173,7 +169,7 @@ async def handle_rename_payee(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 async def handle_edit_notes(update: Update, context: ContextTypes.DEFAULT_TYPE, expectation: dict) -> bool:
     """Handle editing notes for a transaction."""
-    if not update.effective_chat or not update.message or not update.message.text:
+    if not update.message or not update.message.text:
         return False
 
     clear_expectation(update.chat_id)
@@ -206,7 +202,7 @@ async def handle_edit_notes(update: Update, context: ContextTypes.DEFAULT_TYPE, 
 
 async def handle_timezone_setting(update: Update, context: ContextTypes.DEFAULT_TYPE, expectation: dict) -> bool:
     """Handle setting the timezone for a user."""
-    if not update.message or not update.message.text or not update.effective_chat:
+    if not update.message or not update.message.text:
         return False
 
     await context.bot.delete_message(chat_id=update.chat_id, message_id=update.message.message_id)
@@ -240,7 +236,7 @@ async def handle_timezone_setting(update: Update, context: ContextTypes.DEFAULT_
 
 async def handle_set_tags(update: Update, context: ContextTypes.DEFAULT_TYPE, expectation: dict) -> bool:
     """Handle setting tags for a transaction."""
-    if not update.message or not update.message.text or not update.effective_chat:
+    if not update.message or not update.message.text:
         return False
 
     # make sure they look like tags
@@ -289,7 +285,7 @@ async def handle_set_tags(update: Update, context: ContextTypes.DEFAULT_TYPE, ex
 
 async def handle_file_upload(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Generic handler for file uploads"""
-    if not update.effective_chat or not update.message:
+    if not update.message:
         return False
 
     expectation = get_expectation(update.chat_id)

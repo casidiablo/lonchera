@@ -29,8 +29,8 @@ async def handle_audio_transcription(update: Update, context: ContextTypes.DEFAU
         True if the audio was successfully handled, False otherwise
     """
     message = update.message
-    if message is None or update.effective_chat is None:
-        logger.info("No message or chat found")
+    if message is None:
+        logger.info("No message found")
         return False
 
     chat_id = update.chat_id

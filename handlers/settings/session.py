@@ -78,8 +78,7 @@ async def handle_logout_confirm(update: Update, _: ContextTypes.DEFAULT_TYPE):
 
 
 async def handle_logout_cancel(update: Update, _: ContextTypes.DEFAULT_TYPE):
-    if update.callback_query:
-        await update.safe_delete_message()
+    await update.safe_delete_message()
 
 
 async def handle_btn_trigger_plaid_refresh(update: Update, context: ContextTypes.DEFAULT_TYPE):

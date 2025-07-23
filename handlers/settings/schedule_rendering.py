@@ -92,7 +92,7 @@ def get_schedule_rendering_buttons(settings: Settings) -> InlineKeyboardMarkup:
 
 async def handle_schedule_rendering_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     settings_text = get_schedule_rendering_text(update.chat_id)
-    if update.callback_query and settings_text:
+    if settings_text:
         settings = get_db().get_current_settings(update.chat_id)
         await update.safe_edit_message_text(
             text=settings_text, reply_markup=get_schedule_rendering_buttons(settings), parse_mode=ParseMode.MARKDOWN_V2

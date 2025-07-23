@@ -140,9 +140,6 @@ async def handle_show_balances(
     update: Update, context: ContextTypes.DEFAULT_TYPE, mask: int = SHOW_BALANCES, message_id: int | None = None
 ):
     """Shows all the Plaid accounts and its balances to the user."""
-    if not update.effective_chat:
-        return
-
     lunch = get_lunch_client_for_chat_id(update.chat_id)
 
     all_accounts = []

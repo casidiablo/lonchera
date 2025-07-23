@@ -276,7 +276,7 @@ def get_agent_response(
 async def handle_generic_message_with_ai(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle generic messages using the AI agent."""
     message = update.message
-    if message is None or update.message is None or update.message.text is None or update.effective_chat is None:
+    if message is None or update.message is None or update.message.text is None:
         logger.error("Failed to process update object. It had no message", exc_info=True)
         return
     try:
@@ -314,9 +314,9 @@ async def handle_generic_message_with_ai(update: Update, context: ContextTypes.D
 
 async def handle_ai_response(update: Update, context: ContextTypes.DEFAULT_TYPE, response: LunchMoneyAgentResponse):
     message = update.message
-    if message is None or update.effective_chat is None:
+    if message is None:
         # should never happen
-        logger.error("handle_ai_response called with None message or chat", exc_info=True)
+        logger.error("handle_ai_response called with None message", exc_info=True)
         return
 
     logger.info(f"Handling message from AI: {response}")

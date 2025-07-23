@@ -50,9 +50,6 @@ def get_default_budget(lunch: LunchMoney):
 
 async def handle_show_budget(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Sends a message with the current budget."""
-    if not update.effective_chat:
-        return
-
     message_id = None
     if update.callback_query and update.callback_query.data:
         budget_date = update.callback_query.data.split("_")[1]
@@ -129,9 +126,6 @@ async def handle_btn_show_budget_for_category(update: Update, _: ContextTypes.DE
     for budget_item in all_budget:
         if budget_item.category_id in children_categories_ids:
             sub_budget.append(budget_item)
-
-    if not update.effective_chat:
-        return
 
     settings = get_db().get_current_settings(update.chat_id)
     tagging = settings.tagging if settings else True

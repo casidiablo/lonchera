@@ -121,7 +121,7 @@ async def pre_processing_amazon_transactions(
         """
     )
 
-    if msg_id and context.bot and update.effective_chat:
+    if msg_id and context.bot:
         await context.bot.edit_message_text(
             text=text,
             parse_mode=ParseMode.MARKDOWN,
@@ -148,7 +148,7 @@ async def extract_amazon_csv_file(update: Update, file_name: str, downloads_path
     Returns:
         The path to the extracted CSV file or None if extraction failed
     """
-    if not update.message or not update.message.document or not update.effective_chat:
+    if not update.message or not update.message.document:
         logger.error("Missing required message/document data")
         return None
 
@@ -255,7 +255,7 @@ async def handle_amazon_export(update: Update, context: ContextTypes.DEFAULT_TYP
         # clear expectation and delete that initial message
         if update.message:
             prev = clear_expectation(update.chat_id)
-            if prev and prev.get("msg_id") and context.bot and update.effective_chat:
+            if prev and prev.get("msg_id") and context.bot:
                 await context.bot.delete_message(chat_id=update.chat_id, message_id=int(prev["msg_id"]))
     except Exception as e:
         await update.message.reply_text(f"Error processing the file: {e}")
@@ -273,7 +273,7 @@ async def handle_update_amz_settings(update: Update, context: ContextTypes.DEFAU
 
     context.user_data["ai_categorization_enabled"] = ai_categorization_enabled
 
-    if export_file is None and query:
+    if export_file is None:
         await update.safe_edit_message_text(
             "Seems like I forgot the Amazon export file. Please start over: /amazon_sync"
         )
@@ -302,10 +302,6 @@ async def handle_preview_process_amazon_transactions(update: Update, context: Co
 
     try:
         await update.safe_edit_message_text("⏳ Processing transactions. This might take a while. Be patient.")
-
-        if not update.effective_chat:
-            logger.error("No effective_chat in update")
-            return
 
         lunch_money_token = get_lunch_money_token_for_chat_id(update.chat_id)
 
@@ -345,7 +341,7 @@ Processed {processed_transactions} Amazon transactions from Lunch Money,
         else:
             kbd += ("Close", "cancel")
 
-        if context.bot and update.effective_chat and query.message:
+        if context.bot and query.message:
             await context.bot.edit_message_text(
                 chat_id=update.chat_id,
                 text=message,
@@ -354,8 +350,7 @@ Processed {processed_transactions} Amazon transactions from Lunch Money,
                 reply_markup=kbd.build(),
             )
     except Exception as e:
-        if query:
-            await update.safe_edit_message_text(f"Error processing Amazon transactions: {e}")
+        await update.safe_edit_message_text(f"Error processing Amazon transactions: {e}")
 
 
 def _build_update_details(updates: list, will_update_transactions: int) -> str:
@@ -423,10 +418,6 @@ async def handle_process_amazon_transactions(update: Update, context: ContextTyp
     try:
         await update.safe_edit_message_text("⏳ Processing transactions. This might take a while. Be patient.")
 
-        if not update.effective_chat:
-            logger.error("No effective_chat in update")
-            return
-
         lunch_money_token = get_lunch_money_token_for_chat_id(update.chat_id)
 
         result = process_amazon_transactions(
@@ -457,12 +448,11 @@ async def handle_process_amazon_transactions(update: Update, context: ContextTyp
             """
         )
 
-        if context.bot and update.effective_chat:
+        if context.bot:
             await context.bot.send_message(chat_id=update.chat_id, text=message, parse_mode=ParseMode.MARKDOWN)
             await update.safe_delete_message()
     except Exception as e:
-        if query:
-            await update.safe_edit_message_text(f"Error processing Amazon transactions: {e}")
+        await update.safe_edit_message_text(f"Error processing Amazon transactions: {e}")
     finally:
         # Clean up extracted files
         if export_file and os.path.exists(export_file):
