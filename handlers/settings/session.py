@@ -36,7 +36,7 @@ def get_session_buttons(settings: Settings) -> InlineKeyboardMarkup:
 
 async def handle_session_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     settings = get_db().get_current_settings(update.chat_id)
-    await update.callback_query.edit_message_text(
+    await update.safe_edit_message_text(
         text=get_session_text(update.chat_id),
         reply_markup=get_session_buttons(settings),
         parse_mode=ParseMode.MARKDOWN_V2,
@@ -44,15 +44,16 @@ async def handle_session_settings(update: Update, context: ContextTypes.DEFAULT_
 
 
 async def handle_btn_set_token_from_button(update: Update, _: ContextTypes.DEFAULT_TYPE):
-    msg = await update.callback_query.edit_message_text(text="Please provide a token to register")
-    set_expectation(update.chat_id, {"expectation": EXPECTING_TOKEN, "msg_id": msg.message_id})
+    msg = await update.safe_edit_message_text(text="Please provide a token to register")
+    if msg:
+        set_expectation(update.chat_id, {"expectation": EXPECTING_TOKEN, "msg_id": msg.message_id})
 
 
 async def handle_logout(update: Update, _: ContextTypes.DEFAULT_TYPE):
     kbd = Keyboard()
     kbd += ("Yes, delete my token", "logout_confirm")
     kbd += ("Nevermind", "logout_cancel")
-    await update.callback_query.edit_message_text(
+    await update.safe_edit_message_text(
         text=dedent(
             """
             This will remove the API token from the DB and delete all the cache associated with this chat.
@@ -60,7 +61,7 @@ async def handle_logout(update: Update, _: ContextTypes.DEFAULT_TYPE):
 
             You can /start again anytime you want by providing a new token.
 
-            Do you want to proceed?
+            Are you sure you want to continue?
             """
         ),
         reply_markup=kbd.build(),
@@ -91,7 +92,7 @@ async def handle_btn_trigger_plaid_refresh(update: Update, context: ContextTypes
 
     settings_text = get_session_text(update.chat_id)
     settings = get_db().get_current_settings(update.chat_id)
-    await update.callback_query.edit_message_text(
+    await update.safe_edit_message_text(
         text=f"_Plaid refresh triggered_\n\n{settings_text}",
         reply_markup=get_session_buttons(settings),
         parse_mode=ParseMode.MARKDOWN_V2,

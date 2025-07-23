@@ -274,7 +274,9 @@ async def handle_update_amz_settings(update: Update, context: ContextTypes.DEFAU
     context.user_data["ai_categorization_enabled"] = ai_categorization_enabled
 
     if export_file is None and query:
-        await query.edit_message_text("Seems like I forgot the Amazon export file. Please start over: /amazon_sync")
+        await update.safe_edit_message_text(
+            "Seems like I forgot the Amazon export file. Please start over: /amazon_sync"
+        )
         return
 
     await pre_processing_amazon_transactions(update, context, msg_id)
@@ -290,14 +292,16 @@ async def handle_preview_process_amazon_transactions(update: Update, context: Co
     ai_categorization_enabled = context.user_data.get("ai_categorization_enabled", False)
 
     if export_file is None:
-        await query.edit_message_text("Seems like I forgot the Amazon export file. Please start over: /amazon_sync")
+        await update.safe_edit_message_text(
+            "Seems like I forgot the Amazon export file. Please start over: /amazon_sync"
+        )
         return
 
     # Increment the metric for Amazon autocategorization runs
     get_db().inc_metric("amazon_autocategorization_runs")
 
     try:
-        await query.edit_message_text("⏳ Processing transactions. This might take a while. Be patient.")
+        await update.safe_edit_message_text("⏳ Processing transactions. This might take a while. Be patient.")
 
         if not update.effective_chat:
             logger.error("No effective_chat in update")
@@ -351,7 +355,7 @@ Processed {processed_transactions} Amazon transactions from Lunch Money,
             )
     except Exception as e:
         if query:
-            await query.edit_message_text(f"Error processing Amazon transactions: {e}")
+            await update.safe_edit_message_text(f"Error processing Amazon transactions: {e}")
 
 
 def _build_update_details(updates: list, will_update_transactions: int) -> str:
@@ -408,14 +412,16 @@ async def handle_process_amazon_transactions(update: Update, context: ContextTyp
     ai_categorization_enabled = context.user_data.get("ai_categorization_enabled", False)
 
     if export_file is None:
-        await query.edit_message_text("Seems like I forgot the Amazon export file. Please start over: /amazon_sync")
+        await update.safe_edit_message_text(
+            "Seems like I forgot the Amazon export file. Please start over: /amazon_sync"
+        )
         return
 
     # Increment the metric for Amazon autocategorization runs
     get_db().inc_metric("amazon_autocategorization_runs")
 
     try:
-        await query.edit_message_text("⏳ Processing transactions. This might take a while. Be patient.")
+        await update.safe_edit_message_text("⏳ Processing transactions. This might take a while. Be patient.")
 
         if not update.effective_chat:
             logger.error("No effective_chat in update")
@@ -458,7 +464,7 @@ async def handle_process_amazon_transactions(update: Update, context: ContextTyp
                 await context.bot.delete_message(chat_id=update.chat_id, message_id=query.message.message_id)
     except Exception as e:
         if query:
-            await query.edit_message_text(f"Error processing Amazon transactions: {e}")
+            await update.safe_edit_message_text(f"Error processing Amazon transactions: {e}")
     finally:
         # Clean up extracted files
         if export_file and os.path.exists(export_file):

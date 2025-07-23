@@ -30,7 +30,7 @@ async def handle_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_settings_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.callback_query:
-        await update.callback_query.edit_message_text(
+        await update.safe_edit_message_text(
             text="🛠️ 🆂🅴🆃🆃🅸🅽🅶🆂\n\nPlease choose a settings category:",
             reply_markup=get_general_settings_buttons(),
             parse_mode=ParseMode.MARKDOWN_V2,

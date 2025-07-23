@@ -73,7 +73,7 @@ async def handle_ai_settings(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return
 
     settings = get_db().get_current_settings(update.chat_id)
-    await update.callback_query.edit_message_text(
+    await update.safe_edit_message_text(
         text=settings_text, reply_markup=get_ai_settings_buttons(settings), parse_mode=ParseMode.MARKDOWN_V2
     )
 
@@ -92,8 +92,7 @@ async def handle_btn_toggle_ai_agent(update: Update, _: ContextTypes.DEFAULT_TYP
     if settings_text is None:
         return
 
-    await update.callback_query.answer()
-    await update.callback_query.edit_message_text(
+    await update.safe_edit_message_text(
         text=settings_text, reply_markup=get_ai_settings_buttons(updated_settings), parse_mode=ParseMode.MARKDOWN_V2
     )
 
@@ -112,8 +111,7 @@ async def handle_btn_toggle_show_transcription(update: Update, _: ContextTypes.D
     if settings_text is None:
         return
 
-    await update.callback_query.answer()
-    await update.callback_query.edit_message_text(
+    await update.safe_edit_message_text(
         text=settings_text, reply_markup=get_ai_settings_buttons(updated_settings), parse_mode=ParseMode.MARKDOWN_V2
     )
 
@@ -137,7 +135,7 @@ async def handle_set_ai_language(update: Update, _: ContextTypes.DEFAULT_TYPE):
     if not update.effective_chat or not update.callback_query:
         return
 
-    await update.callback_query.edit_message_text(
+    await update.safe_edit_message_text(
         text="🌍 *Choose AI Response Language*\n\nSelect the language for AI agent responses:",
         reply_markup=get_language_selection_buttons(),
         parse_mode=ParseMode.MARKDOWN_V2,
@@ -165,8 +163,7 @@ async def handle_set_language(update: Update, _: ContextTypes.DEFAULT_TYPE):
     if settings_text is None:
         return
 
-    await update.callback_query.answer()
-    await update.callback_query.edit_message_text(
+    await update.safe_edit_message_text(
         text=settings_text, reply_markup=get_ai_settings_buttons(settings), parse_mode=ParseMode.MARKDOWN_V2
     )
 
@@ -200,7 +197,7 @@ async def handle_set_ai_model(update: Update, context: ContextTypes.DEFAULT_TYPE
     else:
         message_text = "🤖 *AI Model Selection*\n\nOnly Llama model is available for your account:"
 
-    await update.callback_query.edit_message_text(
+    await update.safe_edit_message_text(
         text=message_text, reply_markup=get_model_selection_buttons(chat_id), parse_mode=ParseMode.MARKDOWN_V2
     )
 
@@ -226,7 +223,6 @@ async def handle_set_model(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if settings_text is None:
         return
 
-    await update.callback_query.answer()
-    await update.callback_query.edit_message_text(
+    await update.safe_edit_message_text(
         text=settings_text, reply_markup=get_ai_settings_buttons(settings), parse_mode=ParseMode.MARKDOWN_V2
     )

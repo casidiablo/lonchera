@@ -187,9 +187,8 @@ async def show_budget_categories(
         if budget_item.category_group_name is None and budget_item.category_id is not None:
             categories.append(budget_item)
 
-    query = update.callback_query
     # let the message intact
-    await query.edit_message_reply_markup(reply_markup=get_budget_category_buttons(categories, budget_date))
+    await update.safe_edit_message_reply_markup(reply_markup=get_budget_category_buttons(categories, budget_date))
 
 
 async def hide_budget_categories(update: Update, budget: list[BudgetObject], budget_date: datetime) -> None:
@@ -197,8 +196,9 @@ async def hide_budget_categories(update: Update, budget: list[BudgetObject], bud
     tagging = settings.tagging if settings else True
 
     msg = build_budget_message(budget, budget_date, tagging=tagging)
-    query = update.callback_query
-    await query.edit_message_text(text=msg, parse_mode=ParseMode.MARKDOWN, reply_markup=get_bugdet_buttons(budget_date))
+    await update.safe_edit_message_text(
+        text=msg, parse_mode=ParseMode.MARKDOWN, reply_markup=get_bugdet_buttons(budget_date)
+    )
 
 
 def _create_progress_bar(spent_already: float, budgeted: float) -> tuple[str, float]:
@@ -295,7 +295,7 @@ async def show_bugdget_for_category(
 
     categories = _get_filtered_categories(all_budget)
 
-    await update.callback_query.edit_message_text(
+    await update.safe_edit_message_text(
         text=msg,
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=get_budget_category_buttons(categories, budget_date),

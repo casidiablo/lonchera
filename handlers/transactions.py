@@ -200,9 +200,10 @@ async def handle_btn_skip_transaction(update: Update, _: ContextTypes.DEFAULT_TY
     if update.callback_query is None:
         return
 
-    await update.callback_query.edit_message_reply_markup(reply_markup=None)
-    await update.callback_query.answer(
-        text="Transaction was left intact. You must review it manually from lunchmoney.app", show_alert=True
+    await update.safe_edit_message_reply_markup(
+        reply_markup=None,
+        answer_text="Transaction was left intact. You must review it manually from lunchmoney.app",
+        show_alert=True,
     )
 
 
@@ -216,10 +217,9 @@ async def handle_btn_collapse_transaction(update: Update, _: ContextTypes.DEFAUL
     if update.callback_query.data is None:
         return
 
-    await update.callback_query.edit_message_reply_markup(
+    await update.safe_edit_message_reply_markup(
         reply_markup=get_tx_buttons(int(update.callback_query.data.split("_")[1]), ai_agent=ai_agent, collapsed=True)
     )
-    await update.callback_query.answer()
 
 
 async def handle_btn_cancel_categorization(update: Update, _: ContextTypes.DEFAULT_TYPE):
@@ -234,8 +234,7 @@ async def handle_btn_cancel_categorization(update: Update, _: ContextTypes.DEFAU
         return
 
     transaction_id = int(query.data.split("_")[1])
-    await query.edit_message_reply_markup(reply_markup=get_tx_buttons(transaction_id, ai_agent=ai_agent))
-    await query.answer()
+    await update.safe_edit_message_reply_markup(reply_markup=get_tx_buttons(transaction_id, ai_agent=ai_agent))
 
 
 async def handle_btn_show_categories(update: Update, _: ContextTypes.DEFAULT_TYPE):
@@ -262,8 +261,7 @@ async def handle_btn_show_categories(update: Update, _: ContextTypes.DEFAULT_TYP
 
     kbd += ("Cancel", f"cancelCategorization_{transaction_id}")
 
-    await query.edit_message_reply_markup(reply_markup=kbd.build(columns=2))
-    await query.answer()
+    await update.safe_edit_message_reply_markup(reply_markup=kbd.build(columns=2))
 
 
 async def handle_btn_show_subcategories(update: Update, _: ContextTypes.DEFAULT_TYPE):
@@ -286,8 +284,7 @@ async def handle_btn_show_subcategories(update: Update, _: ContextTypes.DEFAULT_
             kbd += (subcategory.name, f"applyCategory_{transaction_id}_{subcategory.id}")
     kbd += ("Cancel", f"cancelCategorization_{transaction_id}")
 
-    await query.edit_message_reply_markup(reply_markup=kbd.build(columns=2))
-    await query.answer()
+    await update.safe_edit_message_reply_markup(reply_markup=kbd.build(columns=2))
 
 
 async def handle_btn_apply_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -333,8 +330,7 @@ async def handle_btn_dump_plaid_details(update: Update, context: ContextTypes.DE
         if value is not None:
             plaid_details += f"*{key}:* `{value}`\n"
 
-    await query.answer()
-    await send_plaid_details(query, context, chat_id, transaction_id, plaid_details)
+    await send_plaid_details(update, context, chat_id, transaction_id, plaid_details)
 
 
 async def handle_btn_mark_tx_as_reviewed(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -518,10 +514,7 @@ async def handle_expand_tx_options(update: Update, _: ContextTypes.DEFAULT_TYPE)
         return
 
     tx_id = int(update.callback_query.data.split("_")[1])
-    await update.callback_query.answer()
-    await update.callback_query.edit_message_reply_markup(
-        reply_markup=get_tx_buttons(tx_id, ai_agent=ai_agent, collapsed=False)
-    )
+    await update.safe_edit_message_reply_markup(reply_markup=get_tx_buttons(tx_id, ai_agent=ai_agent, collapsed=False))
 
 
 async def handle_rename_payee(update: Update, context: ContextTypes.DEFAULT_TYPE):

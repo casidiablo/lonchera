@@ -104,7 +104,6 @@ async def handle_btn_hide_budget_categories(update: Update, _: ContextTypes.DEFA
     budget_date, budget_end_date = get_budget_range_from(budget_date)
     budget = lunch.get_budgets(start_date=budget_date, end_date=budget_end_date)
 
-    await update.callback_query.answer()
     await hide_budget_categories(update, budget, budget_date)
 
 
@@ -140,7 +139,6 @@ async def handle_btn_show_budget_for_category(update: Update, _: ContextTypes.DE
     settings = get_db().get_current_settings(update.chat_id)
     tagging = settings.tagging if settings else True
 
-    await update.callback_query.answer()
     await show_bugdget_for_category(update, all_budget, sub_budget, budget_date, tagging)
 
 

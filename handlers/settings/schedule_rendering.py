@@ -94,19 +94,18 @@ async def handle_schedule_rendering_settings(update: Update, context: ContextTyp
     settings_text = get_schedule_rendering_text(update.chat_id)
     if update.callback_query and settings_text:
         settings = get_db().get_current_settings(update.chat_id)
-        await update.callback_query.edit_message_text(
+        await update.safe_edit_message_text(
             text=settings_text, reply_markup=get_schedule_rendering_buttons(settings), parse_mode=ParseMode.MARKDOWN_V2
         )
-        await update.callback_query.answer()
 
 
 async def handle_btn_change_poll_interval(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Changes the poll interval for the chat."""
-    if "_" in update.callback_query.data:
+    if update.callback_query and update.callback_query.data and "_" in update.callback_query.data:
         poll_interval = int(update.callback_query.data.split("_")[1])
         get_db().update_poll_interval(update.chat_id, poll_interval)
         settings = get_db().get_current_settings(update.chat_id)
-        await update.callback_query.edit_message_text(
+        await update.safe_edit_message_text(
             text=f"_Poll interval updated_\n\n{get_schedule_rendering_text(update.chat_id)}",
             reply_markup=get_schedule_rendering_buttons(settings),
             parse_mode=ParseMode.MARKDOWN_V2,
@@ -120,7 +119,7 @@ async def handle_btn_change_poll_interval(update: Update, context: ContextTypes.
         kbd += ("24 hours", "changePollInterval_86400")
         kbd += ("Disable", "changePollInterval_0")
         kbd += ("Cancel", "cancelPollIntervalChange")
-        await update.callback_query.edit_message_text(
+        await update.safe_edit_message_text(
             text="Please choose the new poll interval in minutes...", reply_markup=kbd.build()
         )
 
@@ -128,7 +127,7 @@ async def handle_btn_change_poll_interval(update: Update, context: ContextTypes.
 async def handle_btn_cancel_poll_interval_change(update: Update, context: ContextTypes.DEFAULT_TYPE):
     settings_text = get_schedule_rendering_text(update.chat_id)
     settings = get_db().get_current_settings(update.chat_id)
-    await update.callback_query.edit_message_text(
+    await update.safe_edit_message_text(
         text=settings_text, reply_markup=get_schedule_rendering_buttons(settings), parse_mode=ParseMode.MARKDOWN_V2
     )
 
@@ -137,8 +136,7 @@ async def handle_btn_toggle_poll_pending(update: Update, _: ContextTypes.DEFAULT
     settings = get_db().get_current_settings(update.chat_id)
     get_db().update_poll_pending(update.chat_id, not settings.poll_pending)
 
-    await update.callback_query.answer()
-    await update.callback_query.edit_message_text(
+    await update.safe_edit_message_text(
         text=get_schedule_rendering_text(update.chat_id),
         reply_markup=get_schedule_rendering_buttons(settings),
         parse_mode=ParseMode.MARKDOWN_V2,
@@ -150,8 +148,7 @@ async def handle_btn_toggle_show_datetime(update: Update, _: ContextTypes.DEFAUL
 
     get_db().update_show_datetime(update.chat_id, not settings.show_datetime)
 
-    await update.callback_query.answer()
-    await update.callback_query.edit_message_text(
+    await update.safe_edit_message_text(
         text=get_schedule_rendering_text(update.chat_id),
         reply_markup=get_schedule_rendering_buttons(settings),
         parse_mode=ParseMode.MARKDOWN_V2,
@@ -163,8 +160,7 @@ async def handle_btn_toggle_tagging(update: Update, _: ContextTypes.DEFAULT_TYPE
 
     get_db().update_tagging(update.chat_id, not settings.tagging)
 
-    await update.callback_query.answer()
-    await update.callback_query.edit_message_text(
+    await update.safe_edit_message_text(
         text=get_schedule_rendering_text(update.chat_id),
         reply_markup=get_schedule_rendering_buttons(settings),
         parse_mode=ParseMode.MARKDOWN_V2,
@@ -173,7 +169,7 @@ async def handle_btn_toggle_tagging(update: Update, _: ContextTypes.DEFAULT_TYPE
 
 async def handle_btn_change_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Changes the timezone for the chat."""
-    msg = await update.callback_query.edit_message_text(
+    msg = await update.safe_edit_message_text(
         text=dedent(
             """
             Please provide a time zone\\.
@@ -183,7 +179,7 @@ async def handle_btn_change_timezone(update: Update, context: ContextTypes.DEFAU
             Examples:
             \\- `UTC`
             \\- `US/Eastern`
-            \\- `Europe/Berlin`
+            \\- `Europe/London`
             \\- `Asia/Tokyo`
 
             For a full list of time zones,
@@ -193,4 +189,5 @@ async def handle_btn_change_timezone(update: Update, context: ContextTypes.DEFAU
         parse_mode=ParseMode.MARKDOWN_V2,
         link_preview_options=LinkPreviewOptions(is_disabled=True),
     )
-    set_expectation(update.chat_id, {"expectation": EXPECTING_TIME_ZONE, "msg_id": msg.message_id})
+    if msg:
+        set_expectation(update.chat_id, {"expectation": EXPECTING_TIME_ZONE, "msg_id": msg.message_id})
