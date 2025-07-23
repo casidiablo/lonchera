@@ -134,9 +134,9 @@ async def clear_cache(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     if not update.message:
         return
 
-    get_db().delete_transactions_for_chat(update.message.chat_id)
+    get_db().delete_transactions_for_chat(update.chat_id)
     await context.bot.set_message_reaction(
-        chat_id=update.message.chat_id, message_id=update.message.message_id, reaction=ReactionEmoji.THUMBS_UP
+        chat_id=update.chat_id, message_id=update.message.message_id, reaction=ReactionEmoji.THUMBS_UP
     )
 
 
@@ -146,7 +146,6 @@ async def handle_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not query or not query.message or not update.effective_chat:
         return
 
-    await query.answer()
     await context.bot.delete_message(chat_id=update.chat_id, message_id=query.message.message_id)
 
 
@@ -171,7 +170,7 @@ async def handle_rename_payee(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     # react to the message
     await context.bot.set_message_reaction(
-        chat_id=update.message.chat_id, message_id=update.message.message_id, reaction=ReactionEmoji.WRITING_HAND
+        chat_id=update.chat_id, message_id=update.message.message_id, reaction=ReactionEmoji.WRITING_HAND
     )
     return True
 
@@ -204,7 +203,7 @@ async def handle_edit_notes(update: Update, context: ContextTypes.DEFAULT_TYPE, 
 
     # react to the message
     await context.bot.set_message_reaction(
-        chat_id=update.message.chat_id, message_id=update.message.message_id, reaction=ReactionEmoji.WRITING_HAND
+        chat_id=update.chat_id, message_id=update.message.message_id, reaction=ReactionEmoji.WRITING_HAND
     )
     return True
 
@@ -214,7 +213,7 @@ async def handle_timezone_setting(update: Update, context: ContextTypes.DEFAULT_
     if not update.message or not update.message.text or not update.effective_chat:
         return False
 
-    await context.bot.delete_message(chat_id=update.message.chat_id, message_id=update.message.message_id)
+    await context.bot.delete_message(chat_id=update.chat_id, message_id=update.message.message_id)
 
     # validate the time zone
     if update.message.text not in pytz.all_timezones:
@@ -287,7 +286,7 @@ async def handle_set_tags(update: Update, context: ContextTypes.DEFAULT_TYPE, ex
 
     # react to the message
     await context.bot.set_message_reaction(
-        chat_id=update.message.chat_id, message_id=update.message.message_id, reaction=ReactionEmoji.WRITING_HAND
+        chat_id=update.chat_id, message_id=update.message.message_id, reaction=ReactionEmoji.WRITING_HAND
     )
     return True
 

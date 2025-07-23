@@ -291,7 +291,7 @@ async def handle_generic_message_with_ai(update: Update, context: ContextTypes.D
         replying_to_msg_id = None
         if update.message.reply_to_message:
             replying_to_msg_id = update.message.reply_to_message.message_id
-            tx_id = get_db().get_tx_associated_with(replying_to_msg_id, update.message.chat_id)
+            tx_id = get_db().get_tx_associated_with(replying_to_msg_id, update.chat_id)
 
         logger.info("Processing AI message for chat_id %s: %s (tx id: %s)", chat_id, user_message, tx_id)
 

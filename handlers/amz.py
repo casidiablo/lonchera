@@ -69,8 +69,8 @@ async def handle_amazon_sync(update: Update, context: ContextTypes.DEFAULT_TYPE)
         disable_web_page_preview=True,
     )
 
-    if update.message.chat_id:
-        set_expectation(update.message.chat_id, {"expectation": AMAZON_EXPORT, "msg_id": str(msg.id)})
+    if update.message:
+        set_expectation(update.chat_id, {"expectation": AMAZON_EXPORT, "msg_id": str(msg.id)})
 
 
 def get_process_amazon_tx_buttons(ai_categorization_enabled: bool) -> InlineKeyboardMarkup:
@@ -253,8 +253,8 @@ async def handle_amazon_export(update: Update, context: ContextTypes.DEFAULT_TYP
         await pre_processing_amazon_transactions(update, context)
 
         # clear expectation and delete that initial message
-        if update.message.chat_id:
-            prev = clear_expectation(update.message.chat_id)
+        if update.message:
+            prev = clear_expectation(update.chat_id)
             if prev and prev.get("msg_id") and context.bot and update.effective_chat:
                 await context.bot.delete_message(chat_id=update.chat_id, message_id=int(prev["msg_id"]))
     except Exception as e:

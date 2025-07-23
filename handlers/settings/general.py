@@ -25,7 +25,7 @@ async def handle_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=get_general_settings_buttons(),
             parse_mode=ParseMode.MARKDOWN_V2,
         )
-        await context.bot.delete_message(chat_id=update.message.chat_id, message_id=update.message.message_id)
+        await context.bot.delete_message(chat_id=update.chat_id, message_id=update.message.message_id)
 
 
 async def handle_settings_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):

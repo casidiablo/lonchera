@@ -82,12 +82,11 @@ async def handle_btn_show_budget_categories(update: Update, context: ContextType
     budget_date = update.callback_query.data.split("_")[1]
     budget_date = datetime.fromisoformat(budget_date)
 
-    lunch = get_lunch_client_for_chat_id(update.callback_query.message.chat.id)
+    lunch = get_lunch_client_for_chat_id(update.chat_id)
 
     budget_date, final_day_current_month = get_budget_range_from(budget_date)
     budget = lunch.get_budgets(start_date=budget_date, end_date=final_day_current_month)
 
-    await update.callback_query.answer()
     await show_budget_categories(update, context, budget, budget_date)
 
 
@@ -99,7 +98,7 @@ async def handle_btn_hide_budget_categories(update: Update, _: ContextTypes.DEFA
     budget_date = update.callback_query.data.split("_")[1]
     budget_date = datetime.fromisoformat(budget_date)
 
-    lunch = get_lunch_client_for_chat_id(update.callback_query.message.chat.id)
+    lunch = get_lunch_client_for_chat_id(update.chat_id)
 
     budget_date, budget_end_date = get_budget_range_from(budget_date)
     budget = lunch.get_budgets(start_date=budget_date, end_date=budget_end_date)
@@ -117,7 +116,7 @@ async def handle_btn_show_budget_for_category(update: Update, _: ContextTypes.DE
     budget_date = datetime.fromisoformat(budget_date)
     category_id = int(parts[2])
 
-    lunch = get_lunch_client_for_chat_id(update.callback_query.message.chat.id)
+    lunch = get_lunch_client_for_chat_id(update.chat_id)
 
     budget_date, budget_end_date = get_budget_range_from(budget_date)
     all_budget = lunch.get_budgets(start_date=budget_date, end_date=budget_end_date)

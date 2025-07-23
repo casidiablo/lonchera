@@ -103,7 +103,7 @@ def build_budget_message(budget: list[BudgetObject], budget_date: datetime, tagg
             spending_to_base = budget_data.spending_to_base
             budgeted = total_budget_per_supercategory.get(budget_item.category_id, 0)
             if budgeted is None or budgeted == 0:
-                logger.print(f"No budget data for: {budget_item}")
+                logger.info(f"No budget data for: {budget_item}")
                 continue
             total_spent += spending_to_base
             if budget_item.is_income:

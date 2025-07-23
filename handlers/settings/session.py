@@ -79,15 +79,16 @@ async def handle_logout_confirm(update: Update, _: ContextTypes.DEFAULT_TYPE):
 
 
 async def handle_logout_cancel(update: Update, _: ContextTypes.DEFAULT_TYPE):
-    await update.callback_query.answer()
-    await update.callback_query.delete_message()
+    if update.callback_query:
+        await update.callback_query.answer()
+        await update.callback_query.delete_message()
 
 
 async def handle_btn_trigger_plaid_refresh(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lunch = get_lunch_client_for_chat_id(update.message.chat_id)
+    lunch = get_lunch_client_for_chat_id(update.chat_id)
     lunch.trigger_fetch_from_plaid()
     await context.bot.set_message_reaction(
-        chat_id=update.message.chat_id, message_id=update.message.message_id, reaction=ReactionEmoji.HANDSHAKE
+        chat_id=update.chat_id, message_id=update.message.message_id, reaction=ReactionEmoji.HANDSHAKE
     )
 
     settings_text = get_session_text(update.chat_id)
@@ -116,7 +117,7 @@ async def handle_register_token(update: Update, context: ContextTypes.DEFAULT_TY
 
     if not token:
         await context.bot.send_message(
-            chat_id=update.message.chat_id,
+            chat_id=update.chat_id,
             text=dedent(
                 """
                 I couldn't find a valid token in the message you sent me.
@@ -128,20 +129,20 @@ async def handle_register_token(update: Update, context: ContextTypes.DEFAULT_TY
         return
 
     # delete the message with the token
-    await context.bot.delete_message(chat_id=update.message.chat_id, message_id=update.message.message_id)
+    await context.bot.delete_message(chat_id=update.chat_id, message_id=update.message.message_id)
 
     try:
         # make sure the token is valid
         lunch = get_lunch_client(token)
         lunch_user = lunch.get_user()
-        get_db().save_token(update.message.chat_id, token)
+        get_db().save_token(update.chat_id, token)
 
         clear_expectation(hello_msg_id)
 
         await context.bot.delete_message(chat_id=update.chat_id, message_id=hello_msg_id)
 
         await context.bot.send_message(
-            chat_id=update.message.chat_id,
+            chat_id=update.chat_id,
             text=dedent(
                 f"""
                 🎉 🎊 Hello {lunch_user.user_name}!
@@ -174,7 +175,7 @@ async def handle_register_token(update: Update, context: ContextTypes.DEFAULT_TY
 
         if "Access token does not exist." in str(e):
             await context.bot.send_message(
-                chat_id=update.message.chat_id,
+                chat_id=update.chat_id,
                 text=dedent(
                     f"""
                     Failed to register token `{token}`:
@@ -189,7 +190,7 @@ async def handle_register_token(update: Update, context: ContextTypes.DEFAULT_TY
             )
             return
         await context.bot.send_message(
-            chat_id=update.message.chat_id,
+            chat_id=update.chat_id,
             text=dedent(
                 f"""
                 Failed to register token `{token}`:
