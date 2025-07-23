@@ -1,13 +1,12 @@
 import logging
 from datetime import timedelta
 
-from telegram_extensions import Update
 from telegram.ext import ContextTypes
 
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
+from telegram_extensions import Update
 from tx_messaging import send_transaction_message
-
 
 logger = logging.getLogger("messaging")
 

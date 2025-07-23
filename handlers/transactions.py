@@ -5,7 +5,6 @@ from textwrap import dedent
 from lunchable import LunchMoney, TransactionUpdateObject
 from lunchable.models import TransactionObject
 from telegram import ForceReply
-from telegram_extensions import Update
 from telegram.constants import ParseMode, ReactionEmoji
 from telegram.ext import ContextTypes
 
@@ -16,6 +15,7 @@ from handlers.expectations import EDIT_NOTES, RENAME_PAYEE, SET_TAGS, set_expect
 from handlers.lunch_money_agent import handle_generic_message_with_ai
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
+from telegram_extensions import Update
 from tx_messaging import get_tx_buttons, send_plaid_details, send_transaction_message
 from utils import Keyboard, ensure_token, find_related_tx
 

@@ -2,11 +2,11 @@ import os
 from textwrap import dedent
 
 from telegram import InlineKeyboardMarkup
-from telegram_extensions import Update
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
 from persistence import Settings, get_db
+from telegram_extensions import Update
 from utils import Keyboard
 
 

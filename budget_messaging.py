@@ -3,11 +3,11 @@ from datetime import datetime, timedelta
 
 from lunchable.models import BudgetObject
 from telegram import InlineKeyboardMarkup
-from telegram_extensions import Update
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
 from persistence import get_db
+from telegram_extensions import Update
 from utils import Keyboard, make_tag
 
 logger = logging.getLogger("messaging")

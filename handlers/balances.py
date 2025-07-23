@@ -1,11 +1,11 @@
 from lunchable.models import AssetsObject, CryptoObject, PlaidAccountObject
 from telegram import InlineKeyboardMarkup, Message
-from telegram_extensions import Update
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
+from telegram_extensions import Update
 from utils import Keyboard, get_crypto_symbol, get_emoji_for_account_type, make_tag
 
 # Constants for button states

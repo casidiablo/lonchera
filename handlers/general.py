@@ -5,7 +5,6 @@ from textwrap import dedent
 
 import pytz
 from lunchable import TransactionUpdateObject
-from telegram_extensions import Update
 from telegram.constants import ParseMode, ReactionEmoji
 from telegram.ext import ContextTypes
 
@@ -29,6 +28,7 @@ from handlers.settings.schedule_rendering import get_schedule_rendering_buttons,
 from handlers.settings.session import handle_register_token
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
+from telegram_extensions import Update
 from tx_messaging import send_transaction_message
 
 logger = logging.getLogger("handlers")

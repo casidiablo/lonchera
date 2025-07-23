@@ -2,13 +2,13 @@ import re
 from textwrap import dedent
 
 from telegram import InlineKeyboardMarkup
-from telegram_extensions import Update
 from telegram.constants import ParseMode, ReactionEmoji
 from telegram.ext import ContextTypes
 
 from handlers.expectations import EXPECTING_TOKEN, clear_expectation, set_expectation
 from lunch import get_lunch_client, get_lunch_client_for_chat_id
 from persistence import Settings, get_db
+from telegram_extensions import Update
 from utils import Keyboard
 
 

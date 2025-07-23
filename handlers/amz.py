@@ -8,7 +8,6 @@ from datetime import datetime
 from textwrap import dedent
 
 from telegram import InlineKeyboardMarkup
-from telegram_extensions import Update
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
@@ -16,6 +15,7 @@ from amazon import get_amazon_transactions_summary, process_amazon_transactions
 from handlers.expectations import AMAZON_EXPORT, clear_expectation, set_expectation
 from lunch import get_lunch_money_token_for_chat_id
 from persistence import get_db
+from telegram_extensions import Update
 from utils import Keyboard
 
 # Constants

@@ -4,7 +4,6 @@ import os
 import signal
 
 from dotenv import load_dotenv
-from telegram_extensions import Update
 from telegram.error import Conflict, TelegramError
 from telegram.ext import Application, CallbackQueryHandler, CommandHandler, ContextTypes, MessageHandler, filters
 
@@ -87,6 +86,7 @@ from handlers.transactions import (
     poll_transactions_on_schedule,
 )
 from manual_tx import handle_manual_tx, handle_web_app_data
+from telegram_extensions import Update
 from web_server import run_web_server, set_bot_instance, update_bot_status
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(name)s] %(levelname%s: %(message)s")

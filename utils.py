@@ -3,7 +3,8 @@ from lunchable.models import TransactionObject
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from persistence import Settings, get_db
-from telegram_extensions import Update, get_chat_id as _get_chat_id
+from telegram_extensions import Update
+from telegram_extensions import get_chat_id as _get_chat_id
 
 
 def is_emoji(char):
