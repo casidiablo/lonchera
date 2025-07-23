@@ -5,7 +5,7 @@ from telegram import InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
-from persistence import Settings, get_db
+from persistence import get_db
 from telegram_extensions import Update
 from utils import Keyboard
 
@@ -54,7 +54,7 @@ def get_ai_settings_text(chat_id: int) -> str | None:
     )
 
 
-def get_ai_settings_buttons(settings: Settings) -> InlineKeyboardMarkup:
+def get_ai_settings_buttons() -> InlineKeyboardMarkup:
     kbd = Keyboard()
     kbd += ("1️⃣ Toggle AI Mode", "toggleAIAgent")
     kbd += ("2️⃣ Toggle Show Transcription", "toggleShowTranscription")
@@ -64,14 +64,13 @@ def get_ai_settings_buttons(settings: Settings) -> InlineKeyboardMarkup:
     return kbd.build()
 
 
-async def handle_ai_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_ai_settings(update: Update, _: ContextTypes.DEFAULT_TYPE):
     settings_text = get_ai_settings_text(update.chat_id)
     if settings_text is None:
         return
 
-    settings = get_db().get_current_settings(update.chat_id)
     await update.safe_edit_message_text(
-        text=settings_text, reply_markup=get_ai_settings_buttons(settings), parse_mode=ParseMode.MARKDOWN_V2
+        text=settings_text, reply_markup=get_ai_settings_buttons(), parse_mode=ParseMode.MARKDOWN_V2
     )
 
 
@@ -80,13 +79,12 @@ async def handle_btn_toggle_ai_agent(update: Update, _: ContextTypes.DEFAULT_TYP
     get_db().update_ai_agent(update.chat_id, not settings.ai_agent)
 
     # Get updated settings for the button display
-    updated_settings = get_db().get_current_settings(update.chat_id)
     settings_text = get_ai_settings_text(update.chat_id)
     if settings_text is None:
         return
 
     await update.safe_edit_message_text(
-        text=settings_text, reply_markup=get_ai_settings_buttons(updated_settings), parse_mode=ParseMode.MARKDOWN_V2
+        text=settings_text, reply_markup=get_ai_settings_buttons(), parse_mode=ParseMode.MARKDOWN_V2
     )
 
 
@@ -95,13 +93,12 @@ async def handle_btn_toggle_show_transcription(update: Update, _: ContextTypes.D
     get_db().update_show_transcription(update.chat_id, not settings.show_transcription)
 
     # Get updated settings for the button display
-    updated_settings = get_db().get_current_settings(update.chat_id)
     settings_text = get_ai_settings_text(update.chat_id)
     if settings_text is None:
         return
 
     await update.safe_edit_message_text(
-        text=settings_text, reply_markup=get_ai_settings_buttons(updated_settings), parse_mode=ParseMode.MARKDOWN_V2
+        text=settings_text, reply_markup=get_ai_settings_buttons(), parse_mode=ParseMode.MARKDOWN_V2
     )
 
 
@@ -130,8 +127,10 @@ async def handle_set_ai_language(update: Update, _: ContextTypes.DEFAULT_TYPE):
 
 async def handle_set_language(update: Update, _: ContextTypes.DEFAULT_TYPE):
     # Extract language from callback data
+    if not update.callback_query or not update.callback_query.data:
+        return
     callback_data = update.callback_query.data
-    if not callback_data or not callback_data.startswith("setLanguage_"):
+    if not callback_data.startswith("setLanguage_"):
         return
 
     language_code = callback_data.replace("setLanguage_", "")
@@ -142,9 +141,8 @@ async def handle_set_language(update: Update, _: ContextTypes.DEFAULT_TYPE):
 
     # Get settings text and display updated AI settings
     settings_text = get_ai_settings_text(update.chat_id)
-    settings = get_db().get_current_settings(update.chat_id)
     await update.safe_edit_message_text(
-        text=settings_text, reply_markup=get_ai_settings_buttons(settings), parse_mode=ParseMode.MARKDOWN_V2
+        text=settings_text, reply_markup=get_ai_settings_buttons(), parse_mode=ParseMode.MARKDOWN_V2
     )
 
 
@@ -166,7 +164,7 @@ def get_model_selection_buttons(chat_id: int) -> InlineKeyboardMarkup:
     return kbd.build()
 
 
-async def handle_set_ai_model(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_set_ai_model(update: Update, _: ContextTypes.DEFAULT_TYPE):
     chat_id = update.chat_id
     admin_user_id = os.getenv("ADMIN_USER_ID")
     if admin_user_id and chat_id == int(admin_user_id):
@@ -179,10 +177,12 @@ async def handle_set_ai_model(update: Update, context: ContextTypes.DEFAULT_TYPE
     )
 
 
-async def handle_set_model(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_set_model(update: Update, _: ContextTypes.DEFAULT_TYPE):
     # Extract model from callback data
+    if not update.callback_query or not update.callback_query.data:
+        return
     callback_data = update.callback_query.data
-    if not callback_data or not callback_data.startswith("setModel_"):
+    if not callback_data.startswith("setModel_"):
         return
 
     model_code = callback_data.replace("setModel_", "")
@@ -193,7 +193,6 @@ async def handle_set_model(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Get settings text and display updated AI settings
     settings_text = get_ai_settings_text(update.chat_id)
-    settings = get_db().get_current_settings(update.chat_id)
     await update.safe_edit_message_text(
-        text=settings_text, reply_markup=get_ai_settings_buttons(settings), parse_mode=ParseMode.MARKDOWN_V2
+        text=settings_text, reply_markup=get_ai_settings_buttons(), parse_mode=ParseMode.MARKDOWN_V2
     )

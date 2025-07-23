@@ -341,14 +341,7 @@ Processed {processed_transactions} Amazon transactions from Lunch Money,
         else:
             kbd += ("Close", "cancel")
 
-        if context.bot and query.message:
-            await context.bot.edit_message_text(
-                chat_id=update.chat_id,
-                text=message,
-                parse_mode=ParseMode.MARKDOWN,
-                message_id=query.message.message_id,
-                reply_markup=kbd.build(),
-            )
+        await update.safe_edit_message_text(text=message, parse_mode=ParseMode.MARKDOWN, reply_markup=kbd.build())
     except Exception as e:
         await update.safe_edit_message_text(f"Error processing Amazon transactions: {e}")
 

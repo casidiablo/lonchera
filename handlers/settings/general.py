@@ -36,6 +36,6 @@ async def handle_settings_menu(update: Update, context: ContextTypes.DEFAULT_TYP
     )
 
 
-async def handle_btn_done_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_btn_done_settings(update: Update, _: ContextTypes.DEFAULT_TYPE):
     # delete message
     await update.safe_delete_message()

@@ -586,6 +586,6 @@ async def handle_set_tags(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
-async def handle_btn_close_plaid_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_btn_close_plaid_details(update: Update, _: ContextTypes.DEFAULT_TYPE):
     """Deletes the plaid metadata message."""
     await update.safe_delete_message()

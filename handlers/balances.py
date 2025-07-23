@@ -188,6 +188,6 @@ async def handle_btn_accounts_balances(update: Update, context: ContextTypes.DEF
         await handle_show_balances(update, context, mask=mask, message_id=update.callback_query.message.message_id)
 
 
-async def handle_done_balances(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_done_balances(update: Update, _: ContextTypes.DEFAULT_TYPE):
     """Handles the 'Done' button press to delete the balances message."""
     await update.safe_delete_message()

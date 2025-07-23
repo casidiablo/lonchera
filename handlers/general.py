@@ -136,7 +136,7 @@ async def clear_cache(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     )
 
 
-async def handle_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_cancel(update: Update, _: ContextTypes.DEFAULT_TYPE):
     """Generic handler for cancel buttons that simply deletes the message."""
     await update.safe_delete_message()
 

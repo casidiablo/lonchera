@@ -7,7 +7,7 @@ from telegram.ext import ContextTypes
 
 from handlers.expectations import EXPECTING_TOKEN, clear_expectation, set_expectation
 from lunch import get_lunch_client, get_lunch_client_for_chat_id
-from persistence import Settings, get_db
+from persistence import get_db
 from telegram_extensions import Update
 from utils import Keyboard
 
@@ -26,7 +26,7 @@ def get_session_text(chat_id: int) -> str | None:
     )
 
 
-def get_session_buttons(settings: Settings) -> InlineKeyboardMarkup:
+def get_session_buttons() -> InlineKeyboardMarkup:
     kbd = Keyboard()
     kbd += ("🚪 Log out", "logout")
     kbd += ("🔄 Trigger Plaid Refresh", "triggerPlaidRefresh")
@@ -34,12 +34,9 @@ def get_session_buttons(settings: Settings) -> InlineKeyboardMarkup:
     return kbd.build()
 
 
-async def handle_session_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    settings = get_db().get_current_settings(update.chat_id)
+async def handle_session_settings(update: Update, _: ContextTypes.DEFAULT_TYPE):
     await update.safe_edit_message_text(
-        text=get_session_text(update.chat_id),
-        reply_markup=get_session_buttons(settings),
-        parse_mode=ParseMode.MARKDOWN_V2,
+        text=get_session_text(update.chat_id), reply_markup=get_session_buttons(), parse_mode=ParseMode.MARKDOWN_V2
     )
 
 
@@ -89,10 +86,9 @@ async def handle_btn_trigger_plaid_refresh(update: Update, context: ContextTypes
     )
 
     settings_text = get_session_text(update.chat_id)
-    settings = get_db().get_current_settings(update.chat_id)
     await update.safe_edit_message_text(
         text=f"_Plaid refresh triggered_\n\n{settings_text}",
-        reply_markup=get_session_buttons(settings),
+        reply_markup=get_session_buttons(),
         parse_mode=ParseMode.MARKDOWN_V2,
     )
 

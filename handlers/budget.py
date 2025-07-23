@@ -133,6 +133,6 @@ async def handle_btn_show_budget_for_category(update: Update, _: ContextTypes.DE
     await show_bugdget_for_category(update, all_budget, sub_budget, budget_date, tagging)
 
 
-async def handle_done_budget(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_done_budget(update: Update, _: ContextTypes.DEFAULT_TYPE):
     """Handles the 'Done' button press to delete the budget message."""
     await update.safe_delete_message()
