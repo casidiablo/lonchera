@@ -122,12 +122,13 @@ async def check_pending_transactions_and_telegram_them(
 async def mark_posted_txs_as_reviewed(
     context: ContextTypes.DEFAULT_TYPE, chat_id: int, lunch: LunchMoney, start_date: datetime, end_date: datetime
 ):
-    logger.info("Checking if any previously sent pending transactions are now posted...")
+    logger.info(f"Checking if any previously sent pending transactions are now posted for {chat_id}...")
 
     # Get all previously sent pending transactions
     sent_pending_txs = get_db().get_sent_pending_transactions(chat_id)
 
     if sent_pending_txs:
+        logger.info(f"Found {len(sent_pending_txs)} previously sent pending transactions")
         # Get posted transactions for the same time period to check against
         posted_transactions = lunch.get_transactions(
             status="uncleared", pending=False, start_date=start_date, end_date=end_date

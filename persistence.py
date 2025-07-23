@@ -1,6 +1,6 @@
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy import Boolean, DateTime, Float, Integer, String, and_, create_engine, delete, func, update
 from sqlalchemy.ext.declarative import declarative_base
@@ -400,10 +400,17 @@ class Persistence:
         with self.Session() as session:
             return session.query(Transaction).count()
 
-    def get_sent_pending_transactions(self, chat_id: int) -> list[Transaction]:
-        """Get all previously sent pending transactions for a specific chat."""
+    def get_sent_pending_transactions(self, chat_id: int, since: datetime | None = None) -> list[Transaction]:
+        """Get all previously sent pending transactions for a specific chat from a given date (defaults to last 3 months)."""
         with self.Session() as session:
-            return session.query(Transaction).filter_by(chat_id=chat_id, pending=True).all()
+            if since is None:
+                since = datetime.now() - timedelta(days=90)  # Set default since date to 90 days ago
+            return (
+                session.query(Transaction)
+                .filter_by(chat_id=chat_id, pending=True)
+                .filter(Transaction.created_at >= since)
+                .all()
+            )
 
 
 db = None
