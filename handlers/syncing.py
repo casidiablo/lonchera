@@ -1,11 +1,11 @@
 import logging
 from datetime import timedelta
 
-from telegram import Update
 from telegram.ext import ContextTypes
 
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
+from telegram_extensions import Update
 from tx_messaging import send_transaction_message
 
 logger = logging.getLogger("messaging")
@@ -13,7 +13,7 @@ logger = logging.getLogger("messaging")
 
 async def handle_resync(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /resync command."""
-    if not update.message or not update.message.text or not update.effective_chat:
+    if not update.message or not update.message.text:
         return
 
     parts = update.message.text.split(" ")
@@ -21,7 +21,7 @@ async def handle_resync(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(parts) > 1:
         last_n_days = int(parts[1])
 
-    chat_id = update.effective_chat.id
+    chat_id = update.chat_id
     lunch = get_lunch_client_for_chat_id(chat_id)
     chat_txs = get_db().get_all_tx_by_chat_id(chat_id)
 

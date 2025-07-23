@@ -5,12 +5,13 @@ import os
 from textwrap import dedent
 
 from lunchable import TransactionInsertObject
-from telegram import KeyboardButton, ReplyKeyboardMarkup, Update, WebAppInfo
+from telegram import KeyboardButton, ReplyKeyboardMarkup, WebAppInfo
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
+from telegram_extensions import Update
 from tx_messaging import send_transaction_message
 
 logger = logging.getLogger("manual_tx")
@@ -24,11 +25,9 @@ async def handle_web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE
             await do_save_transaction(update, context, payload)
         except Exception as e:
             logger.exception(f"Error saving transaction {payload}")
-            await context.bot.send_message(chat_id=update.effective_chat.id, text=f"Could not save transaction: {e}")
+            await context.bot.send_message(chat_id=update.chat_id, text=f"Could not save transaction: {e}")
     else:
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id, text=f"Unknown web app data type: {payload['type']}"
-        )
+        await context.bot.send_message(chat_id=update.chat_id, text=f"Unknown web app data type: {payload['type']}")
         return
 
 
@@ -37,7 +36,7 @@ async def do_save_transaction(update: Update, context: ContextTypes.DEFAULT_TYPE
     if tx_data["is_received"]:
         tx_data["amount"] = tx_data["amount"] * -1
 
-    lunch = get_lunch_client_for_chat_id(update.effective_chat.id)
+    lunch = get_lunch_client_for_chat_id(update.chat_id)
 
     # get currency for this type of account
     assets = lunch.get_assets()
@@ -66,10 +65,10 @@ async def do_save_transaction(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     logger.info(f"Transaction saved: {transaction}")
 
-    msg_id = await send_transaction_message(context, transaction=transaction, chat_id=update.effective_chat.id)
+    msg_id = await send_transaction_message(context, transaction=transaction, chat_id=update.chat_id)
     get_db().mark_as_sent(
         transaction.id,
-        update.effective_chat.id,
+        update.chat_id,
         msg_id,
         transaction.recurring_type,
         reviewed=True,
@@ -78,7 +77,7 @@ async def do_save_transaction(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 
 async def handle_manual_tx(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
-    chat_id = update.effective_chat.id
+    chat_id = update.chat_id
     lunch = get_lunch_client_for_chat_id(chat_id)
 
     # Check for manually managed accounts

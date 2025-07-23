@@ -4,12 +4,13 @@ from datetime import datetime
 
 import pytz
 from lunchable.models import TransactionObject
-from telegram import CallbackQuery, InlineKeyboardMarkup
+from telegram import InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
+from telegram_extensions import Update
 from utils import Keyboard, clean_md, make_tag
 
 logger = logging.getLogger("messaging")
@@ -212,17 +213,25 @@ async def send_transaction_message(
 
 
 async def send_plaid_details(
-    query: CallbackQuery, context: ContextTypes.DEFAULT_TYPE, chat_id: int, transaction_id: int, plaid_details: str
+    update: Update, context: ContextTypes.DEFAULT_TYPE, chat_id: int, transaction_id: int, plaid_details: str
 ):
     """Sends the plaid details of a transaction to the chat_id."""
+    # Create close button for the plaid details message
+    close_kbd = Keyboard()
+    close_kbd += ("❌ Close", f"closeplaid_{transaction_id}")
+    close_keyboard = close_kbd.build(columns=1)
+
     await context.bot.send_message(
         chat_id=chat_id,
         text=plaid_details,
         parse_mode=ParseMode.MARKDOWN,
-        reply_to_message_id=query.message.message_id if query.message else None,
+        reply_markup=close_keyboard,
+        reply_to_message_id=update.callback_query.message.message_id
+        if update.callback_query and update.callback_query.message
+        else None,
     )
 
     lunch = get_lunch_client_for_chat_id(chat_id)
     transaction = lunch.get_transaction(transaction_id)
 
-    await query.edit_message_reply_markup(reply_markup=get_tx_buttons(transaction))
+    await update.safe_edit_message_reply_markup(reply_markup=get_tx_buttons(transaction))

@@ -2,11 +2,12 @@ import logging
 from datetime import datetime, timedelta
 
 from lunchable.models import BudgetObject
-from telegram import InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
 from persistence import get_db
+from telegram_extensions import Update
 from utils import Keyboard, make_tag
 
 logger = logging.getLogger("messaging")
@@ -102,7 +103,7 @@ def build_budget_message(budget: list[BudgetObject], budget_date: datetime, tagg
             spending_to_base = budget_data.spending_to_base
             budgeted = total_budget_per_supercategory.get(budget_item.category_id, 0)
             if budgeted is None or budgeted == 0:
-                logger.print(f"No budget data for: {budget_item}")
+                logger.info(f"No budget data for: {budget_item}")
                 continue
             total_spent += spending_to_base
             if budget_item.is_income:
@@ -156,14 +157,14 @@ async def send_budget(
     first_day_of_budget: datetime,
     message_id: int | None,
 ) -> None:
-    settings = get_db().get_current_settings(update.effective_chat.id)
+    settings = get_db().get_current_settings(update.chat_id)
     tagging = settings.tagging if settings else True
 
     msg = build_budget_message(budget, first_day_of_budget, tagging=tagging)
 
     if message_id:
         await context.bot.edit_message_text(
-            chat_id=update.effective_chat.id,
+            chat_id=update.chat_id,
             message_id=message_id,
             text=msg,
             parse_mode=ParseMode.MARKDOWN,
@@ -171,7 +172,7 @@ async def send_budget(
         )
     else:
         await context.bot.send_message(
-            chat_id=update.effective_chat.id,
+            chat_id=update.chat_id,
             text=msg,
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=get_bugdet_buttons(first_day_of_budget),
@@ -186,18 +187,18 @@ async def show_budget_categories(
         if budget_item.category_group_name is None and budget_item.category_id is not None:
             categories.append(budget_item)
 
-    query = update.callback_query
     # let the message intact
-    await query.edit_message_reply_markup(reply_markup=get_budget_category_buttons(categories, budget_date))
+    await update.safe_edit_message_reply_markup(reply_markup=get_budget_category_buttons(categories, budget_date))
 
 
 async def hide_budget_categories(update: Update, budget: list[BudgetObject], budget_date: datetime) -> None:
-    settings = get_db().get_current_settings(update.effective_chat.id)
+    settings = get_db().get_current_settings(update.chat_id)
     tagging = settings.tagging if settings else True
 
     msg = build_budget_message(budget, budget_date, tagging=tagging)
-    query = update.callback_query
-    await query.edit_message_text(text=msg, parse_mode=ParseMode.MARKDOWN, reply_markup=get_bugdet_buttons(budget_date))
+    await update.safe_edit_message_text(
+        text=msg, parse_mode=ParseMode.MARKDOWN, reply_markup=get_bugdet_buttons(budget_date)
+    )
 
 
 def _create_progress_bar(spent_already: float, budgeted: float) -> tuple[str, float]:
@@ -294,7 +295,7 @@ async def show_bugdget_for_category(
 
     categories = _get_filtered_categories(all_budget)
 
-    await update.callback_query.edit_message_text(
+    await update.safe_edit_message_text(
         text=msg,
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=get_budget_category_buttons(categories, budget_date),

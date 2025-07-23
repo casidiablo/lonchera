@@ -8,7 +8,6 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
 from pydantic import BaseModel, Field, SecretStr
-from telegram import Update
 from telegram.constants import ParseMode, ReactionEmoji
 from telegram.ext import ContextTypes
 
@@ -28,6 +27,7 @@ from handlers.aitools.tools import (
 )
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
+from telegram_extensions import Update
 from tx_messaging import send_transaction_message
 
 logging.basicConfig(level=logging.INFO)
@@ -276,12 +276,12 @@ def get_agent_response(
 async def handle_generic_message_with_ai(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle generic messages using the AI agent."""
     message = update.message
-    if message is None or update.message is None or update.message.text is None or update.effective_chat is None:
+    if message is None or update.message is None or update.message.text is None:
         logger.error("Failed to process update object. It had no message", exc_info=True)
         return
     try:
         user_message = update.message.text
-        chat_id = update.effective_chat.id
+        chat_id = update.chat_id
 
         # Track text message processing
         get_db().inc_metric("ai_agent_text_messages")
@@ -291,7 +291,7 @@ async def handle_generic_message_with_ai(update: Update, context: ContextTypes.D
         replying_to_msg_id = None
         if update.message.reply_to_message:
             replying_to_msg_id = update.message.reply_to_message.message_id
-            tx_id = get_db().get_tx_associated_with(replying_to_msg_id, update.message.chat_id)
+            tx_id = get_db().get_tx_associated_with(replying_to_msg_id, update.chat_id)
 
         logger.info("Processing AI message for chat_id %s: %s (tx id: %s)", chat_id, user_message, tx_id)
 
@@ -314,14 +314,14 @@ async def handle_generic_message_with_ai(update: Update, context: ContextTypes.D
 
 async def handle_ai_response(update: Update, context: ContextTypes.DEFAULT_TYPE, response: LunchMoneyAgentResponse):
     message = update.message
-    if message is None or update.effective_chat is None:
+    if message is None:
         # should never happen
-        logger.error("handle_ai_response called with None message or chat", exc_info=True)
+        logger.error("handle_ai_response called with None message", exc_info=True)
         return
 
     logger.info(f"Handling message from AI: {response}")
 
-    chat_id = update.effective_chat.id
+    chat_id = update.chat_id
     get_db().inc_metric("ai_agent_responses_sent")
 
     try:
@@ -346,7 +346,7 @@ async def handle_ai_response(update: Update, context: ContextTypes.DEFAULT_TYPE,
             )
             get_db().mark_as_sent(
                 tx.id,
-                update.effective_chat.id,
+                update.chat_id,
                 msg_id,
                 tx.recurring_type,
                 reviewed=True,

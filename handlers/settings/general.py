@@ -1,7 +1,8 @@
-from telegram import InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
+from telegram_extensions import Update
 from utils import Keyboard, ensure_token
 
 
@@ -24,21 +25,17 @@ async def handle_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=get_general_settings_buttons(),
             parse_mode=ParseMode.MARKDOWN_V2,
         )
-        await context.bot.delete_message(chat_id=update.message.chat_id, message_id=update.message.message_id)
+        await context.bot.delete_message(chat_id=update.chat_id, message_id=update.message.message_id)
 
 
 async def handle_settings_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.callback_query:
-        await update.callback_query.edit_message_text(
-            text="🛠️ 🆂🅴🆃🆃🅸🅽🅶🆂\n\nPlease choose a settings category:",
-            reply_markup=get_general_settings_buttons(),
-            parse_mode=ParseMode.MARKDOWN_V2,
-        )
+    await update.safe_edit_message_text(
+        text="🛠️ 🆂🅴🆃🆃🅸🅽🅶🆂\n\nPlease choose a settings category:",
+        reply_markup=get_general_settings_buttons(),
+        parse_mode=ParseMode.MARKDOWN_V2,
+    )
 
 
-async def handle_btn_done_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_btn_done_settings(update: Update, _: ContextTypes.DEFAULT_TYPE):
     # delete message
-    if update.effective_chat and update.callback_query and update.callback_query.message:
-        await context.bot.delete_message(
-            chat_id=update.effective_chat.id, message_id=update.callback_query.message.message_id
-        )
+    await update.safe_delete_message()

@@ -4,7 +4,6 @@ import os
 import signal
 
 from dotenv import load_dotenv
-from telegram import Update
 from telegram.error import Conflict, TelegramError
 from telegram.ext import Application, CallbackQueryHandler, CommandHandler, ContextTypes, MessageHandler, filters
 
@@ -71,6 +70,7 @@ from handlers.transactions import (
     handle_btn_ai_categorize,
     handle_btn_apply_category,
     handle_btn_cancel_categorization,
+    handle_btn_close_plaid_details,
     handle_btn_collapse_transaction,
     handle_btn_dump_plaid_details,
     handle_btn_mark_tx_as_reviewed,
@@ -87,6 +87,7 @@ from handlers.transactions import (
     poll_transactions_on_schedule,
 )
 from manual_tx import handle_manual_tx, handle_web_app_data
+from telegram_extensions import Update
 from web_server import run_web_server, set_bot_instance, update_bot_status
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(name)s] %(levelname%s: %(message)s")
@@ -170,6 +171,7 @@ def add_application_callback_query_handlers(app):
     app.add_handler(CallbackQueryHandler(handle_btn_show_subcategories, pattern=r"^subcategorize_"))
     app.add_handler(CallbackQueryHandler(handle_btn_apply_category, pattern=r"^applyCategory_"))
     app.add_handler(CallbackQueryHandler(handle_btn_dump_plaid_details, pattern=r"^plaid_"))
+    app.add_handler(CallbackQueryHandler(handle_btn_close_plaid_details, pattern=r"^closeplaid_"))
     app.add_handler(CallbackQueryHandler(handle_btn_mark_tx_as_reviewed, pattern=r"^review_"))
     app.add_handler(CallbackQueryHandler(handle_btn_mark_tx_as_unreviewed, pattern=r"^unreview_"))
     app.add_handler(CallbackQueryHandler(handle_expand_tx_options, pattern=r"^moreOptions_"))

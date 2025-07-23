@@ -1,13 +1,14 @@
 import re
 from textwrap import dedent
 
-from telegram import InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardMarkup
 from telegram.constants import ParseMode, ReactionEmoji
 from telegram.ext import ContextTypes
 
 from handlers.expectations import EXPECTING_TOKEN, clear_expectation, set_expectation
 from lunch import get_lunch_client, get_lunch_client_for_chat_id
-from persistence import Settings, get_db
+from persistence import get_db
+from telegram_extensions import Update
 from utils import Keyboard
 
 
@@ -25,7 +26,7 @@ def get_session_text(chat_id: int) -> str | None:
     )
 
 
-def get_session_buttons(settings: Settings) -> InlineKeyboardMarkup:
+def get_session_buttons() -> InlineKeyboardMarkup:
     kbd = Keyboard()
     kbd += ("🚪 Log out", "logout")
     kbd += ("🔄 Trigger Plaid Refresh", "triggerPlaidRefresh")
@@ -33,25 +34,23 @@ def get_session_buttons(settings: Settings) -> InlineKeyboardMarkup:
     return kbd.build()
 
 
-async def handle_session_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    settings = get_db().get_current_settings(update.effective_chat.id)
-    await update.callback_query.edit_message_text(
-        text=get_session_text(update.effective_chat.id),
-        reply_markup=get_session_buttons(settings),
-        parse_mode=ParseMode.MARKDOWN_V2,
+async def handle_session_settings(update: Update, _: ContextTypes.DEFAULT_TYPE):
+    await update.safe_edit_message_text(
+        text=get_session_text(update.chat_id), reply_markup=get_session_buttons(), parse_mode=ParseMode.MARKDOWN_V2
     )
 
 
 async def handle_btn_set_token_from_button(update: Update, _: ContextTypes.DEFAULT_TYPE):
-    msg = await update.callback_query.edit_message_text(text="Please provide a token to register")
-    set_expectation(update.effective_chat.id, {"expectation": EXPECTING_TOKEN, "msg_id": msg.message_id})
+    msg = await update.safe_edit_message_text(text="Please provide a token to register")
+    if msg:
+        set_expectation(update.chat_id, {"expectation": EXPECTING_TOKEN, "msg_id": msg.message_id})
 
 
 async def handle_logout(update: Update, _: ContextTypes.DEFAULT_TYPE):
     kbd = Keyboard()
     kbd += ("Yes, delete my token", "logout_confirm")
     kbd += ("Nevermind", "logout_cancel")
-    await update.callback_query.edit_message_text(
+    await update.safe_edit_message_text(
         text=dedent(
             """
             This will remove the API token from the DB and delete all the cache associated with this chat.
@@ -59,7 +58,7 @@ async def handle_logout(update: Update, _: ContextTypes.DEFAULT_TYPE):
 
             You can /start again anytime you want by providing a new token.
 
-            Do you want to proceed?
+            Are you sure you want to continue?
             """
         ),
         reply_markup=kbd.build(),
@@ -67,32 +66,29 @@ async def handle_logout(update: Update, _: ContextTypes.DEFAULT_TYPE):
 
 
 async def handle_logout_confirm(update: Update, _: ContextTypes.DEFAULT_TYPE):
-    get_db().logout(update.effective_chat.id)
-    get_db().delete_transactions_for_chat(update.effective_chat.id)
+    get_db().logout(update.chat_id)
+    get_db().delete_transactions_for_chat(update.chat_id)
 
-    await update.callback_query.delete_message()
-    await update.callback_query.answer(
-        "Your API token has been removed, as well as the transaction history. It was a pleasure to serve you 🖖"
+    await update.safe_delete_message(
+        answer_text="Your API token has been removed, as well as the transaction history. It was a pleasure to serve you 🖖"
     )
 
 
 async def handle_logout_cancel(update: Update, _: ContextTypes.DEFAULT_TYPE):
-    await update.callback_query.answer()
-    await update.callback_query.delete_message()
+    await update.safe_delete_message()
 
 
 async def handle_btn_trigger_plaid_refresh(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lunch = get_lunch_client_for_chat_id(update.message.chat_id)
+    lunch = get_lunch_client_for_chat_id(update.chat_id)
     lunch.trigger_fetch_from_plaid()
     await context.bot.set_message_reaction(
-        chat_id=update.message.chat_id, message_id=update.message.message_id, reaction=ReactionEmoji.HANDSHAKE
+        chat_id=update.chat_id, message_id=update.message.message_id, reaction=ReactionEmoji.HANDSHAKE
     )
 
-    settings_text = get_session_text(update.effective_chat.id)
-    settings = get_db().get_current_settings(update.effective_chat.id)
-    await update.callback_query.edit_message_text(
+    settings_text = get_session_text(update.chat_id)
+    await update.safe_edit_message_text(
         text=f"_Plaid refresh triggered_\n\n{settings_text}",
-        reply_markup=get_session_buttons(settings),
+        reply_markup=get_session_buttons(),
         parse_mode=ParseMode.MARKDOWN_V2,
     )
 
@@ -114,7 +110,7 @@ async def handle_register_token(update: Update, context: ContextTypes.DEFAULT_TY
 
     if not token:
         await context.bot.send_message(
-            chat_id=update.message.chat_id,
+            chat_id=update.chat_id,
             text=dedent(
                 """
                 I couldn't find a valid token in the message you sent me.
@@ -126,20 +122,20 @@ async def handle_register_token(update: Update, context: ContextTypes.DEFAULT_TY
         return
 
     # delete the message with the token
-    await context.bot.delete_message(chat_id=update.message.chat_id, message_id=update.message.message_id)
+    await context.bot.delete_message(chat_id=update.chat_id, message_id=update.message.message_id)
 
     try:
         # make sure the token is valid
         lunch = get_lunch_client(token)
         lunch_user = lunch.get_user()
-        get_db().save_token(update.message.chat_id, token)
+        get_db().save_token(update.chat_id, token)
 
         clear_expectation(hello_msg_id)
 
-        await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=hello_msg_id)
+        await context.bot.delete_message(chat_id=update.chat_id, message_id=hello_msg_id)
 
         await context.bot.send_message(
-            chat_id=update.message.chat_id,
+            chat_id=update.chat_id,
             text=dedent(
                 f"""
                 🎉 🎊 Hello {lunch_user.user_name}!
@@ -172,7 +168,7 @@ async def handle_register_token(update: Update, context: ContextTypes.DEFAULT_TY
 
         if "Access token does not exist." in str(e):
             await context.bot.send_message(
-                chat_id=update.message.chat_id,
+                chat_id=update.chat_id,
                 text=dedent(
                     f"""
                     Failed to register token `{token}`:
@@ -187,7 +183,7 @@ async def handle_register_token(update: Update, context: ContextTypes.DEFAULT_TY
             )
             return
         await context.bot.send_message(
-            chat_id=update.message.chat_id,
+            chat_id=update.chat_id,
             text=dedent(
                 f"""
                 Failed to register token `{token}`:

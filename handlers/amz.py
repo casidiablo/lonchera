@@ -7,7 +7,7 @@ import zipfile
 from datetime import datetime
 from textwrap import dedent
 
-from telegram import InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
@@ -15,6 +15,7 @@ from amazon import get_amazon_transactions_summary, process_amazon_transactions
 from handlers.expectations import AMAZON_EXPORT, clear_expectation, set_expectation
 from lunch import get_lunch_money_token_for_chat_id
 from persistence import get_db
+from telegram_extensions import Update
 from utils import Keyboard
 
 # Constants
@@ -68,8 +69,8 @@ async def handle_amazon_sync(update: Update, context: ContextTypes.DEFAULT_TYPE)
         disable_web_page_preview=True,
     )
 
-    if update.message.chat_id:
-        set_expectation(update.message.chat_id, {"expectation": AMAZON_EXPORT, "msg_id": str(msg.id)})
+    if update.message:
+        set_expectation(update.chat_id, {"expectation": AMAZON_EXPORT, "msg_id": str(msg.id)})
 
 
 def get_process_amazon_tx_buttons(ai_categorization_enabled: bool) -> InlineKeyboardMarkup:
@@ -120,12 +121,12 @@ async def pre_processing_amazon_transactions(
         """
     )
 
-    if msg_id and context.bot and update.effective_chat:
+    if msg_id and context.bot:
         await context.bot.edit_message_text(
             text=text,
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=get_process_amazon_tx_buttons(ai_categorization_enabled),
-            chat_id=update.effective_chat.id,
+            chat_id=update.chat_id,
             message_id=msg_id,
         )
     elif update.message:
@@ -147,14 +148,14 @@ async def extract_amazon_csv_file(update: Update, file_name: str, downloads_path
     Returns:
         The path to the extracted CSV file or None if extraction failed
     """
-    if not update.message or not update.message.document or not update.effective_chat:
+    if not update.message or not update.message.document:
         logger.error("Missing required message/document data")
         return None
 
     current_time_path = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     file = await update.message.document.get_file()
     os.makedirs(downloads_path, exist_ok=True)
-    download_path = f"{downloads_path}/{current_time_path}_{update.effective_chat.id}_{file_name}"
+    download_path = f"{downloads_path}/{current_time_path}_{update.chat_id}_{file_name}"
     logger.info(f"Downloading file to {download_path}")
     await file.download_to_drive(custom_path=download_path)
 
@@ -252,10 +253,10 @@ async def handle_amazon_export(update: Update, context: ContextTypes.DEFAULT_TYP
         await pre_processing_amazon_transactions(update, context)
 
         # clear expectation and delete that initial message
-        if update.message.chat_id:
-            prev = clear_expectation(update.message.chat_id)
-            if prev and prev.get("msg_id") and context.bot and update.effective_chat:
-                await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=int(prev["msg_id"]))
+        if update.message:
+            prev = clear_expectation(update.chat_id)
+            if prev and prev.get("msg_id") and context.bot:
+                await context.bot.delete_message(chat_id=update.chat_id, message_id=int(prev["msg_id"]))
     except Exception as e:
         await update.message.reply_text(f"Error processing the file: {e}")
 
@@ -272,8 +273,10 @@ async def handle_update_amz_settings(update: Update, context: ContextTypes.DEFAU
 
     context.user_data["ai_categorization_enabled"] = ai_categorization_enabled
 
-    if export_file is None and query:
-        await query.edit_message_text("Seems like I forgot the Amazon export file. Please start over: /amazon_sync")
+    if export_file is None:
+        await update.safe_edit_message_text(
+            "Seems like I forgot the Amazon export file. Please start over: /amazon_sync"
+        )
         return
 
     await pre_processing_amazon_transactions(update, context, msg_id)
@@ -289,20 +292,18 @@ async def handle_preview_process_amazon_transactions(update: Update, context: Co
     ai_categorization_enabled = context.user_data.get("ai_categorization_enabled", False)
 
     if export_file is None:
-        await query.edit_message_text("Seems like I forgot the Amazon export file. Please start over: /amazon_sync")
+        await update.safe_edit_message_text(
+            "Seems like I forgot the Amazon export file. Please start over: /amazon_sync"
+        )
         return
 
     # Increment the metric for Amazon autocategorization runs
     get_db().inc_metric("amazon_autocategorization_runs")
 
     try:
-        await query.edit_message_text("⏳ Processing transactions. This might take a while. Be patient.")
+        await update.safe_edit_message_text("⏳ Processing transactions. This might take a while. Be patient.")
 
-        if not update.effective_chat:
-            logger.error("No effective_chat in update")
-            return
-
-        lunch_money_token = get_lunch_money_token_for_chat_id(update.effective_chat.id)
+        lunch_money_token = get_lunch_money_token_for_chat_id(update.chat_id)
 
         result = process_amazon_transactions(
             file_path=export_file,
@@ -340,17 +341,9 @@ Processed {processed_transactions} Amazon transactions from Lunch Money,
         else:
             kbd += ("Close", "cancel")
 
-        if context.bot and update.effective_chat and query.message:
-            await context.bot.edit_message_text(
-                chat_id=update.effective_chat.id,
-                text=message,
-                parse_mode=ParseMode.MARKDOWN,
-                message_id=query.message.message_id,
-                reply_markup=kbd.build(),
-            )
+        await update.safe_edit_message_text(text=message, parse_mode=ParseMode.MARKDOWN, reply_markup=kbd.build())
     except Exception as e:
-        if query:
-            await query.edit_message_text(f"Error processing Amazon transactions: {e}")
+        await update.safe_edit_message_text(f"Error processing Amazon transactions: {e}")
 
 
 def _build_update_details(updates: list, will_update_transactions: int) -> str:
@@ -407,20 +400,18 @@ async def handle_process_amazon_transactions(update: Update, context: ContextTyp
     ai_categorization_enabled = context.user_data.get("ai_categorization_enabled", False)
 
     if export_file is None:
-        await query.edit_message_text("Seems like I forgot the Amazon export file. Please start over: /amazon_sync")
+        await update.safe_edit_message_text(
+            "Seems like I forgot the Amazon export file. Please start over: /amazon_sync"
+        )
         return
 
     # Increment the metric for Amazon autocategorization runs
     get_db().inc_metric("amazon_autocategorization_runs")
 
     try:
-        await query.edit_message_text("⏳ Processing transactions. This might take a while. Be patient.")
+        await update.safe_edit_message_text("⏳ Processing transactions. This might take a while. Be patient.")
 
-        if not update.effective_chat:
-            logger.error("No effective_chat in update")
-            return
-
-        lunch_money_token = get_lunch_money_token_for_chat_id(update.effective_chat.id)
+        lunch_money_token = get_lunch_money_token_for_chat_id(update.chat_id)
 
         result = process_amazon_transactions(
             file_path=export_file,
@@ -450,16 +441,11 @@ async def handle_process_amazon_transactions(update: Update, context: ContextTyp
             """
         )
 
-        if context.bot and update.effective_chat:
-            await context.bot.send_message(
-                chat_id=update.effective_chat.id, text=message, parse_mode=ParseMode.MARKDOWN
-            )
-            # Delete the original message
-            if query.message:
-                await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=query.message.message_id)
+        if context.bot:
+            await context.bot.send_message(chat_id=update.chat_id, text=message, parse_mode=ParseMode.MARKDOWN)
+            await update.safe_delete_message()
     except Exception as e:
-        if query:
-            await query.edit_message_text(f"Error processing Amazon transactions: {e}")
+        await update.safe_edit_message_text(f"Error processing Amazon transactions: {e}")
     finally:
         # Clean up extracted files
         if export_file and os.path.exists(export_file):
