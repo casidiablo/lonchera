@@ -128,11 +128,12 @@ async def mark_posted_txs_as_reviewed(
     sent_pending_txs = get_db().get_sent_pending_transactions(chat_id)
 
     if sent_pending_txs:
-        logger.info(f"Found {len(sent_pending_txs)} previously sent pending transactions")
+        logger.info(f"Found {len(sent_pending_txs)} previously sent pending transactions for {chat_id}")
         # Get posted transactions for the same time period to check against
         posted_transactions = lunch.get_transactions(
             status="uncleared", pending=False, start_date=start_date, end_date=end_date
         )
+        logger.info(f"Found {len(posted_transactions)} posted transactions for {chat_id}")
 
         # Create lookup dictionaries for efficient matching
         posted_by_id = {tx.id: tx for tx in posted_transactions}
@@ -153,6 +154,9 @@ async def mark_posted_txs_as_reviewed(
                 posted_tx = posted_by_plaid_id[sent_tx.plaid_id]
 
             # If we found a match and it's uncleared, mark it as reviewed
+            logger.info(
+                f"Checking sent pending transaction {sent_tx.id} against posted transaction {posted_tx.id} with status {posted_tx.status}"
+            )
             if posted_tx and posted_tx.status == "uncleared":
                 logger.info(f"Marking previously sent pending transaction {posted_tx.id} as reviewed")
                 try:
