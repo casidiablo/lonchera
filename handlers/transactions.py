@@ -151,7 +151,9 @@ async def mark_posted_txs_as_reviewed(
             if sent_tx.tx_id in posted_by_id:
                 posted_tx = posted_by_id[sent_tx.tx_id]
             else:
-                logger.warning(f"Could not find posted transaction for sent pending transaction {sent_tx.tx_id}")
+                logger.warning(
+                    f"Could not find posted transaction for sent pending transaction {sent_tx.tx_id} sent at {sent_tx.created_at}"
+                )
                 continue
 
             # If we found a match and it's uncleared, mark it as reviewed
