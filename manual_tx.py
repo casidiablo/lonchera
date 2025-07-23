@@ -12,6 +12,7 @@ from telegram.ext import ContextTypes
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
 from tx_messaging import send_transaction_message
+from utils import get_chat_id
 
 logger = logging.getLogger("manual_tx")
 
@@ -24,10 +25,10 @@ async def handle_web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE
             await do_save_transaction(update, context, payload)
         except Exception as e:
             logger.exception(f"Error saving transaction {payload}")
-            await context.bot.send_message(chat_id=update.effective_chat.id, text=f"Could not save transaction: {e}")
+            await context.bot.send_message(chat_id=get_chat_id(update), text=f"Could not save transaction: {e}")
     else:
         await context.bot.send_message(
-            chat_id=update.effective_chat.id, text=f"Unknown web app data type: {payload['type']}"
+            chat_id=get_chat_id(update), text=f"Unknown web app data type: {payload['type']}"
         )
         return
 
@@ -37,7 +38,7 @@ async def do_save_transaction(update: Update, context: ContextTypes.DEFAULT_TYPE
     if tx_data["is_received"]:
         tx_data["amount"] = tx_data["amount"] * -1
 
-    lunch = get_lunch_client_for_chat_id(update.effective_chat.id)
+    lunch = get_lunch_client_for_chat_id(get_chat_id(update))
 
     # get currency for this type of account
     assets = lunch.get_assets()
@@ -66,10 +67,10 @@ async def do_save_transaction(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     logger.info(f"Transaction saved: {transaction}")
 
-    msg_id = await send_transaction_message(context, transaction=transaction, chat_id=update.effective_chat.id)
+    msg_id = await send_transaction_message(context, transaction=transaction, chat_id=get_chat_id(update))
     get_db().mark_as_sent(
         transaction.id,
-        update.effective_chat.id,
+        get_chat_id(update),
         msg_id,
         transaction.recurring_type,
         reviewed=True,
@@ -78,7 +79,7 @@ async def do_save_transaction(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 
 async def handle_manual_tx(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
-    chat_id = update.effective_chat.id
+    chat_id = get_chat_id(update)
     lunch = get_lunch_client_for_chat_id(chat_id)
 
     # Check for manually managed accounts

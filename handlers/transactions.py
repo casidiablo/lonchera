@@ -16,7 +16,7 @@ from handlers.lunch_money_agent import handle_generic_message_with_ai
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
 from tx_messaging import get_tx_buttons, send_plaid_details, send_transaction_message
-from utils import Keyboard, ensure_token, find_related_tx
+from utils import Keyboard, ensure_token, find_related_tx, get_chat_id
 
 logger = logging.getLogger("tx_handler")
 
@@ -174,11 +174,11 @@ async def handle_check_transactions(update: Update, context: ContextTypes.DEFAUL
     settings = ensure_token(update)
 
     if settings.poll_pending:
-        transactions = await check_pending_transactions_and_telegram_them(context, chat_id=update.effective_chat.id)
+        transactions = await check_pending_transactions_and_telegram_them(context, chat_id=get_chat_id(update))
     else:
         transactions = await check_posted_transactions_and_telegram_them(context, chat_id=update.message.chat_id)
 
-    get_db().update_last_poll_at(update.effective_chat.id, datetime.now().isoformat())
+    get_db().update_last_poll_at(get_chat_id(update), datetime.now().isoformat())
 
     if not transactions:
         await update.message.reply_text("No unreviewed transactions found.")
@@ -189,7 +189,7 @@ async def check_pending_transactions(update: Update, context: ContextTypes.DEFAU
     if update.effective_chat is None or update.message is None:
         return
 
-    transactions = await check_pending_transactions_and_telegram_them(context, chat_id=update.effective_chat.id)
+    transactions = await check_pending_transactions_and_telegram_them(context, chat_id=get_chat_id(update))
 
     if not transactions:
         await update.message.reply_text("No pending transactions found.")
@@ -209,7 +209,7 @@ async def handle_btn_collapse_transaction(update: Update, _: ContextTypes.DEFAUL
     if update.callback_query is None or update.effective_chat is None:
         return
 
-    settings = get_db().get_current_settings(update.effective_chat.id)
+    settings = get_db().get_current_settings(get_chat_id(update))
     ai_agent = settings.ai_agent if settings else False
 
     if update.callback_query.data is None:
@@ -225,7 +225,7 @@ async def handle_btn_cancel_categorization(update: Update, _: ContextTypes.DEFAU
     if update.callback_query is None or update.effective_chat is None:
         return
 
-    settings = get_db().get_current_settings(update.effective_chat.id)
+    settings = get_db().get_current_settings(get_chat_id(update))
     ai_agent = settings.ai_agent if settings else False
 
     query = update.callback_query
@@ -382,7 +382,7 @@ async def handle_message_reply(update: Update, context: ContextTypes.DEFAULT_TYP
     if update.message is None or update.effective_chat is None:
         return None
 
-    chat_id = update.effective_chat.id
+    chat_id = get_chat_id(update)
 
     settings = get_db().get_current_settings(chat_id)
     if settings is not None and settings.ai_agent:
@@ -510,7 +510,7 @@ async def handle_expand_tx_options(update: Update, _: ContextTypes.DEFAULT_TYPE)
     if update.callback_query is None or update.effective_chat is None:
         return
 
-    settings = get_db().get_current_settings(update.effective_chat.id)
+    settings = get_db().get_current_settings(get_chat_id(update))
     ai_agent = settings.ai_agent if settings else False
 
     if update.callback_query.data is None:
@@ -527,13 +527,13 @@ async def handle_rename_payee(update: Update, context: ContextTypes.DEFAULT_TYPE
     transaction_id = int(update.callback_query.data.split("_")[1])
     await update.callback_query.answer()
     await context.bot.send_message(
-        chat_id=update.effective_chat.id,
+        chat_id=get_chat_id(update),
         text="Please enter the new payee name:",
         reply_to_message_id=update.callback_query.message.message_id,
         reply_markup=ForceReply(),
     )
     set_expectation(
-        update.effective_chat.id,
+        get_chat_id(update),
         {
             "expectation": RENAME_PAYEE,
             "msg_id": str(update.callback_query.message.message_id),
@@ -546,7 +546,7 @@ async def handle_edit_notes(update: Update, context: ContextTypes.DEFAULT_TYPE):
     transaction_id = int(update.callback_query.data.split("_")[1])
     await update.callback_query.answer()
     await context.bot.send_message(
-        chat_id=update.effective_chat.id,
+        chat_id=get_chat_id(update),
         text=dedent(
             """
             Please enter notes for this transaction.\n\n
@@ -557,7 +557,7 @@ async def handle_edit_notes(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=ForceReply(),
     )
     set_expectation(
-        update.effective_chat.id,
+        get_chat_id(update),
         {
             "expectation": EDIT_NOTES,
             "msg_id": str(update.callback_query.message.message_id),
@@ -570,7 +570,7 @@ async def handle_set_tags(update: Update, context: ContextTypes.DEFAULT_TYPE):
     transaction_id = int(update.callback_query.data.split("_")[1])
     await update.callback_query.answer()
     await context.bot.send_message(
-        chat_id=update.effective_chat.id,
+        chat_id=get_chat_id(update),
         text=dedent(
             """
             Please enter the tags for this transaction\n\n
@@ -583,7 +583,7 @@ async def handle_set_tags(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=ForceReply(),
     )
     set_expectation(
-        update.effective_chat.id,
+        get_chat_id(update),
         {
             "expectation": SET_TAGS,
             "msg_id": str(update.callback_query.message.message_id),

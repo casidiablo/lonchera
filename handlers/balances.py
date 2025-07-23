@@ -5,7 +5,7 @@ from telegram.ext import ContextTypes
 
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
-from utils import Keyboard, get_crypto_symbol, get_emoji_for_account_type, make_tag
+from utils import Keyboard, get_crypto_symbol, get_emoji_for_account_type, make_tag, get_chat_id
 
 # Constants for button states
 SHOW_DETAILS = 1 << 0
@@ -142,7 +142,7 @@ async def handle_show_balances(
     if not update.effective_chat:
         return
 
-    lunch = get_lunch_client_for_chat_id(update.effective_chat.id)
+    lunch = get_lunch_client_for_chat_id(get_chat_id(update))
 
     all_accounts = []
     if is_show_balances(mask):
@@ -154,14 +154,14 @@ async def handle_show_balances(
     if is_show_crypto(mask):
         all_accounts += lunch.get_crypto()
 
-    settings = get_db().get_current_settings(update.effective_chat.id)
+    settings = get_db().get_current_settings(get_chat_id(update))
     tagging = settings.tagging if settings else True
 
     msg = get_accounts_summary_text(all_accounts, is_show_details(mask), tagging=tagging)
 
     if message_id:
         await context.bot.edit_message_text(
-            chat_id=update.effective_chat.id,
+            chat_id=get_chat_id(update),
             message_id=message_id,
             text=msg,
             parse_mode=ParseMode.MARKDOWN,
@@ -169,7 +169,7 @@ async def handle_show_balances(
         )
     else:
         await context.bot.send_message(
-            chat_id=update.effective_chat.id,
+            chat_id=get_chat_id(update),
             text=msg,
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=get_accounts_buttons(mask),

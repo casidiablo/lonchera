@@ -121,10 +121,31 @@ def clean_md(text: str) -> str:
     return text.replace("_", " ").replace("*", " ").replace("`", " ")
 
 
+def get_chat_id(update: Update) -> int:
+    """
+    Safely extracts the chat ID from a Telegram update.
+
+    Args:
+        update: The Telegram update object
+
+    Returns:
+        The chat ID as an integer
+
+    Raises:
+        ValueError: If effective_chat is None or if the chat ID is not available
+    """
+    if update.effective_chat is None:
+        raise ValueError("No effective chat found in update")
+
+    chat_id = update.effective_chat.id
+    if chat_id is None:
+        raise ValueError("Chat ID is None")
+
+    return chat_id
+
+
 def ensure_token(update: Update) -> Settings:
     # make sure the user has registered a token by trying to get the settings
     # which will raise an exception if the token is not set
-    if update.effective_chat:
-        return get_db().get_current_settings(update.effective_chat.id)
-    else:
-        raise ValueError("No effective chat found in update")
+    chat_id = get_chat_id(update)
+    return get_db().get_current_settings(chat_id)
