@@ -443,7 +443,6 @@ async def handle_expand_tx_options(update: Update, _: ContextTypes.DEFAULT_TYPE)
         return
 
     tx_id = int(update.callback_query.data.split("_")[1])
-    await update.callback_query.edit_message_reply_markup(reply_markup=get_tx_buttons(tx_id, ai_agent=ai_agent))
     await update.callback_query.answer()
     await update.callback_query.edit_message_reply_markup(
         reply_markup=get_tx_buttons(tx_id, ai_agent=ai_agent, collapsed=False)
