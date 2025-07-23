@@ -134,6 +134,11 @@ async def mark_posted_txs_as_reviewed(
             status="uncleared", pending=False, start_date=start_date, end_date=end_date
         )
         logger.info(f"Found {len(posted_transactions)} posted transactions for {chat_id} that are not reviewed")
+        # Print basic info for each posted transaction
+        for tx in posted_transactions:
+            logger.info(
+                f"Posted Transaction: ID={tx.id}, Date={tx.date}, Amount={tx.amount}, Status={tx.status}, Payee={tx.payee}"
+            )
 
         # Create lookup dictionaries for efficient matching
         posted_by_id = {tx.id: tx for tx in posted_transactions}
@@ -146,7 +151,7 @@ async def mark_posted_txs_as_reviewed(
             if sent_tx.tx_id in posted_by_id:
                 posted_tx = posted_by_id[sent_tx.tx_id]
             else:
-                logger.warning(f"Could not find posted transaction for sent pending transaction {sent_tx.id}")
+                logger.warning(f"Could not find posted transaction for sent pending transaction {sent_tx.tx_id}")
                 continue
 
             # If we found a match and it's uncleared, mark it as reviewed
