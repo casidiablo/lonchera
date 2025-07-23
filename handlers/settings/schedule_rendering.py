@@ -93,10 +93,12 @@ def get_schedule_rendering_buttons(settings: Settings) -> InlineKeyboardMarkup:
 
 async def handle_schedule_rendering_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     settings_text = get_schedule_rendering_text(update.effective_chat.id)
-    settings = get_db().get_current_settings(update.effective_chat.id)
-    await update.callback_query.edit_message_text(
-        text=settings_text, reply_markup=get_schedule_rendering_buttons(settings), parse_mode=ParseMode.MARKDOWN_V2
-    )
+    if update.callback_query and settings_text:
+        settings = get_db().get_current_settings(update.effective_chat.id)
+        await update.callback_query.edit_message_text(
+            text=settings_text, reply_markup=get_schedule_rendering_buttons(settings), parse_mode=ParseMode.MARKDOWN_V2
+        )
+        await update.callback_query.answer()
 
 
 async def handle_btn_change_poll_interval(update: Update, context: ContextTypes.DEFAULT_TYPE):

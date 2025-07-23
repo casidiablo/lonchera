@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from textwrap import dedent
 
 from lunchable import TransactionUpdateObject
@@ -21,6 +21,14 @@ from utils import Keyboard, ensure_token, find_related_tx
 logger = logging.getLogger("tx_handler")
 
 
+# Sort transactions by date in chronological order (oldest first)
+# Use plaid's authorized_datetime if available for more precise sorting
+def get_transaction_datetime(t):
+    if t.plaid_metadata and "authorized_datetime" in t.plaid_metadata:
+        return datetime.fromisoformat(t.plaid_metadata["authorized_datetime"].replace("Z", "+00:00"))
+    return datetime.combine(t.date, datetime.min.time()).replace(tzinfo=timezone.UTC)
+
+
 async def check_posted_transactions_and_telegram_them(
     context: ContextTypes.DEFAULT_TYPE, chat_id: int
 ) -> list[TransactionObject]:
@@ -34,10 +42,13 @@ async def check_posted_transactions_and_telegram_them(
 
     logger.info(f"Found {len(transactions)} unreviewed transactions for chat {chat_id}")
 
+    # Sort transactions by date in chronological order (oldest first)
+    transactions.sort(key=get_transaction_datetime)
+
     settings = get_db().get_current_settings(chat_id)
     for transaction in transactions:
         if settings.auto_mark_reviewed:
-            lunch.update_transaction(transaction.id, TransactionUpdateObject(status="cleared"))
+            lunch.update_transaction(transaction.id, TransactionUpdateObject(status="cleared"))  # type: ignore
             transaction.status = "cleared"
 
         if get_db().was_already_sent(transaction.id):
@@ -78,6 +89,9 @@ async def check_pending_transactions_and_telegram_them(
     transactions = [tx for tx in transactions if tx.is_pending and tx.notes is None]
 
     logger.info(f"Found {len(transactions)} pending transactions")
+
+    # Sort transactions by date in chronological order (oldest first)
+    transactions.sort(key=get_transaction_datetime)
 
     for transaction in transactions:
         if get_db().was_already_sent(transaction.id, pending=True):

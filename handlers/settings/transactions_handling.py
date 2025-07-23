@@ -44,10 +44,14 @@ def get_transactions_handling_buttons(settings: Settings) -> InlineKeyboardMarku
 
 async def handle_transactions_handling_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     settings_text = get_transactions_handling_text(update.effective_chat.id)
-    settings = get_db().get_current_settings(update.effective_chat.id)
-    await update.callback_query.edit_message_text(
-        text=settings_text, reply_markup=get_transactions_handling_buttons(settings), parse_mode=ParseMode.MARKDOWN_V2
-    )
+    if update.callback_query and settings_text:
+        settings = get_db().get_current_settings(update.effective_chat.id)
+        await update.callback_query.edit_message_text(
+            text=settings_text,
+            reply_markup=get_transactions_handling_buttons(settings),
+            parse_mode=ParseMode.MARKDOWN_V2,
+        )
+        await update.callback_query.answer()
 
 
 async def handle_btn_toggle_auto_mark_reviewed(update: Update, _: ContextTypes.DEFAULT_TYPE):
