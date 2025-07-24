@@ -7,6 +7,7 @@ from lunchable.models import TransactionObject
 from telegram import ForceReply
 from telegram.constants import ParseMode, ReactionEmoji
 from telegram.ext import ContextTypes
+from typing import List
 
 from constants import NOTES_MAX_LENGTH
 from deepinfra import auto_categorize
@@ -79,6 +80,93 @@ async def check_posted_transactions_and_telegram_them(
     return transactions
 
 
+async def update_transaction_ids_for_posted_transactions(
+    chat_id: int, posted_transactions: list[TransactionObject]
+) -> list[int]:
+    """Update transaction records when pending transactions become posted and their IDs change.
+
+    This function is necessary to solve a critical issue with transaction ID management:
+
+    PROBLEM:
+    - When the bot polls for pending transactions, it sends Telegram messages and stores
+      the transaction records in the database with the current transaction ID
+    - However, when a pending transaction becomes posted (cleared), the transaction ID
+      in LunchMoney often changes to a new value
+    - This leaves the Telegram message associated with the wrong transaction ID in our database
+    - Without this fix, operations like marking transactions as reviewed, categorizing, etc.
+      would fail because they can't find the correct transaction record
+
+    SOLUTION:
+    - Use the plaid_metadata.pending_transaction_id field to link old and new transaction IDs
+    - When a transaction was pending, its plaid_id is stored in our database
+    - When the same transaction becomes posted, plaid_metadata.pending_transaction_id
+      contains the original plaid_id (the one we stored)
+    - We match these values to identify which database records need updating
+    - Update both tx_id (LunchMoney ID) and plaid_id (current Plaid ID) in our database
+
+    FLOW:
+    1. Get all previously sent pending transactions for this chat
+    2. Create a mapping of pending_transaction_id → posted transaction
+    3. For each sent pending transaction, check if its plaid_id matches any
+       posted transaction's pending_transaction_id
+    4. If match found, update the database record with the new IDs
+
+    This ensures Telegram messages remain correctly linked to their transactions
+    even after the transaction IDs change during the pending → posted transition.
+
+    Returns:
+        list[int]: List of Telegram message IDs that were updated
+    """
+    logger.info(f"Checking for transaction ID changes for chat {chat_id}...")
+    updated_message_ids = []
+
+    # Get all previously sent pending transactions for this chat
+    sent_pending_txs = get_db().get_sent_pending_transactions(chat_id)
+
+    if not sent_pending_txs:
+        logger.info(f"No sent pending transactions found for chat {chat_id}")
+        return updated_message_ids
+
+    logger.info(f"Found {len(sent_pending_txs)} sent pending transactions to check")
+
+    # Create a mapping of pending_transaction_id to posted transaction for efficient lookup
+    posted_by_pending_id = {}
+    for posted_tx in posted_transactions:
+        if posted_tx.plaid_metadata and posted_tx.plaid_metadata.get("pending_transaction_id"):
+            pending_id = posted_tx.plaid_metadata["pending_transaction_id"]
+            posted_by_pending_id[pending_id] = posted_tx
+
+    logger.info(f"Found {len(posted_by_pending_id)} posted transactions with pending_transaction_id")
+
+    # Check each sent pending transaction to see if it needs to be updated
+    for sent_tx in sent_pending_txs:
+        if not sent_tx.plaid_id:
+            continue
+
+        # Look for a posted transaction that has this transaction's plaid_id as pending_transaction_id
+        if sent_tx.plaid_id in posted_by_pending_id:
+            posted_tx = posted_by_pending_id[sent_tx.plaid_id]
+            new_plaid_id = posted_tx.plaid_metadata.get("transaction_id") if posted_tx.plaid_metadata else None
+
+            logger.info(
+                f"Found ID change: pending tx {sent_tx.tx_id} (plaid_id: {sent_tx.plaid_id}) "
+                f"-> posted tx {posted_tx.id} (plaid_id: {new_plaid_id})"
+            )
+
+            # Update the transaction record with the new IDs
+            success = get_db().update_transaction_ids_by_plaid_id(
+                old_plaid_id=sent_tx.plaid_id, new_tx_id=posted_tx.id, new_plaid_id=new_plaid_id
+            )
+
+            if success:
+                logger.info(f"Successfully updated transaction record for {sent_tx.plaid_id}")
+                updated_message_ids.append(sent_tx.message_id)
+            else:
+                logger.warning(f"Failed to update transaction record for {sent_tx.plaid_id}")
+
+    return updated_message_ids
+
+
 async def check_pending_transactions_and_telegram_them(
     context: ContextTypes.DEFAULT_TYPE, chat_id: int
 ) -> list[TransactionObject]:
@@ -97,13 +185,27 @@ async def check_pending_transactions_and_telegram_them(
     # Sort transactions by date in chronological order (oldest first)
     transactions.sort(key=get_transaction_datetime)
 
-    # Check if any previously sent pending transactions are now posted
+    # Get posted transactions for the same time period to check against
+    posted_transactions = lunch.get_transactions(
+        # TODO: consider all txs, even the reviewed ones?
+        status="uncleared",
+        pending=False,
+        start_date=two_weeks_ago,
+        end_date=now,
+    )
+    logger.info(f"Found {len(posted_transactions)} posted transactions for {chat_id} that are not reviewed")
+
+    # Update transaction IDs for transactions that changed from pending to posted
+    id_update_message_ids = await update_transaction_ids_for_posted_transactions(chat_id, posted_transactions)
+
     settings = get_db().get_current_settings(chat_id)
     if settings.auto_mark_reviewed:
-        await mark_posted_txs_as_reviewed(context, chat_id, lunch, two_weeks_ago, now)
+        reviewed_message_ids = await mark_posted_txs_as_reviewed(context, chat_id, lunch, posted_transactions)
+    else:
+        reviewed_message_ids = []
 
     for transaction in transactions:
-        if get_db().was_already_sent(transaction.id, pending=True):
+        if get_db().was_already_sent(transaction.id, pending=True):  # TODO: figure out if this could be simplified
             logger.info(f"Skipping already sent pending transaction {transaction.id}")
             continue
         msg_id = await send_transaction_message(context, transaction, chat_id)
@@ -116,24 +218,55 @@ async def check_pending_transactions_and_telegram_them(
             plaid_id=(transaction.plaid_metadata.get("transaction_id", None) if transaction.plaid_metadata else None),
         )
 
+    # Update Telegram messages for all transactions that had their IDs updated or were marked as reviewed
+    all_updated_message_ids = set(id_update_message_ids + reviewed_message_ids)
+
+    for message_id in all_updated_message_ids:
+        try:
+            # Get the transaction ID associated with this message
+            tx_id = get_db().get_tx_associated_with(message_id, chat_id)
+            if tx_id:
+                # Get the updated transaction data from LunchMoney
+                updated_tx = lunch.get_transaction(tx_id)
+                if updated_tx:
+                    # Update the Telegram message with the latest transaction data
+                    await send_transaction_message(
+                        context, transaction=updated_tx, chat_id=chat_id, message_id=message_id
+                    )
+                    logger.info(f"Updated Telegram message {message_id} for transaction {tx_id}")
+                else:
+                    logger.warning(f"Could not retrieve transaction data for transaction {tx_id}")
+            else:
+                logger.warning(f"Could not find transaction ID for message {message_id}")
+        except Exception as e:
+            logger.exception(f"Failed to update Telegram message {message_id}: {e}")
+
     return transactions
 
 
 async def mark_posted_txs_as_reviewed(
-    context: ContextTypes.DEFAULT_TYPE, chat_id: int, lunch: LunchMoney, start_date: datetime, end_date: datetime
-):
+    context: ContextTypes.DEFAULT_TYPE, chat_id: int, lunch: LunchMoney, posted_transactions: list[TransactionObject]
+) -> list[int]:
+    """Mark previously sent pending transactions as reviewed if they are now posted.
+
+    Args:
+        context: Telegram context for sending messages
+        chat_id: Chat ID to process transactions for
+        lunch: LunchMoney client instance
+        posted_transactions: List of posted transactions to check against
+
+    Returns:
+        list[int]: List of Telegram message IDs that were updated (marked as reviewed)
+    """
     logger.info(f"Checking if any previously sent pending transactions are now posted for {chat_id}...")
+    updated_message_ids = []
 
     # Get all previously sent pending transactions
     sent_pending_txs = get_db().get_sent_pending_transactions(chat_id)
 
     if sent_pending_txs:
         logger.info(f"Found {len(sent_pending_txs)} previously sent pending transactions for {chat_id}")
-        # Get posted transactions for the same time period to check against
-        posted_transactions = lunch.get_transactions(
-            status="uncleared", pending=False, start_date=start_date, end_date=end_date
-        )
-        logger.info(f"Found {len(posted_transactions)} posted transactions for {chat_id} that are not reviewed")
+
         # Print basic info for each posted transaction
         for tx in posted_transactions:
             logger.info(
@@ -175,8 +308,12 @@ async def mark_posted_txs_as_reviewed(
                     updated_tx = lunch.get_transaction(posted_tx.id)
                     msg_id = get_db().get_message_id_associated_with(posted_tx.id, chat_id)
                     await send_transaction_message(context, transaction=updated_tx, chat_id=chat_id, message_id=msg_id)
+                    if msg_id:
+                        updated_message_ids.append(msg_id)
                 except Exception:
                     logger.exception(f"Failed to mark transaction {posted_tx.id} as reviewed")
+
+    return updated_message_ids
 
 
 async def handle_check_transactions(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -342,7 +479,7 @@ async def handle_btn_mark_tx_as_reviewed(update: Update, context: ContextTypes.D
     lunch = get_lunch_client_for_chat_id(chat_id)
     transaction_id = int(query.data.split("_")[1])
     try:
-        lunch.update_transaction(transaction_id, TransactionUpdateObject(status="cleared"))
+        lunch.update_transaction(transaction_id, TransactionUpdateObject(status="cleared"))  # type: ignore
 
         # update message to show the right buttons
         updated_tx = lunch.get_transaction(transaction_id)

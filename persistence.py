@@ -412,6 +412,18 @@ class Persistence:
                 .all()
             )
 
+    def update_transaction_ids_by_plaid_id(self, old_plaid_id: str, new_tx_id: int, new_plaid_id: str | None) -> bool:
+        """Update transaction tx_id and plaid_id by matching old plaid_id."""
+        with self.Session() as session:
+            stmt = (
+                update(Transaction)
+                .where(Transaction.plaid_id == old_plaid_id)
+                .values(tx_id=new_tx_id, plaid_id=new_plaid_id)
+            )
+            result = session.execute(stmt)
+            session.commit()
+            return result.rowcount > 0
+
 
 db = None
 
