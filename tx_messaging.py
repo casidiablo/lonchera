@@ -77,9 +77,10 @@ def get_tx_buttons(transaction: TransactionObject | int, ai_agent=False, collaps
         )
 
     if not is_reviewed and not is_pending:
+        # we can't mark a pending transaction as reviewed
         kbd += ("Reviewed ✓", f"review_{transaction_id}")
 
-    if not is_pending and not collapsed:
+    if not collapsed:
         kbd += ("⬒ Collapse", f"collapse_{transaction_id}")
 
     return kbd.build()
