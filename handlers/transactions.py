@@ -7,7 +7,6 @@ from lunchable.models import TransactionObject
 from telegram import ForceReply
 from telegram.constants import ParseMode, ReactionEmoji
 from telegram.ext import ContextTypes
-from typing import List
 
 from constants import NOTES_MAX_LENGTH
 from deepinfra import auto_categorize
@@ -18,7 +17,7 @@ from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
 from telegram_extensions import Update
 from tx_messaging import get_tx_buttons, send_plaid_details, send_transaction_message
-from utils import Keyboard, ensure_token, find_related_tx
+from utils import Keyboard, ensure_token
 
 logger = logging.getLogger("tx_handler")
 
@@ -31,25 +30,62 @@ def get_transaction_datetime(t):
     return datetime.combine(t.date, datetime.min.time()).replace(tzinfo=UTC)
 
 
-async def check_posted_transactions_and_telegram_them(
-    context: ContextTypes.DEFAULT_TYPE, chat_id: int
+async def check_transactions_and_telegram_them(
+    context: ContextTypes.DEFAULT_TYPE, chat_id: int, poll_pending: bool = False
 ) -> list[TransactionObject]:
-    # get date from 30 days ago
-    two_weeks_ago = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=30)
+    """
+    Check for new transactions and send them to Telegram.
+
+    Args:
+        context: Telegram context
+        chat_id: Chat ID to send messages to
+        poll_pending: If True, fetch pending transactions. If False, fetch posted transactions.
+
+    Returns:
+        List of transactions that were processed
+    """
+    two_weeks_ago = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=15)
     now = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-    logger.info(f"Polling for new transactions from {two_weeks_ago} to {now}...")
+    logger.info(f"Polling for {'pending' if poll_pending else 'posted'} transactions from {two_weeks_ago} to {now}...")
 
     lunch = get_lunch_client_for_chat_id(chat_id)
-    transactions = lunch.get_transactions(status="uncleared", pending=False, start_date=two_weeks_ago, end_date=now)
 
-    logger.info(f"Found {len(transactions)} unreviewed transactions for chat {chat_id}")
+    if poll_pending:
+        transactions = lunch.get_transactions(pending=True, start_date=two_weeks_ago, end_date=now)
+        logger.info(f"Found {len(transactions)} pending transactions")
+    else:
+        transactions = lunch.get_transactions(pending=False, start_date=two_weeks_ago, end_date=now)
+        logger.info(f"Found {len(transactions)} unreviewed transactions for chat {chat_id}")
 
     # Sort transactions by date in chronological order (oldest first)
     transactions.sort(key=get_transaction_datetime)
 
     settings = get_db().get_current_settings(chat_id)
-    for transaction in transactions:
+
+    # Handle ID updates and auto-review for pending transactions
+    if poll_pending:
+        # Get posted transactions for the same time period to check against
+        posted_transactions = lunch.get_transactions(pending=False, start_date=two_weeks_ago, end_date=now)
+        logger.info(f"Found {len(posted_transactions)} posted transactions for {chat_id} that are not reviewed")
+
+        # Update transaction IDs for transactions that changed from pending to posted
+        id_update_message_ids = await update_transaction_ids_for_posted_transactions(chat_id, posted_transactions)
+
+        # Mark posted transactions as reviewed if auto_mark_reviewed is enabled
         if settings.auto_mark_reviewed:
+            # TODO: pass only txs that are not reviewed
+            reviewed_message_ids = await mark_posted_txs_as_reviewed(context, chat_id, lunch, posted_transactions)
+        else:
+            reviewed_message_ids = []
+
+        all_updated_message_ids = set(id_update_message_ids + reviewed_message_ids)
+    else:
+        all_updated_message_ids = set()
+
+    # Process transactions
+    for transaction in transactions:
+        # Auto-mark as reviewed for posted transactions if enabled
+        if not poll_pending and settings.auto_mark_reviewed:
             lunch.update_transaction(
                 transaction.id,
                 TransactionUpdateObject(status=TransactionUpdateObject.StatusEnum.cleared),  # type: ignore
@@ -60,15 +96,7 @@ async def check_posted_transactions_and_telegram_them(
             logger.debug(f"Skipping already sent transaction {transaction.id} in chat {chat_id}")
             continue
 
-        # check if the current transaction is related to a previously sent one
-        # like a payment to a credit card
-        related_tx = find_related_tx(transaction, transactions)
-        reply_msg_id = None
-        if related_tx:
-            logger.info(f"Found related transaction {related_tx.id} for {transaction.id}")
-            reply_msg_id = get_db().get_message_id_associated_with(related_tx.id, chat_id)
-
-        msg_id = await send_transaction_message(context, transaction, chat_id, reply_to_message_id=reply_msg_id)
+        msg_id = await send_transaction_message(context, transaction, chat_id)
         get_db().mark_as_sent(
             transaction.id,
             chat_id,
@@ -77,7 +105,36 @@ async def check_posted_transactions_and_telegram_them(
             plaid_id=(transaction.plaid_metadata.get("transaction_id", None) if transaction.plaid_metadata else None),
         )
 
+    # Update Telegram messages for transactions that had their IDs updated or were marked as reviewed
+    if poll_pending:
+        await handle_pending_transaction_updates(context, chat_id, lunch, all_updated_message_ids)
+
     return transactions
+
+
+async def handle_pending_transaction_updates(
+    context: ContextTypes.DEFAULT_TYPE, chat_id: int, lunch: LunchMoney, updated_message_ids: set[int]
+) -> None:
+    """Handle updating Telegram messages for transactions that had their IDs updated or were marked as reviewed."""
+    for message_id in updated_message_ids:
+        try:
+            # Get the transaction ID associated with this message
+            tx_id = get_db().get_tx_associated_with(message_id, chat_id)
+            if tx_id:
+                # Get the updated transaction data from LunchMoney
+                updated_tx = lunch.get_transaction(tx_id)
+                if updated_tx:
+                    # Update the Telegram message with the latest transaction data
+                    await send_transaction_message(
+                        context, transaction=updated_tx, chat_id=chat_id, message_id=message_id
+                    )
+                    logger.info(f"Updated Telegram message {message_id} for transaction {tx_id}")
+                else:
+                    logger.warning(f"Could not retrieve transaction data for transaction {tx_id}")
+            else:
+                logger.warning(f"Could not find transaction ID for message {message_id}")
+        except Exception:
+            logger.exception(f"Failed to update Telegram message {message_id}")
 
 
 async def update_transaction_ids_for_posted_transactions(
@@ -167,82 +224,6 @@ async def update_transaction_ids_for_posted_transactions(
     return updated_message_ids
 
 
-async def check_pending_transactions_and_telegram_them(
-    context: ContextTypes.DEFAULT_TYPE, chat_id: int
-) -> list[TransactionObject]:
-    # get date from 15 days ago
-    two_weeks_ago = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=15)
-    now = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-    logger.info(f"Polling for new transactions from {two_weeks_ago} to {now}...")
-
-    lunch = get_lunch_client_for_chat_id(chat_id)
-    transactions = lunch.get_transactions(pending=True, start_date=two_weeks_ago, end_date=now)
-    logger.info(f"Found {len(transactions)} pending transactions")
-    transactions = [tx for tx in transactions if tx.is_pending and tx.notes is None]
-
-    logger.info(f"Found {len(transactions)} pending transactions")
-
-    # Sort transactions by date in chronological order (oldest first)
-    transactions.sort(key=get_transaction_datetime)
-
-    # Get posted transactions for the same time period to check against
-    posted_transactions = lunch.get_transactions(
-        # TODO: consider all txs, even the reviewed ones?
-        status="uncleared",
-        pending=False,
-        start_date=two_weeks_ago,
-        end_date=now,
-    )
-    logger.info(f"Found {len(posted_transactions)} posted transactions for {chat_id} that are not reviewed")
-
-    # Update transaction IDs for transactions that changed from pending to posted
-    id_update_message_ids = await update_transaction_ids_for_posted_transactions(chat_id, posted_transactions)
-
-    settings = get_db().get_current_settings(chat_id)
-    if settings.auto_mark_reviewed:
-        reviewed_message_ids = await mark_posted_txs_as_reviewed(context, chat_id, lunch, posted_transactions)
-    else:
-        reviewed_message_ids = []
-
-    for transaction in transactions:
-        if get_db().was_already_sent(transaction.id):
-            logger.info(f"Skipping already sent transaction {transaction.id}")
-            continue
-        msg_id = await send_transaction_message(context, transaction, chat_id)
-        get_db().mark_as_sent(
-            transaction.id,
-            chat_id,
-            msg_id,
-            transaction.recurring_type,
-            plaid_id=(transaction.plaid_metadata.get("transaction_id", None) if transaction.plaid_metadata else None),
-        )
-
-    # Update Telegram messages for all transactions that had their IDs updated or were marked as reviewed
-    all_updated_message_ids = set(id_update_message_ids + reviewed_message_ids)
-
-    for message_id in all_updated_message_ids:
-        try:
-            # Get the transaction ID associated with this message
-            tx_id = get_db().get_tx_associated_with(message_id, chat_id)
-            if tx_id:
-                # Get the updated transaction data from LunchMoney
-                updated_tx = lunch.get_transaction(tx_id)
-                if updated_tx:
-                    # Update the Telegram message with the latest transaction data
-                    await send_transaction_message(
-                        context, transaction=updated_tx, chat_id=chat_id, message_id=message_id
-                    )
-                    logger.info(f"Updated Telegram message {message_id} for transaction {tx_id}")
-                else:
-                    logger.warning(f"Could not retrieve transaction data for transaction {tx_id}")
-            else:
-                logger.warning(f"Could not find transaction ID for message {message_id}")
-        except Exception as e:
-            logger.exception(f"Failed to update Telegram message {message_id}: {e}")
-
-    return transactions
-
-
 async def mark_posted_txs_as_reviewed(
     context: ContextTypes.DEFAULT_TYPE, chat_id: int, lunch: LunchMoney, posted_transactions: list[TransactionObject]
 ) -> list[int]:
@@ -321,10 +302,9 @@ async def mark_posted_txs_as_reviewed(
 async def handle_check_transactions(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     settings = ensure_token(update)
 
-    if settings.poll_pending:
-        transactions = await check_pending_transactions_and_telegram_them(context, chat_id=update.chat_id)
-    else:
-        transactions = await check_posted_transactions_and_telegram_them(context, chat_id=update.chat_id)
+    transactions = await check_transactions_and_telegram_them(
+        context, chat_id=update.chat_id, poll_pending=settings.poll_pending
+    )
 
     get_db().update_last_poll_at(update.chat_id, datetime.now().isoformat())
 
@@ -616,21 +596,18 @@ async def poll_transactions_on_schedule(context: ContextTypes.DEFAULT_TYPE):
             should_poll = datetime.now() >= next_poll_at
 
         if should_poll:
-            if settings.poll_pending:
-                await check_pending_transactions_and_telegram_them(context, chat_id=chat_id)
-            else:
-                try:
-                    await check_posted_transactions_and_telegram_them(context, chat_id=chat_id)
-                except Exception as e:
-                    # check if the error message is lunchable.exceptions.LunchMoneyHTTPError
-                    # and the message is: Access token does not exist, which means the user
-                    # has revoked the access to the app.
-                    # If that is the case, we should set the API token to 'revoked'.
-                    if "Access token does not exist" in str(e):
-                        get_db().set_api_token(chat_id, "revoked")
-                        logger.exception(
-                            f"User in chat {chat_id} has revoked access to the app. Setting API token to None."
-                        )
+            try:
+                await check_transactions_and_telegram_them(context, chat_id=chat_id, poll_pending=settings.poll_pending)
+            except Exception as e:
+                # check if the error message is lunchable.exceptions.LunchMoneyHTTPError
+                # and the message is: Access token does not exist, which means the user
+                # has revoked the access to the app.
+                # If that is the case, we should set the API token to 'revoked'.
+                if "Access token does not exist" in str(e):
+                    get_db().set_api_token(chat_id, "revoked")
+                    logger.exception(
+                        f"User in chat {chat_id} has revoked access to the app. Setting API token to None."
+                    )
             get_db().update_last_poll_at(chat_id, datetime.now().isoformat())
 
 
