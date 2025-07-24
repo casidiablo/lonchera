@@ -50,6 +50,11 @@ async def fetch_transactions(chat_id: int, days_lookback: int, pending: bool):
     start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=days_lookback)
     end_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     transactions = lunch.get_transactions(pending=pending, start_date=start_date, end_date=end_date)
+
+    # TODO: this seems to be a bug in the LunchMoney API
+    # Filter out transactions whose pending state does not match the requested one
+    transactions = [tx for tx in transactions if tx.is_pending == pending]
+
     logger.info(f"Found {len(transactions)} {'pending' if pending else 'posted'} transactions")
 
     # Sort transactions by date in chronological order (oldest first)
@@ -222,7 +227,7 @@ async def update_transaction_ids_for_posted_transactions(
             pending_id = posted_tx.plaid_metadata["pending_transaction_id"]
             posted_by_pending_id[pending_id] = posted_tx
 
-    logger.info(f"Found {len(posted_by_pending_id)} posted transactions with pending_transaction_id")
+    logger.debug(f"Found {len(posted_by_pending_id)} posted transactions with pending_transaction_id")
 
     # Check each sent pending transaction to see if it needs to be updated
     for sent_tx in sent_pending_txs:
@@ -293,9 +298,6 @@ async def mark_posted_txs_as_reviewed(
             if sent_tx.tx_id in posted_by_id:
                 posted_tx = posted_by_id[sent_tx.tx_id]
             else:
-                logger.warning(
-                    f"Could not find posted transaction for sent pending transaction {sent_tx.tx_id} sent at {sent_tx.created_at}"
-                )
                 continue
 
             # Mark the found transaction as reviewed (transactions are pre-filtered to uncleared only)
