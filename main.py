@@ -66,7 +66,6 @@ from handlers.settings.transactions_handling import (
 )
 from handlers.syncing import handle_resync
 from handlers.transactions import (
-    check_pending_transactions,
     handle_btn_ai_categorize,
     handle_btn_apply_category,
     handle_btn_cancel_categorization,
@@ -104,7 +103,6 @@ def add_command_handlers(app):
     app.add_handler(CommandHandler("start", handle_start))
     app.add_handler(CommandHandler("add_transaction", handle_manual_tx))
     app.add_handler(CommandHandler("review_transactions", handle_check_transactions))
-    app.add_handler(CommandHandler("pending_transactions", check_pending_transactions))
     app.add_handler(CommandHandler("show_budget", handle_show_budget))
     app.add_handler(CommandHandler("clear_cache", clear_cache))
     app.add_handler(CommandHandler("settings", handle_settings))

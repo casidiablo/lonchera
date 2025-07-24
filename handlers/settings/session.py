@@ -151,7 +151,6 @@ async def handle_register_token(update: Update, context: ContextTypes.DEFAULT_TY
                 /add\\_transaction - Adds a transaction manually
                 /show\\_budget - Show the budget for the current month
                 /balances - Shows the current balances in all accounts
-                /pending\\_transactions - Lists all pending transactions
 
                 Need help?
                 [Join our Discord support channel](https://discord.com/channels/842337014556262411/1311765488140816484)

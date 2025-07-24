@@ -205,8 +205,8 @@ async def check_pending_transactions_and_telegram_them(
         reviewed_message_ids = []
 
     for transaction in transactions:
-        if get_db().was_already_sent(transaction.id, pending=True):  # TODO: figure out if this could be simplified
-            logger.info(f"Skipping already sent pending transaction {transaction.id}")
+        if get_db().was_already_sent(transaction.id):
+            logger.info(f"Skipping already sent transaction {transaction.id}")
             continue
         msg_id = await send_transaction_message(context, transaction, chat_id)
         get_db().mark_as_sent(
@@ -214,7 +214,6 @@ async def check_pending_transactions_and_telegram_them(
             chat_id,
             msg_id,
             transaction.recurring_type,
-            pending=True,
             plaid_id=(transaction.plaid_metadata.get("transaction_id", None) if transaction.plaid_metadata else None),
         )
 
@@ -332,16 +331,6 @@ async def handle_check_transactions(update: Update, context: ContextTypes.DEFAUL
     if not transactions:
         await update.message.reply_text("No unreviewed transactions found.")
         return
-
-
-async def check_pending_transactions(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if update.message is None:
-        return
-
-    transactions = await check_pending_transactions_and_telegram_them(context, chat_id=update.chat_id)
-
-    if not transactions:
-        await update.message.reply_text("No pending transactions found.")
 
 
 async def handle_btn_skip_transaction(update: Update, _: ContextTypes.DEFAULT_TYPE):
