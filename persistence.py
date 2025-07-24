@@ -197,6 +197,16 @@ class Persistence:
             session.execute(stmt)
             session.commit()
 
+    def mark_as_reviewed_by_tx_id(self, tx_id: int, chat_id: int):
+        with self.Session() as session:
+            stmt = (
+                update(Transaction)
+                .where((Transaction.tx_id == tx_id) & (Transaction.chat_id == chat_id))
+                .values(reviewed_at=datetime.now())
+            )
+            session.execute(stmt)
+            session.commit()
+
     def mark_as_unreviewed(self, message_id: int, chat_id: int):
         with self.Session() as session:
             stmt = (

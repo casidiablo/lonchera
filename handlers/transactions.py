@@ -305,6 +305,9 @@ async def mark_posted_txs_as_reviewed(
                     # Update pending status to False as it's now posted
                     get_db().update_pending_status(posted_tx.id, False)
 
+                    # Also mark as reviewed in the db
+                    get_db().mark_as_reviewed_by_tx_id(posted_tx.id, chat_id)
+
                     updated_tx = lunch.get_transaction(posted_tx.id)
                     msg_id = get_db().get_message_id_associated_with(posted_tx.id, chat_id)
                     await send_transaction_message(context, transaction=updated_tx, chat_id=chat_id, message_id=msg_id)
