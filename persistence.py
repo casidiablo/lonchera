@@ -129,9 +129,9 @@ class Persistence:
         with self.Session() as session:
             return [chat.chat_id for chat in session.query(Settings.chat_id).all()]
 
-    def was_already_sent(self, tx_id: int, pending: bool = False) -> bool:
+    def was_already_sent(self, tx_id: int) -> bool:
         with self.Session() as session:
-            return session.query(Transaction.message_id).filter_by(tx_id=tx_id, pending=pending).first() is not None
+            return session.query(Transaction.message_id).filter_by(tx_id=tx_id).first() is not None
 
     def mark_as_sent(
         self,
@@ -139,7 +139,6 @@ class Persistence:
         chat_id: int,
         message_id: int,
         recurring_type: str | None,
-        pending=False,
         reviewed=False,
         plaid_id: str | None = None,
     ) -> None:
@@ -149,7 +148,7 @@ class Persistence:
                 message_id=message_id,
                 tx_id=tx_id,
                 chat_id=chat_id,
-                pending=pending,
+                pending=False,
                 recurring_type=recurring_type,
                 reviewed_at=datetime.now() if reviewed else None,
                 plaid_id=plaid_id,

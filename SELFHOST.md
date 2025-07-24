@@ -30,7 +30,6 @@ review_transactions - Check for unreviewed transactions
 add_transaction - Adds a transaction manually
 balances - Shows the current balances in all accounts
 show_budget - Show the budget for the current month
-pending_transactions - Lists all pending transactions
 settings - Changes the settings of the bot
 ```
 
