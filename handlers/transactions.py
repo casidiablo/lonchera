@@ -66,15 +66,18 @@ async def check_transactions_and_telegram_them(
     if poll_pending:
         # Get posted transactions for the same time period to check against
         posted_transactions = lunch.get_transactions(pending=False, start_date=two_weeks_ago, end_date=now)
-        logger.info(f"Found {len(posted_transactions)} posted transactions for {chat_id} that are not reviewed")
+        logger.info(f"Found {len(posted_transactions)} posted transactions for {chat_id}")
 
         # Update transaction IDs for transactions that changed from pending to posted
         id_update_message_ids = await update_transaction_ids_for_posted_transactions(chat_id, posted_transactions)
 
         # Mark posted transactions as reviewed if auto_mark_reviewed is enabled
         if settings.auto_mark_reviewed:
-            # TODO: pass only txs that are not reviewed
-            reviewed_message_ids = await mark_posted_txs_as_reviewed(context, chat_id, lunch, posted_transactions)
+            # Filter to only unreviewed transactions to avoid unnecessary processing
+            unreviewed_posted_transactions = [tx for tx in posted_transactions if tx.status == "uncleared"]
+            reviewed_message_ids = await mark_posted_txs_as_reviewed(
+                context, chat_id, lunch, unreviewed_posted_transactions
+            )
         else:
             reviewed_message_ids = []
 
@@ -233,7 +236,7 @@ async def mark_posted_txs_as_reviewed(
         context: Telegram context for sending messages
         chat_id: Chat ID to process transactions for
         lunch: LunchMoney client instance
-        posted_transactions: List of posted transactions to check against
+        posted_transactions: List of unreviewed posted transactions to check against
 
     Returns:
         list[int]: List of Telegram message IDs that were updated (marked as reviewed)
@@ -269,11 +272,11 @@ async def mark_posted_txs_as_reviewed(
                 )
                 continue
 
-            # If we found a match and it's uncleared, mark it as reviewed
+            # Mark the found transaction as reviewed (transactions are pre-filtered to uncleared only)
             logger.info(
                 f"Checking sent pending transaction {sent_tx.id} against posted transaction {posted_tx.id} with status {posted_tx.status}"
             )
-            if posted_tx and posted_tx.status == "uncleared":
+            if posted_tx:
                 logger.info(f"Marking previously sent pending transaction {posted_tx.id} as reviewed")
                 try:
                     lunch.update_transaction(
