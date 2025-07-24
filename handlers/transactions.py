@@ -25,7 +25,11 @@ logger = logging.getLogger("tx_handler")
 # Sort transactions by date in chronological order (oldest first)
 # Use plaid's authorized_datetime if available for more precise sorting
 def get_transaction_datetime(t):
-    if t.plaid_metadata and "authorized_datetime" in t.plaid_metadata:
+    if (
+        t.plaid_metadata
+        and "authorized_datetime" in t.plaid_metadata
+        and t.plaid_metadata["authorized_datetime"]
+    ):
         return datetime.fromisoformat(t.plaid_metadata["authorized_datetime"].replace("Z", "+00:00"))
     return datetime.combine(t.date, datetime.min.time()).replace(tzinfo=UTC)
 
@@ -49,7 +53,10 @@ async def fetch_transactions(chat_id: int, days_lookback: int, pending: bool):
     logger.info(f"Found {len(transactions)} {'pending' if pending else 'posted'} transactions")
 
     # Sort transactions by date in chronological order (oldest first)
-    transactions.sort(key=get_transaction_datetime)
+    try:
+        transactions.sort(key=get_transaction_datetime)
+    except Exception:
+        logger.exception("Error sorting transactions")
 
     return transactions
 
@@ -322,11 +329,12 @@ async def mark_posted_txs_as_reviewed(
 
 
 async def handle_check_transactions(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    settings = ensure_token(update)
-
-    await check_transactions_and_telegram_them(context, chat_id=update.chat_id, poll_pending=settings.poll_pending)
-
-    get_db().update_last_poll_at(update.chat_id, datetime.now().isoformat())
+    try:
+        settings = ensure_token(update)
+        await check_transactions_and_telegram_them(context, chat_id=update.chat_id, poll_pending=settings.poll_pending)
+        get_db().update_last_poll_at(update.chat_id, datetime.now().isoformat())
+    except Exception:
+        logger.exception(f"Failed to check transactions for chat {update.chat_id}")
 
 
 async def handle_btn_skip_transaction(update: Update, _: ContextTypes.DEFAULT_TYPE):
