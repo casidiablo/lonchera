@@ -350,8 +350,9 @@ async def handle_btn_collapse_transaction(update: Update, _: ContextTypes.DEFAUL
     if update.callback_query and update.callback_query.data is None:
         return
 
+    tx_id = int(update.callback_query.data.split("_")[1])
     await update.safe_edit_message_reply_markup(
-        reply_markup=get_tx_buttons(int(update.callback_query.data.split("_")[1]), ai_agent=ai_agent, collapsed=True)
+        reply_markup=get_tx_buttons(update.chat_id, tx_id, ai_agent=ai_agent, collapsed=True)
     )
 
 
@@ -366,8 +367,8 @@ async def handle_btn_cancel_categorization(update: Update, _: ContextTypes.DEFAU
     if query.data is None:
         return
 
-    transaction_id = int(query.data.split("_")[1])
-    await update.safe_edit_message_reply_markup(reply_markup=get_tx_buttons(transaction_id, ai_agent=ai_agent))
+    tx_id = int(query.data.split("_")[1])
+    await update.safe_edit_message_reply_markup(reply_markup=get_tx_buttons(update.chat_id, tx_id, ai_agent=ai_agent))
 
 
 async def handle_btn_show_categories(update: Update, _: ContextTypes.DEFAULT_TYPE):
@@ -641,7 +642,9 @@ async def handle_expand_tx_options(update: Update, _: ContextTypes.DEFAULT_TYPE)
         return
 
     tx_id = int(update.callback_query.data.split("_")[1])
-    await update.safe_edit_message_reply_markup(reply_markup=get_tx_buttons(tx_id, ai_agent=ai_agent, collapsed=False))
+    await update.safe_edit_message_reply_markup(
+        reply_markup=get_tx_buttons(update.chat_id, tx_id, ai_agent=ai_agent, collapsed=False)
+    )
 
 
 async def handle_rename_payee(update: Update, context: ContextTypes.DEFAULT_TYPE):

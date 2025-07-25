@@ -46,29 +46,26 @@ def _add_expanded_buttons(
     return kbd
 
 
-def get_tx_buttons(transaction: TransactionObject | int, ai_agent=False, collapsed=True) -> InlineKeyboardMarkup:
+def get_tx_buttons(
+    chat_id: int, transaction: TransactionObject | int, ai_agent=False, collapsed=True
+) -> InlineKeyboardMarkup:
     """Returns a list of buttons to be displayed for a transaction."""
-    # if transaction is an int, it's a transaction_id
+    # if transaction is an int, it's a transaction_id, so we fetch it from the API
     if isinstance(transaction, int):
-        transaction_id = transaction
+        lunch = get_lunch_client_for_chat_id(chat_id)
         # assume the transaction is persisted if a transaction_id is provided
-        tx = get_db().get_tx_by_id(transaction_id)
-        if tx is None:
-            raise ValueError(f"Transaction {transaction_id} not found")
-        recurring_type, is_pending, is_reviewed, plaid_id = (
-            tx.recurring_type,
-            tx.pending,
-            tx.reviewed_at is not None,
-            tx.plaid_id,
-        )
-    else:
-        transaction_id = transaction.id
-        recurring_type = transaction.recurring_type
-        is_pending = transaction.is_pending
-        is_reviewed = transaction.status == "cleared"
-        plaid_id = transaction.plaid_account_id
+        tx_id = transaction
+        transaction = lunch.get_transaction(tx_id)
 
-    logger.info(f"Formatting transaction {transaction}: recurring_type={recurring_type}, is_pending={is_pending}, is_reviewed={is_reviewed}, plaid_id={plaid_id}")
+    transaction_id = transaction.id
+    recurring_type = transaction.recurring_type
+    is_pending = transaction.is_pending
+    is_reviewed = transaction.status == "cleared"
+    plaid_id = transaction.plaid_account_id
+
+    logger.info(
+        f"Formatting transaction {transaction}: recurring_type={recurring_type}, is_pending={is_pending}, is_reviewed={is_reviewed}, plaid_id={plaid_id}"
+    )
 
     kbd = Keyboard()
     if collapsed:
@@ -196,7 +193,7 @@ async def send_transaction_message(
                 message_id=message_id,
                 text=message,
                 parse_mode=ParseMode.MARKDOWN,
-                reply_markup=get_tx_buttons(transaction, ai_agent=ai_agent),
+                reply_markup=get_tx_buttons(int(chat_id), transaction.id, ai_agent=ai_agent),
             )
         except Exception as e:
             if "Message is not modified" in str(e):
@@ -209,7 +206,7 @@ async def send_transaction_message(
             chat_id=chat_id,
             text=message,
             parse_mode=ParseMode.MARKDOWN,
-            reply_markup=get_tx_buttons(transaction, ai_agent=ai_agent),
+            reply_markup=get_tx_buttons(int(chat_id), transaction, ai_agent=ai_agent),
             reply_to_message_id=reply_to_message_id,
         )
         return msg.id
