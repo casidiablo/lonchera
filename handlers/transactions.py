@@ -25,11 +25,7 @@ logger = logging.getLogger("tx_handler")
 # Sort transactions by date in chronological order (oldest first)
 # Use plaid's authorized_datetime if available for more precise sorting
 def get_transaction_datetime(t):
-    if (
-        t.plaid_metadata
-        and "authorized_datetime" in t.plaid_metadata
-        and t.plaid_metadata["authorized_datetime"]
-    ):
+    if t.plaid_metadata and "authorized_datetime" in t.plaid_metadata and t.plaid_metadata["authorized_datetime"]:
         return datetime.fromisoformat(t.plaid_metadata["authorized_datetime"].replace("Z", "+00:00"))
     return datetime.combine(t.date, datetime.min.time()).replace(tzinfo=UTC)
 

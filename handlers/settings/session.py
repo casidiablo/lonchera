@@ -2,7 +2,7 @@ import re
 from textwrap import dedent
 
 from telegram import InlineKeyboardMarkup
-from telegram.constants import ParseMode, ReactionEmoji
+from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
 from handlers.expectations import EXPECTING_TOKEN, clear_expectation, set_expectation
@@ -81,9 +81,6 @@ async def handle_logout_cancel(update: Update, _: ContextTypes.DEFAULT_TYPE):
 async def handle_btn_trigger_plaid_refresh(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lunch = get_lunch_client_for_chat_id(update.chat_id)
     lunch.trigger_fetch_from_plaid()
-    await context.bot.set_message_reaction(
-        chat_id=update.chat_id, message_id=update.message.message_id, reaction=ReactionEmoji.HANDSHAKE
-    )
 
     settings_text = get_session_text(update.chat_id)
     await update.safe_edit_message_text(
