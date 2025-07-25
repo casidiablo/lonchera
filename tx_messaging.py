@@ -57,30 +57,30 @@ def get_tx_buttons(
         tx_id = transaction
         transaction = lunch.get_transaction(tx_id)
 
-    transaction_id = transaction.id
-    recurring_type = transaction.recurring_type
+    tx_id = transaction.id
     is_pending = transaction.is_pending
     is_reviewed = transaction.status == "cleared"
-    plaid_id = transaction.plaid_account_id
-
-    logger.info(
-        f"Formatting transaction {transaction}: recurring_type={recurring_type}, is_pending={is_pending}, is_reviewed={is_reviewed}, plaid_id={plaid_id}"
-    )
 
     kbd = Keyboard()
     if collapsed:
-        kbd += ("☷", f"moreOptions_{transaction_id}")
+        kbd += ("☷", f"moreOptions_{tx_id}")
     elif not collapsed:
         kbd = _add_expanded_buttons(
-            kbd, transaction_id, recurring_type, is_pending or False, is_reviewed, plaid_id, ai_agent
+            kbd,
+            tx_id,
+            transaction.recurring_type,
+            is_pending or False,
+            is_reviewed,
+            transaction.plaid_account_id,
+            ai_agent,
         )
 
     if not is_reviewed and not is_pending:
         # we can't mark a pending transaction as reviewed
-        kbd += ("Reviewed ✓", f"review_{transaction_id}")
+        kbd += ("Reviewed ✓", f"review_{tx_id}")
 
     if not collapsed:
-        kbd += ("⬒ Collapse", f"collapse_{transaction_id}")
+        kbd += ("⬒ Collapse", f"collapse_{tx_id}")
 
     return kbd.build()
 
@@ -113,6 +113,10 @@ def format_transaction_message(transaction: TransactionObject, tagging: bool, sh
     if transaction.recurring_type:
         recurring = "(recurring 🔄)"
 
+    pending = ""
+    if transaction.is_pending:
+        pending = " _pending_"
+
     split_transaction = ""
     if transaction.parent_id:
         split_transaction = "🔀"
@@ -130,7 +134,7 @@ def format_transaction_message(transaction: TransactionObject, tagging: bool, sh
     else:
         reviewed_watermark = "\u200c"
 
-    message = f"*{clean_md(transaction.payee or '')}* {reviewed_watermark} {recurring} {split_transaction}\n\n"
+    message = f"*{clean_md(transaction.payee or '')}* {reviewed_watermark}{pending} {recurring} {split_transaction}\n\n"
     message += f"*Amount*: `{explicit_sign}{abs(transaction.amount):,.2f}` `{transaction.currency.upper() if transaction.currency else ''}`\n"
     message += f"*Date/Time*: {formatted_date_time}\n"
 
