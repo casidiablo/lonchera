@@ -115,7 +115,7 @@ def format_transaction_message(transaction: TransactionObject, tagging: bool, sh
 
     pending = ""
     if transaction.is_pending:
-        pending = " _pending_"
+        pending = " `pending`"
 
     split_transaction = ""
     if transaction.parent_id:
