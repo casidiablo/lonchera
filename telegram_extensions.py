@@ -154,6 +154,15 @@ else:
         if text is None:
             return True
 
+        # Edit the message text and return the result
+        result = await self.callback_query.edit_message_text(
+            text=text,
+            parse_mode=parse_mode,
+            reply_markup=reply_markup,
+            disable_web_page_preview=disable_web_page_preview,
+            **kwargs,
+        )
+
         # Answer the callback query first
         try:
             await self.callback_query.answer()
@@ -161,14 +170,7 @@ else:
             # does not matter much
             ...
 
-        # Edit the message text and return the result
-        return await self.callback_query.edit_message_text(
-            text=text,
-            parse_mode=parse_mode,
-            reply_markup=reply_markup,
-            disable_web_page_preview=disable_web_page_preview,
-            **kwargs,
-        )
+        return result
 
     async def _safe_edit_message_reply_markup(
         self: TelegramUpdate, reply_markup=None, answer_text: str | None = None, show_alert: bool = False, **kwargs
@@ -193,6 +195,9 @@ else:
         if self.callback_query is None:
             return None
 
+        # Edit the message reply markup and return the result
+        result = await self.callback_query.edit_message_reply_markup(reply_markup=reply_markup, **kwargs)
+
         # Answer the callback query first
         try:
             await self.callback_query.answer(text=answer_text, show_alert=show_alert)
@@ -200,8 +205,7 @@ else:
             # does not matter much
             ...
 
-        # Edit the message reply markup and return the result
-        return await self.callback_query.edit_message_reply_markup(reply_markup=reply_markup, **kwargs)
+        return result
 
     async def _safe_delete_message(
         self: TelegramUpdate, answer_text: str | None = None, show_alert: bool = False, **kwargs
@@ -226,16 +230,16 @@ else:
         if self.callback_query is None:
             return False
 
-        # Answer the callback query first
-        try:
-            await self.callback_query.answer(text=answer_text, show_alert=show_alert)
-        except Exception:
-            # does not matter much
-            ...
-
         # Delete the message and return the result
         try:
             await self.callback_query.message.delete(**kwargs)
+
+            # Answer the callback query first
+            try:
+                await self.callback_query.answer(text=answer_text, show_alert=show_alert)
+            except Exception:
+                # does not matter much
+                ...
         except Exception:
             return False
         else:
