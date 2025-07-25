@@ -68,6 +68,8 @@ def get_tx_buttons(transaction: TransactionObject | int, ai_agent=False, collaps
         is_reviewed = transaction.status == "cleared"
         plaid_id = transaction.plaid_account_id
 
+    logger.info(f"Formatting transaction {transaction}: recurring_type={recurring_type}, is_pending={is_pending}, is_reviewed={is_reviewed}, plaid_id={plaid_id}")
+
     kbd = Keyboard()
     if collapsed:
         kbd += ("☷", f"moreOptions_{transaction_id}")
@@ -184,7 +186,7 @@ async def send_transaction_message(
 
     message = format_transaction_message(transaction, tagging, show_datetime)
 
-    logger.info(f"Sending message to chat_id {chat_id}: {message}")
+    logger.info(f"Sending message to chat_id {chat_id} (tx id: {transaction.id}): {message}")
     get_db().inc_metric("sent_transaction_messages")
     if message_id:
         # edit existing message
