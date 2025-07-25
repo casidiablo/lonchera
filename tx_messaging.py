@@ -43,6 +43,9 @@ def _add_expanded_buttons(
     if is_reviewed:
         kbd += ("Unreview", f"unreview_{transaction_id}")
 
+    # Add Refresh button in expanded state
+    kbd += ("Refresh", f"refresh_{transaction_id}")
+
     return kbd
 
 

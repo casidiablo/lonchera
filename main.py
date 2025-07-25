@@ -85,6 +85,9 @@ from handlers.transactions import (
     handle_set_tags,
     poll_transactions_on_schedule,
 )
+import re
+from tx_messaging import send_transaction_message
+from lunch import get_lunch_client_for_chat_id
 from manual_tx import handle_manual_tx, handle_web_app_data
 from telegram_extensions import Update
 from web_server import run_web_server, set_bot_instance, update_bot_status
@@ -176,6 +179,7 @@ def add_application_callback_query_handlers(app):
     app.add_handler(CallbackQueryHandler(handle_rename_payee, pattern=r"^renamePayee_"))
     app.add_handler(CallbackQueryHandler(handle_edit_notes, pattern=r"^editNotes_"))
     app.add_handler(CallbackQueryHandler(handle_set_tags, pattern=r"^setTags_"))
+    app.add_handler(CallbackQueryHandler(handle_refresh_transaction, pattern=r"^refresh_"))
 
     # Budget handlers
     app.add_handler(CallbackQueryHandler(handle_btn_show_budget_categories, pattern=r"^showBudgetCategories_"))
@@ -245,6 +249,32 @@ def load_config():
         "PROMPT_FOR_CATEGORIES": os.getenv("PROMPT_FOR_CATEGORIES", "true").lower() == "true",
     }
 
+
+async def handle_refresh_transaction(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handles the refresh button for a transaction."""
+    query = update.callback_query
+    if not query:
+        return
+
+    chat_id = query.message.chat_id
+    # Extract transaction_id from callback data
+    match = re.match(r"refresh_(\d+)", query.data)
+    if not match:
+        await query.answer("Could not refresh transaction.", show_alert=True)
+        return
+
+    transaction_id = int(match.group(1))
+    lunch = get_lunch_client_for_chat_id(chat_id)
+    transaction = lunch.get_transaction(transaction_id)
+
+    # Re-render the transaction message (edit the current message)
+    await send_transaction_message(
+        context=context,
+        transaction=transaction,
+        chat_id=chat_id,
+        message_id=query.message.message_id,
+    )
+    await query.answer("Transaction refreshed!")
 
 async def main():
     config = load_config()
