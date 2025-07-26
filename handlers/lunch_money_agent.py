@@ -168,6 +168,26 @@ def get_agent_response(
         assume they want to set the transaction's notes and assign a category.
         """
 
+    manual_tx_prompt = """
+    When user tells you they spent money using a specific account, assume they want you to create
+    a manual transaction for that account. Try to infer as much as possible from the user's input.
+
+    For manual transactions:
+    - Only manually-managed accounts support manual transactions
+    - Use get_manual_accounts_balances to see which accounts are available
+    - Use get_categories to see available categories
+    - When adding transactions, expenses must have is_received=False and income must have is_received=True
+    - Date format should be YYYY-MM-DD. ALWAYS try to source the date of the transaction using `parse_date_reference`
+    but make sure the parameters are always in English.
+    - Infer transactions' notes from the user's input, but do not mention the account name in the notes.
+    - Use the add_manual_transaction tool and make sure to provide the right types for it.
+    - Try to infer the category from the user's input.
+    - If no category can be inferred, pass None to the category parameter.
+    - When a category is inferred, MAKE sure it is not a super category
+    """
+    if tx_id:
+        manual_tx_prompt = ""
+
     # Language instruction based on user preference
     language_instruction = ""
     if user_language:
@@ -197,21 +217,7 @@ def get_agent_response(
 
         {tx_prompt}
 
-        When user tells you they spent money using a specific account, assume they want you to create
-        a manual transaction for that account. Try to infer as much as possible from the user's input.
-
-        For manual transactions:
-        - Only manually-managed accounts support manual transactions
-        - Use get_manual_accounts_balances to see which accounts are available
-        - Use get_categories to see available categories
-        - When adding transactions, expenses must have is_received=False and income must have is_received=True
-        - Date format should be YYYY-MM-DD. ALWAYS try to source the date of the transaction using `parse_date_reference`
-        but make sure the parameters are always in English.
-        - Infer transactions' notes from the user's input, but do not mention the account name in the notes.
-        - Use the add_manual_transaction tool and make sure to provide the right types for it.
-        - Try to infer the category from the user's input.
-        - If no category can be inferred, pass None to the category parameter.
-        - When a category is inferred, MAKE sure it is not a super category
+        {manual_tx_prompt}
 
         For date handling:
         - When user mentions dates in any format, use parse_date_reference to convert them to YYYY-MM-DD format

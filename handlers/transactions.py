@@ -492,7 +492,9 @@ async def handle_btn_mark_tx_as_unreviewed(update: Update, context: ContextTypes
     transaction_id = int(update.callback_data_suffix)
     try:
         logger.info(f"Marking transaction {transaction_id} as unreviewed")
-        lunch.update_transaction(transaction_id, TransactionUpdateObject(status=TransactionUpdateObject.StatusEnum.uncleared)) # type: ignore
+        lunch.update_transaction(
+            transaction_id, TransactionUpdateObject(status=TransactionUpdateObject.StatusEnum.uncleared)
+        )  # type: ignore
 
         # update message to show the right buttons
         updated_tx = lunch.get_transaction(transaction_id)
@@ -544,13 +546,13 @@ async def handle_message_reply(update: Update, context: ContextTypes.DEFAULT_TYP
     if message_are_tags:
         tags_without_hashtag = [tag[1:] for tag in msg_text.split(" ") if tag.startswith("#")]
         logger.info(f"Setting tags to transaction ({tx_id}): {tags_without_hashtag}")
-        lunch.update_transaction(tx_id, TransactionUpdateObject(tags=tags_without_hashtag)) # type: ignore
+        lunch.update_transaction(tx_id, TransactionUpdateObject(tags=tags_without_hashtag))  # type: ignore
     else:
         notes = msg_text
         if len(notes) > NOTES_MAX_LENGTH:
             notes = notes[:NOTES_MAX_LENGTH]
         logger.info(f"Setting notes to transaction ({tx_id}): {notes}")
-        lunch.update_transaction(tx_id, TransactionUpdateObject(notes=notes)) # type: ignore
+        lunch.update_transaction(tx_id, TransactionUpdateObject(notes=notes))  # type: ignore
 
     # update the transaction message to show the new notes
     updated_tx = lunch.get_transaction(tx_id)
