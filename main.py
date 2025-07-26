@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import re
 import signal
 
 from dotenv import load_dotenv
@@ -85,11 +86,10 @@ from handlers.transactions import (
     handle_set_tags,
     poll_transactions_on_schedule,
 )
-import re
-from tx_messaging import send_transaction_message
 from lunch import get_lunch_client_for_chat_id
 from manual_tx import handle_manual_tx, handle_web_app_data
 from telegram_extensions import Update
+from tx_messaging import send_transaction_message
 from web_server import run_web_server, set_bot_instance, update_bot_status
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(name)s] %(levelname%s: %(message)s")
@@ -269,12 +269,10 @@ async def handle_refresh_transaction(update: Update, context: ContextTypes.DEFAU
 
     # Re-render the transaction message (edit the current message)
     await send_transaction_message(
-        context=context,
-        transaction=transaction,
-        chat_id=chat_id,
-        message_id=query.message.message_id,
+        context=context, transaction=transaction, chat_id=chat_id, message_id=query.message.message_id
     )
     await query.answer("Transaction refreshed!")
+
 
 async def main():
     config = load_config()

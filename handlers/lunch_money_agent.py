@@ -5,6 +5,7 @@ import time
 import uuid
 
 from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.runnables import RunnableConfig
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
 from pydantic import BaseModel, Field, SecretStr
@@ -144,11 +145,12 @@ def get_agent_response(
     if tx_id:
         get_db().inc_metric("ai_agent_requests_with_tx_context")
 
-    config = {"configurable": {"thread_id": str(uuid.uuid4())}, "recursion_limit": 30}
+    config = RunnableConfig(configurable={"thread_id": str(uuid.uuid4())}, recursion_limit=30)
 
     # Get user's language preference
     settings = get_db().get_current_settings(chat_id)
     user_language = settings.ai_response_language if settings else None
+    user_timezone = settings.timezone if settings else "UTC"
 
     tx_prompt = ""
     if tx_id:
@@ -161,6 +163,9 @@ def get_agent_response(
 
         If user asked you to categorize the transaction, make sure to call get_categories
         to get the right category ID.
+
+        If all the user provides is a random concept like: "milk and honey", or "car payment",
+        assume they want to set the transaction's notes and assign a category.
         """
 
     # Language instruction based on user preference
@@ -187,8 +192,8 @@ def get_agent_response(
         Note that when user asks for how much money they have in cash, you must bias
         towards using `get_manual_accounts_balances`.
 
-        When using tools that require a chat_id, always use this chat_id: {chat_id}
-        Today's date is {datetime.date.today().strftime("%Y-%m-%d")}
+        When using tools that require a chat_id, ALWAYS use this chat_id: {chat_id}
+        Today's date is {datetime.date.today().strftime("%Y-%m-%d")} and the user's timezone is {user_timezone}
 
         {tx_prompt}
 
