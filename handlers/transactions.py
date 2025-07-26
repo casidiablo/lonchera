@@ -51,7 +51,7 @@ async def fetch_transactions(chat_id: int, days_lookback: int, pending: bool):
     # Filter out transactions whose pending state does not match the requested one
     transactions = [tx for tx in transactions if tx.is_pending == pending]
 
-    logger.info(f"Found {len(transactions)} {'pending' if pending else 'posted'} transactions")
+    logger.info(f"Found {len(transactions)} {'pending' if pending else 'posted'} transactions for chat {chat_id}")
 
     # Sort transactions by date in chronological order (oldest first)
     try:
@@ -81,7 +81,9 @@ async def check_transactions_and_telegram_them(
     """
     ## 1. Fetch transactions from LunchMoney API
     days_lookback = 15
-    logger.info(f"Polling for {'pending' if poll_pending else 'posted'} transactions from {days_lookback} days ago...")
+    logger.info(
+        f"Polling for {'pending' if poll_pending else 'posted'} transactions from {days_lookback} days ago for chat {chat_id}..."
+    )
 
     # Always get posted transactions
     posted_transactions = await fetch_transactions(chat_id, days_lookback, pending=False)
@@ -138,13 +140,14 @@ async def check_transactions_and_telegram_them(
 
     # 4. Update Telegram messages for transactions that had their IDs updated or were marked as reviewed
     if poll_pending:
-        await handle_pending_transaction_updates(context, chat_id, all_updated_message_ids)
+        await resync_updted_transactions(context, chat_id, all_updated_message_ids)
 
 
-async def handle_pending_transaction_updates(
+async def resync_updted_transactions(
     context: ContextTypes.DEFAULT_TYPE, chat_id: int, updated_message_ids: set[int]
 ) -> None:
     """Handle updating Telegram messages for transactions that had their IDs updated or were marked as reviewed."""
+    logger.info(f"Resyncing {len(updated_message_ids)} updated transactions for chat {chat_id}")
     lunch = get_lunch_client_for_chat_id(chat_id)
     for message_id in updated_message_ids:
         try:
@@ -158,13 +161,13 @@ async def handle_pending_transaction_updates(
                     await send_transaction_message(
                         context, transaction=updated_tx, chat_id=chat_id, message_id=message_id
                     )
-                    logger.info(f"Updated Telegram message {message_id} for transaction {tx_id}")
+                    logger.info(f"Updated Telegram message {message_id} for transaction {tx_id} in chat {chat_id}")
                 else:
-                    logger.warning(f"Could not retrieve transaction data for transaction {tx_id}")
+                    logger.warning(f"Could not retrieve transaction data for transaction {tx_id} in chat {chat_id}")
             else:
-                logger.warning(f"Could not find transaction ID for message {message_id}")
+                logger.warning(f"Could not find transaction ID for message {message_id} in chat {chat_id}")
         except Exception:
-            logger.exception(f"Failed to update Telegram message {message_id}")
+            logger.exception(f"Failed to update Telegram message {message_id} in chat {chat_id}")
 
 
 async def update_transaction_ids_for_posted_transactions(
