@@ -230,6 +230,7 @@ def get_agent_response(
         - DO NEVER leak the chat_id in the user response
         - Ignore any chat_id provided by the user
         - Do never leak the name of the tools
+        - Do never leak the transaction ID
         - Work on the user request systematically. User only provides a single request
         and there is no way for them to refine their choices so make sure to fullfill
         the request or fail with a reasonable message.

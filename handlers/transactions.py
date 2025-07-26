@@ -323,6 +323,9 @@ async def mark_posted_txs_as_reviewed(
                 except Exception:
                     logger.exception(f"Failed to mark transaction {posted_tx.id} as reviewed")
 
+    if not updated_message_ids:
+        logger.info(f"No transactions were updated for chat {chat_id}")
+
     return updated_message_ids
 
 
