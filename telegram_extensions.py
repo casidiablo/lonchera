@@ -98,6 +98,19 @@ if TYPE_CHECKING:
                 True if successful, False otherwise
             """
             ...
+
+        @property
+        def callback_data_suffix(self) -> str:
+            """
+            Property to safely extract the substring after the first underscore in callback_query.data.
+
+            Returns:
+                The substring after the first underscore in callback_query.data.
+
+            Raises:
+                ValueError: If callback_query, callback_query.data is None, or no substring after '_'.
+            """
+            ...
 else:
     # At runtime, we monkey patch the actual Update class
     def _chat_id_property(self: TelegramUpdate) -> int:
@@ -245,11 +258,31 @@ else:
         else:
             return True
 
+    def _callback_data_suffix_property(self: TelegramUpdate) -> str:
+        """
+        Property to safely extract the substring after the first underscore in callback_query.data.
+
+        Returns:
+            The substring after the first underscore in callback_query.data.
+
+        Raises:
+            ValueError: If callback_query, callback_query.data is None, or no substring after '_'.
+        """
+        if self.callback_query is None or self.callback_query.data is None:
+            raise ValueError("No callback_query or callback_query.data found in update")
+
+        parts = self.callback_query.data.split("_", 1)
+        if not parts[1]:
+            raise ValueError("No substring after '_' in callback_query.data")
+
+        return parts[1]
+
     # Add the property and methods to the Update class
     TelegramUpdate.chat_id = property(_chat_id_property)
     TelegramUpdate.safe_edit_message_text = _safe_edit_message_text
     TelegramUpdate.safe_edit_message_reply_markup = _safe_edit_message_reply_markup
     TelegramUpdate.safe_delete_message = _safe_delete_message
+    TelegramUpdate.callback_data_suffix = property(_callback_data_suffix_property)
 
     # For runtime, Update is just the monkey-patched original class
     Update = TelegramUpdate

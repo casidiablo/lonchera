@@ -267,7 +267,7 @@ async def handle_update_amz_settings(update: Update, context: ContextTypes.DEFAU
         logger.error("Missing query data or user_data")
         return
 
-    ai_categorization_enabled = query.data.split("_")[-1] == "True"
+    ai_categorization_enabled = update.callback_data_suffix == "True"
     export_file = context.user_data.get("amazon_export_file")
     msg_id = query.message.message_id if query.message else None
 

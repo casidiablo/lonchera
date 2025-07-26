@@ -102,7 +102,7 @@ async def handle_schedule_rendering_settings(update: Update, context: ContextTyp
 async def handle_btn_change_poll_interval(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Changes the poll interval for the chat."""
     if update.callback_query and update.callback_query.data and "_" in update.callback_query.data:
-        poll_interval = int(update.callback_query.data.split("_")[1])
+        poll_interval = int(update.callback_data_suffix)
         get_db().update_poll_interval(update.chat_id, poll_interval)
         settings = get_db().get_current_settings(update.chat_id)
         await update.safe_edit_message_text(

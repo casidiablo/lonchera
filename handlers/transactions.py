@@ -347,10 +347,7 @@ async def handle_btn_collapse_transaction(update: Update, _: ContextTypes.DEFAUL
     settings = get_db().get_current_settings(update.chat_id)
     ai_agent = settings.ai_agent if settings else False
 
-    if update.callback_query and update.callback_query.data is None:
-        return
-
-    tx_id = int(update.callback_query.data.split("_")[1])
+    tx_id = int(update.callback_data_suffix)
     await update.safe_edit_message_reply_markup(
         reply_markup=get_tx_buttons(update.chat_id, tx_id, ai_agent=ai_agent, collapsed=True)
     )
@@ -363,11 +360,7 @@ async def handle_btn_cancel_categorization(update: Update, _: ContextTypes.DEFAU
     settings = get_db().get_current_settings(update.chat_id)
     ai_agent = settings.ai_agent if settings else False
 
-    query = update.callback_query
-    if query.data is None:
-        return
-
-    tx_id = int(query.data.split("_")[1])
+    tx_id = int(update.callback_data_suffix)
     await update.safe_edit_message_reply_markup(reply_markup=get_tx_buttons(update.chat_id, tx_id, ai_agent=ai_agent))
 
 
@@ -376,13 +369,9 @@ async def handle_btn_show_categories(update: Update, _: ContextTypes.DEFAULT_TYP
     if update.callback_query is None:
         return
 
-    query = update.callback_query
-    if query.message is None or query.message.chat is None or query.data is None:
-        return
-
     chat_id = update.chat_id
     lunch = get_lunch_client_for_chat_id(chat_id)
-    transaction_id = int(query.data.split("_")[1])
+    transaction_id = int(update.callback_data_suffix)
 
     categories = lunch.get_categories()
     kbd = Keyboard()
@@ -433,14 +422,17 @@ async def handle_btn_apply_category(update: Update, context: ContextTypes.DEFAUL
     chat_id = update.chat_id
 
     transaction_id, category_id = query.data.split("_")[1:]
+    transaction_id = int(transaction_id)
     lunch = get_lunch_client_for_chat_id(chat_id)
 
     settings = get_db().get_current_settings(chat_id)
     if settings.mark_reviewed_after_categorized:
-        lunch.update_transaction(transaction_id, TransactionUpdateObject(category_id=category_id, status="cleared"))
+        update_obj = TransactionUpdateObject(category_id=category_id, status=TransactionUpdateObject.StatusEnum.cleared)  # type: ignore
+        lunch.update_transaction(transaction_id, update_obj)
         get_db().mark_as_reviewed(query.message.message_id, chat_id)
     else:
-        lunch.update_transaction(transaction_id, TransactionUpdateObject(category_id=category_id))
+        update_obj = TransactionUpdateObject(category_id=category_id)  # type: ignore
+        lunch.update_transaction(transaction_id, update_obj)
     logger.info(f"Changed category for tx {transaction_id} to {category_id}")
 
     updated_transaction = lunch.get_transaction(transaction_id)
@@ -450,8 +442,7 @@ async def handle_btn_apply_category(update: Update, context: ContextTypes.DEFAUL
 
 async def handle_btn_dump_plaid_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Sends a new message with the plaid metadata of the transaction."""
-    query = update.callback_query
-    transaction_id = int(query.data.split("_")[1])
+    transaction_id = int(update.callback_data_suffix)
 
     chat_id = update.chat_id
     lunch = get_lunch_client_for_chat_id(chat_id)
@@ -460,9 +451,10 @@ async def handle_btn_dump_plaid_details(update: Update, context: ContextTypes.DE
     plaid_metadata = transaction.plaid_metadata
     plaid_details = "*Plaid Metadata*\n\n"
     plaid_details += f"*Transaction ID:* {transaction_id}\n"
-    for key, value in plaid_metadata.items():
-        if value is not None:
-            plaid_details += f"*{key}:* `{value}`\n"
+    if plaid_metadata:
+        for key, value in plaid_metadata.items():
+            if value is not None:
+                plaid_details += f"*{key}:* `{value}`\n"
 
     await send_plaid_details(update, context, chat_id, transaction_id, plaid_details)
 
@@ -470,9 +462,11 @@ async def handle_btn_dump_plaid_details(update: Update, context: ContextTypes.DE
 async def handle_btn_mark_tx_as_reviewed(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Updates the transaction status to reviewed."""
     query = update.callback_query
+    if query is None or query.message is None:
+        return
     chat_id = update.chat_id
     lunch = get_lunch_client_for_chat_id(chat_id)
-    transaction_id = int(query.data.split("_")[1])
+    transaction_id = int(update.callback_data_suffix)
     try:
         lunch.update_transaction(transaction_id, TransactionUpdateObject(status="cleared"))  # type: ignore
 
@@ -490,12 +484,15 @@ async def handle_btn_mark_tx_as_reviewed(update: Update, context: ContextTypes.D
 async def handle_btn_mark_tx_as_unreviewed(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Updates the transaction status to unreviewed."""
     query = update.callback_query
+    if query is None or query.message is None:
+        return
+
     chat_id = update.chat_id
     lunch = get_lunch_client_for_chat_id(chat_id)
-    transaction_id = int(query.data.split("_")[1])
+    transaction_id = int(update.callback_data_suffix)
     try:
         logger.info(f"Marking transaction {transaction_id} as unreviewed")
-        lunch.update_transaction(transaction_id, TransactionUpdateObject(status="uncleared"))
+        lunch.update_transaction(transaction_id, TransactionUpdateObject(status=TransactionUpdateObject.StatusEnum.uncleared)) # type: ignore
 
         # update message to show the right buttons
         updated_tx = lunch.get_transaction(transaction_id)
@@ -520,7 +517,7 @@ async def handle_message_reply(update: Update, context: ContextTypes.DEFAULT_TYP
         # If AI Agent is enabled, we just pass the message to the AI handler
         return await handle_generic_message_with_ai(update, context)
 
-    replying_to_msg_id = update.message.reply_to_message.message_id
+    replying_to_msg_id = update.message.reply_to_message.message_id if update.message.reply_to_message else -1
     tx_id = get_db().get_tx_associated_with(replying_to_msg_id, chat_id)
 
     if tx_id is None:
@@ -536,7 +533,7 @@ async def handle_message_reply(update: Update, context: ContextTypes.DEFAULT_TYP
         )
         return
 
-    msg_text = update.message.text
+    msg_text = update.message.text or ""
     message_are_tags = True
     for word in msg_text.split(" "):
         if not word.startswith("#"):
@@ -547,13 +544,13 @@ async def handle_message_reply(update: Update, context: ContextTypes.DEFAULT_TYP
     if message_are_tags:
         tags_without_hashtag = [tag[1:] for tag in msg_text.split(" ") if tag.startswith("#")]
         logger.info(f"Setting tags to transaction ({tx_id}): {tags_without_hashtag}")
-        lunch.update_transaction(tx_id, TransactionUpdateObject(tags=tags_without_hashtag))
+        lunch.update_transaction(tx_id, TransactionUpdateObject(tags=tags_without_hashtag)) # type: ignore
     else:
         notes = msg_text
         if len(notes) > NOTES_MAX_LENGTH:
             notes = notes[:NOTES_MAX_LENGTH]
         logger.info(f"Setting notes to transaction ({tx_id}): {notes}")
-        lunch.update_transaction(tx_id, TransactionUpdateObject(notes=notes))
+        lunch.update_transaction(tx_id, TransactionUpdateObject(notes=notes)) # type: ignore
 
     # update the transaction message to show the new notes
     updated_tx = lunch.get_transaction(tx_id)
@@ -569,12 +566,12 @@ async def handle_message_reply(update: Update, context: ContextTypes.DEFAULT_TYP
 
 
 async def handle_btn_ai_categorize(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    tx_id = int(query.data.split("_")[1])
+    tx_id = int(update.callback_data_suffix)
 
     chat_id = update.chat_id
     response = auto_categorize(tx_id, chat_id)
-    await update.callback_query.answer(text=response, show_alert=True)
+    if update.callback_query:
+        await update.callback_query.answer(text=response, show_alert=True)
 
     # update the transaction message to show the new notes
     lunch = get_lunch_client_for_chat_id(chat_id)
@@ -638,20 +635,17 @@ async def handle_expand_tx_options(update: Update, _: ContextTypes.DEFAULT_TYPE)
     settings = get_db().get_current_settings(update.chat_id)
     ai_agent = settings.ai_agent if settings else False
 
-    if update.callback_query and update.callback_query.data is None:
-        return
-
-    tx_id = int(update.callback_query.data.split("_")[1])
+    tx_id = int(update.callback_data_suffix)
     await update.safe_edit_message_reply_markup(
         reply_markup=get_tx_buttons(update.chat_id, tx_id, ai_agent=ai_agent, collapsed=False)
     )
 
 
 async def handle_rename_payee(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.callback_query or not update.callback_query.data or not update.callback_query.message:
+    if not update.callback_query or not update.callback_query.message:
         return
 
-    transaction_id = int(update.callback_query.data.split("_")[1])
+    transaction_id = int(update.callback_data_suffix)
     await update.callback_query.answer()
     await context.bot.send_message(
         chat_id=update.chat_id,
@@ -670,10 +664,10 @@ async def handle_rename_payee(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 
 async def handle_edit_notes(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.callback_query or not update.callback_query.data or not update.callback_query.message:
+    if not update.callback_query or not update.callback_query.message:
         return
 
-    transaction_id = int(update.callback_query.data.split("_")[1])
+    transaction_id = int(update.callback_data_suffix)
     await update.callback_query.answer()
     await context.bot.send_message(
         chat_id=update.chat_id,
@@ -697,10 +691,10 @@ async def handle_edit_notes(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def handle_set_tags(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.callback_query or not update.callback_query.data or not update.callback_query.message:
+    if not update.callback_query or not update.callback_query.message:
         return
 
-    transaction_id = int(update.callback_query.data.split("_")[1])
+    transaction_id = int(update.callback_data_suffix)
     await update.callback_query.answer()
     await context.bot.send_message(
         chat_id=update.chat_id,

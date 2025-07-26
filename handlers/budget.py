@@ -52,7 +52,7 @@ async def handle_show_budget(update: Update, context: ContextTypes.DEFAULT_TYPE)
     """Sends a message with the current budget."""
     message_id = None
     if update.callback_query and update.callback_query.data:
-        budget_date = update.callback_query.data.split("_")[1]
+        budget_date = update.callback_data_suffix
         budget_date, budget_end_date = get_budget_range_from(datetime.fromisoformat(budget_date))
         if update.callback_query.message:
             message_id = update.callback_query.message.message_id
@@ -71,10 +71,7 @@ async def handle_show_budget(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 async def handle_btn_show_budget_categories(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Updates the message to show the budget categories available."""
-    if not update.callback_query or not update.callback_query.data or not update.callback_query.message:
-        return
-
-    budget_date = update.callback_query.data.split("_")[1]
+    budget_date = update.callback_data_suffix
     budget_date = datetime.fromisoformat(budget_date)
 
     lunch = get_lunch_client_for_chat_id(update.chat_id)
@@ -87,10 +84,7 @@ async def handle_btn_show_budget_categories(update: Update, context: ContextType
 
 async def handle_btn_hide_budget_categories(update: Update, _: ContextTypes.DEFAULT_TYPE):
     """Updates the message to hide the budget categories."""
-    if not update.callback_query or not update.callback_query.data or not update.callback_query.message:
-        return
-
-    budget_date = update.callback_query.data.split("_")[1]
+    budget_date = update.callback_data_suffix
     budget_date = datetime.fromisoformat(budget_date)
 
     lunch = get_lunch_client_for_chat_id(update.chat_id)
@@ -106,7 +100,7 @@ async def handle_btn_show_budget_for_category(update: Update, _: ContextTypes.DE
     if not update.callback_query or not update.callback_query.data or not update.callback_query.message:
         return
 
-    parts = update.callback_query.data.split("_")
+    parts = update.callback_data_suffix
     budget_date = parts[1]
     budget_date = datetime.fromisoformat(budget_date)
     category_id = int(parts[2])

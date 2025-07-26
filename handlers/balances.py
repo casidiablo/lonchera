@@ -179,7 +179,7 @@ async def handle_btn_accounts_balances(update: Update, context: ContextTypes.DEF
     if not update.callback_query or not update.callback_query.data:
         return
 
-    mask = int(update.callback_query.data.split("_")[1])
+    mask = int(update.callback_data_suffix)
     if not is_show_balances(mask) and not is_show_assets(mask) and not is_show_crypto(mask):
         # do not allow to hide all of them
         return await update.callback_query.answer()
