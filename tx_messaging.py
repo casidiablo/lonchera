@@ -49,9 +49,7 @@ def _add_expanded_buttons(
     return kbd
 
 
-def get_tx_buttons(
-    chat_id: int, transaction: TransactionObject | int, ai_agent=False, collapsed=True
-) -> InlineKeyboardMarkup:
+def get_tx_buttons(chat_id: int, transaction: TransactionObject | int, collapsed=True) -> InlineKeyboardMarkup:
     """Returns a list of buttons to be displayed for a transaction."""
     # if transaction is an int, it's a transaction_id, so we fetch it from the API
     if isinstance(transaction, int):
@@ -59,6 +57,10 @@ def get_tx_buttons(
         # assume the transaction is persisted if a transaction_id is provided
         tx_id = transaction
         transaction = lunch.get_transaction(tx_id)
+
+    # Fetch settings and ai_agent value
+    settings = get_db().get_current_settings(chat_id)
+    ai_agent = settings.ai_agent if settings else False
 
     tx_id = transaction.id
     is_pending = transaction.is_pending
@@ -186,7 +188,6 @@ async def send_transaction_message(
     # Ensure settings fields are bool, not SQLAlchemy Columns
     show_datetime = settings.show_datetime if settings else True
     tagging = settings.tagging if settings else True
-    ai_agent = settings.ai_agent if settings else False
 
     message = format_transaction_message(transaction, tagging, show_datetime)
 
@@ -200,7 +201,7 @@ async def send_transaction_message(
                 message_id=message_id,
                 text=message,
                 parse_mode=ParseMode.MARKDOWN,
-                reply_markup=get_tx_buttons(int(chat_id), transaction.id, ai_agent=ai_agent),
+                reply_markup=get_tx_buttons(int(chat_id), transaction.id),
             )
         except Exception as e:
             if "Message is not modified" in str(e):
@@ -213,7 +214,7 @@ async def send_transaction_message(
             chat_id=chat_id,
             text=message,
             parse_mode=ParseMode.MARKDOWN,
-            reply_markup=get_tx_buttons(int(chat_id), transaction, ai_agent=ai_agent),
+            reply_markup=get_tx_buttons(int(chat_id), transaction),
             reply_to_message_id=reply_to_message_id,
         )
         return msg.id

@@ -350,24 +350,16 @@ async def handle_btn_skip_transaction(update: Update, _: ContextTypes.DEFAULT_TY
 
 
 async def handle_btn_collapse_transaction(update: Update, _: ContextTypes.DEFAULT_TYPE):
-    settings = get_db().get_current_settings(update.chat_id)
-    ai_agent = settings.ai_agent if settings else False
-
     tx_id = int(update.callback_data_suffix)
-    await update.safe_edit_message_reply_markup(
-        reply_markup=get_tx_buttons(update.chat_id, tx_id, ai_agent=ai_agent, collapsed=True)
-    )
+    await update.safe_edit_message_reply_markup(reply_markup=get_tx_buttons(update.chat_id, tx_id, collapsed=True))
 
 
 async def handle_btn_cancel_categorization(update: Update, _: ContextTypes.DEFAULT_TYPE):
     if update.callback_query is None:
         return
 
-    settings = get_db().get_current_settings(update.chat_id)
-    ai_agent = settings.ai_agent if settings else False
-
     tx_id = int(update.callback_data_suffix)
-    await update.safe_edit_message_reply_markup(reply_markup=get_tx_buttons(update.chat_id, tx_id, ai_agent=ai_agent))
+    await update.safe_edit_message_reply_markup(reply_markup=get_tx_buttons(update.chat_id, tx_id))
 
 
 async def handle_btn_show_categories(update: Update, _: ContextTypes.DEFAULT_TYPE):
@@ -639,13 +631,8 @@ async def poll_transactions_on_schedule(context: ContextTypes.DEFAULT_TYPE):
 
 
 async def handle_expand_tx_options(update: Update, _: ContextTypes.DEFAULT_TYPE):
-    settings = get_db().get_current_settings(update.chat_id)
-    ai_agent = settings.ai_agent if settings else False
-
     tx_id = int(update.callback_data_suffix)
-    await update.safe_edit_message_reply_markup(
-        reply_markup=get_tx_buttons(update.chat_id, tx_id, ai_agent=ai_agent, collapsed=False)
-    )
+    await update.safe_edit_message_reply_markup(reply_markup=get_tx_buttons(update.chat_id, tx_id, collapsed=False))
 
 
 async def handle_rename_payee(update: Update, context: ContextTypes.DEFAULT_TYPE):
