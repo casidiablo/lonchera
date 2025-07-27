@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import os
-import re
 import signal
 
 from dotenv import load_dotenv
@@ -252,26 +251,19 @@ def load_config():
 
 async def handle_refresh_transaction(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handles the refresh button for a transaction."""
-    query = update.callback_query
-    if not query:
-        return
-
-    chat_id = query.message.chat_id
-    # Extract transaction_id from callback data
-    match = re.match(r"refresh_(\d+)", query.data)
-    if not match:
-        await query.answer("Could not refresh transaction.", show_alert=True)
-        return
-
-    transaction_id = int(match.group(1))
+    chat_id = update.chat_id
     lunch = get_lunch_client_for_chat_id(chat_id)
+
+    transaction_id = int(update.callback_data_suffix)
     transaction = lunch.get_transaction(transaction_id)
 
     # Re-render the transaction message (edit the current message)
     await send_transaction_message(
-        context=context, transaction=transaction, chat_id=chat_id, message_id=query.message.message_id
+        context=context, transaction=transaction, chat_id=chat_id, message_id=update.message_id
     )
-    await query.answer("Transaction refreshed!")
+    if not update.callback_query:
+        return
+    await update.callback_query.answer("Transaction refreshed!")
 
 
 async def main():
@@ -337,9 +329,3 @@ async def main():
 if __name__ == "__main__":
     logger.info("Starting Lonchera bot...")
     asyncio.run(main())
-
-# TODO
-# - Have the bot pin a message containing important info:
-#  - Current networth
-#  - current debt
-#  - next recurring charges

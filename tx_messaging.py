@@ -241,4 +241,4 @@ async def send_plaid_details(
     lunch = get_lunch_client_for_chat_id(chat_id)
     transaction = lunch.get_transaction(transaction_id)
 
-    await update.safe_edit_message_reply_markup(reply_markup=get_tx_buttons(transaction))
+    await update.safe_edit_message_reply_markup(reply_markup=get_tx_buttons(chat_id, transaction))

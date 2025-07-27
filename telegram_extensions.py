@@ -111,6 +111,19 @@ if TYPE_CHECKING:
                 ValueError: If callback_query, callback_query.data is None, or no substring after '_'.
             """
             ...
+
+        @property
+        def message_id(self) -> int:
+            """
+            Property to safely extract the message ID from a Telegram update.
+
+            Returns:
+                The chat ID as an integer
+
+            Raises:
+                ValueError: if callback_query or any other required attribute is None.
+            """
+            ...
 else:
     # At runtime, we monkey patch the actual Update class
     def _chat_id_property(self: TelegramUpdate) -> int:
@@ -277,12 +290,32 @@ else:
 
         return parts[1]
 
+    def _message_id_property(self: TelegramUpdate) -> int:
+        """
+        Property to safely extract the message ID from a Telegram update's callback query.
+
+        Returns:
+            The message ID as an integer
+
+        Raises:
+            ValueError: If callback_query or message is None, or message_id is not available
+        """
+        if self.callback_query is None or self.callback_query.message is None:
+            raise ValueError("No callback_query or message found in update")
+
+        message_id = self.callback_query.message.message_id
+        if message_id is None:
+            raise ValueError("Message ID is None")
+
+        return message_id
+
     # Add the property and methods to the Update class
     TelegramUpdate.chat_id = property(_chat_id_property)
     TelegramUpdate.safe_edit_message_text = _safe_edit_message_text
     TelegramUpdate.safe_edit_message_reply_markup = _safe_edit_message_reply_markup
     TelegramUpdate.safe_delete_message = _safe_delete_message
     TelegramUpdate.callback_data_suffix = property(_callback_data_suffix_property)
+    TelegramUpdate.message_id = property(_message_id_property)
 
     # For runtime, Update is just the monkey-patched original class
     Update = TelegramUpdate

@@ -499,8 +499,9 @@ async def handle_btn_mark_tx_as_unreviewed(update: Update, context: ContextTypes
     try:
         logger.info(f"Marking transaction {transaction_id} as unreviewed")
         lunch.update_transaction(
-            transaction_id, TransactionUpdateObject(status=TransactionUpdateObject.StatusEnum.uncleared)
-        )  # type: ignore
+            transaction_id,
+            TransactionUpdateObject(status=TransactionUpdateObject.StatusEnum.uncleared),  # type: ignore
+        )
 
         # update message to show the right buttons
         updated_tx = lunch.get_transaction(transaction_id)
@@ -584,9 +585,7 @@ async def handle_btn_ai_categorize(update: Update, context: ContextTypes.DEFAULT
     # update the transaction message to show the new notes
     lunch = get_lunch_client_for_chat_id(chat_id)
     updated_tx = lunch.get_transaction(tx_id)
-    await send_transaction_message(
-        context, transaction=updated_tx, chat_id=chat_id, message_id=update.callback_query.message.message_id
-    )
+    await send_transaction_message(context, transaction=updated_tx, chat_id=chat_id, message_id=update.message_id)
 
 
 async def poll_transactions_on_schedule(context: ContextTypes.DEFAULT_TYPE):
