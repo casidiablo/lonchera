@@ -136,7 +136,6 @@ async def check_transactions_and_telegram_them(
             msg_id,
             transaction.recurring_type,
             plaid_id=(transaction.plaid_metadata.get("transaction_id", None) if transaction.plaid_metadata else None),
-            pending=transaction.is_pending or False,
         )
 
     # 4. Update Telegram messages for transactions that had their IDs updated or were marked as reviewed
@@ -328,10 +327,6 @@ async def mark_posted_txs_as_reviewed(
                 posted_tx.id,
                 TransactionUpdateObject(status=TransactionUpdateObject.StatusEnum.cleared),  # type: ignore
             )
-
-            # update transaction record in the db and the Telegram message
-            # Update pending status to False as it's now posted
-            get_db().update_pending_status(posted_tx.id, False)
 
             # Also mark as reviewed in the db
             get_db().mark_as_reviewed_by_tx_id(posted_tx.id, chat_id)

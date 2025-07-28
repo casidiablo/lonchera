@@ -28,9 +28,6 @@ class Transaction(Base):
     # The ID of the Telegram chat where the transaction was sent
     chat_id: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    # Indicates whether the transaction is pending or not
-    pending: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-
     # The timestamp when the transaction was created in the database
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), nullable=False)
 
@@ -141,7 +138,6 @@ class Persistence:
         recurring_type: str | None,
         reviewed=False,
         plaid_id: str | None = None,
-        pending=False,
     ) -> None:
         logger.info(f"Marking transaction {tx_id} as sent with message ID {message_id}")
         with self.Session() as session:
@@ -149,7 +145,6 @@ class Persistence:
                 message_id=message_id,
                 tx_id=tx_id,
                 chat_id=chat_id,
-                pending=pending,
                 recurring_type=recurring_type,
                 reviewed_at=datetime.now() if reviewed else None,
                 plaid_id=plaid_id,
@@ -214,13 +209,6 @@ class Persistence:
                 .where((Transaction.message_id == message_id) & (Transaction.chat_id == chat_id))
                 .values(reviewed_at=None)
             )
-            session.execute(stmt)
-            session.commit()
-
-    def update_pending_status(self, tx_id: int, pending: bool) -> None:
-        """Update the pending status of a transaction by its Lunch Money tx_id."""
-        with self.Session() as session:
-            stmt = update(Transaction).where(Transaction.tx_id == tx_id).values(pending=pending)
             session.execute(stmt)
             session.commit()
 
@@ -411,7 +399,7 @@ class Persistence:
             return session.query(Transaction).count()
 
     def get_sent_transactions(self, chat_id: int, since: datetime | None = None) -> list[Transaction]:
-        """Get all previously sent pending transactions for a specific chat from a given date (defaults to last 3 months)."""
+        """Get all previously sent transactions for a specific chat from a given date (defaults to last 3 months)."""
         with self.Session() as session:
             if since is None:
                 since = datetime.now() - timedelta(days=90)  # Set default since date to 90 days ago
