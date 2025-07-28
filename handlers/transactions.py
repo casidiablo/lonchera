@@ -148,6 +148,9 @@ async def resync_updted_transactions(
     context: ContextTypes.DEFAULT_TYPE, chat_id: int, updated_message_ids: set[int]
 ) -> None:
     """Handle updating Telegram messages for transactions that had their IDs updated or were marked as reviewed."""
+    if not updated_message_ids:
+        return
+
     logger.info(f"Resyncing {len(updated_message_ids)} updated transactions for chat {chat_id}")
     lunch = get_lunch_client_for_chat_id(chat_id)
     for message_id in updated_message_ids:
@@ -212,10 +215,11 @@ async def update_transaction_ids_for_posted_transactions(
     updated_message_ids = []
 
     # Get all previously sent pending transactions for this chat
-    sent_txs = get_db().get_sent_transactions(chat_id)
+    two_weeks_ago = datetime.now() - timedelta(days=14)
+    sent_txs = get_db().get_sent_transactions(chat_id, since=two_weeks_ago) or []
 
     if not sent_txs:
-        logger.info(f"No sent transactions found for chat {chat_id}")
+        logger.info(f"No sent transactions found for chat {chat_id} in the last two weeks")
         return updated_message_ids
 
     logger.info(f"Found {len(sent_txs)} sent transactions to check in chat {chat_id}")
@@ -277,7 +281,11 @@ async def mark_posted_txs_as_reviewed(
     updated_message_ids = []
 
     # Get all previously sent pending transactions
-    sent_txs = get_db().get_sent_transactions(chat_id) or []
+    two_weeks_ago = datetime.now() - timedelta(days=14)
+    sent_txs = get_db().get_sent_transactions(chat_id, since=two_weeks_ago) or []
+    if not sent_txs:
+        logger.info(f"No sent transactions found for chat {chat_id} in the last two weeks")
+        return []
 
     logger.info(f"Found {len(sent_txs)} previously sent transactions for {chat_id}")
 
@@ -306,7 +314,7 @@ async def mark_posted_txs_as_reviewed(
 
         tx_to_process[sent_tx] = posted_tx
 
-    logger.info(f"Found {len(tx_to_process)} transactions to process in chat {chat_id}")
+    logger.info(f"Found {len(tx_to_process)} transactions to mark as reviewed in chat {chat_id}")
 
     # Check each sent transaction
     for sent_tx, posted_tx in tx_to_process:

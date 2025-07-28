@@ -415,7 +415,9 @@ class Persistence:
         with self.Session() as session:
             if since is None:
                 since = datetime.now() - timedelta(days=90)  # Set default since date to 90 days ago
-            return session.query(Transaction).filter(Transaction.created_at >= since).all()
+            return (
+                session.query(Transaction).filter(Transaction.chat_id == chat_id, Transaction.created_at >= since).all()
+            )
 
     def update_transaction_ids_by_plaid_id(self, old_plaid_id: str, new_tx_id: int, new_plaid_id: str | None) -> bool:
         """Update transaction tx_id and plaid_id by matching old plaid_id."""
