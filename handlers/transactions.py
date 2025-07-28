@@ -135,6 +135,7 @@ async def check_transactions_and_telegram_them(
             chat_id,
             msg_id,
             transaction.recurring_type,
+            reviewed=transaction.status == "cleared",
             plaid_id=(transaction.plaid_metadata.get("transaction_id", None) if transaction.plaid_metadata else None),
         )
 
