@@ -90,7 +90,8 @@ async def check_transactions_and_telegram_them(
 
     # Get pending transactions if requested
     if poll_pending:
-        transactions_to_process = await fetch_transactions(chat_id, days_lookback, pending=True)
+        pending_transactions = await fetch_transactions(chat_id, days_lookback, pending=True)
+        transactions_to_process = pending_transactions + posted_transactions
     else:
         transactions_to_process = posted_transactions
 
@@ -116,7 +117,7 @@ async def check_transactions_and_telegram_them(
         lunch = get_lunch_client_for_chat_id(chat_id)
         for transaction in transactions_to_process:
             # Auto-mark as reviewed for posted transactions if enabled
-            if settings.auto_mark_reviewed:
+            if settings.auto_mark_reviewed and transaction.status == "uncleared":
                 lunch.update_transaction(
                     transaction.id,
                     TransactionUpdateObject(status=TransactionUpdateObject.StatusEnum.cleared),  # type: ignore
