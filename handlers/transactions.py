@@ -273,62 +273,68 @@ async def mark_posted_txs_as_reviewed(
         list[int]: List of Telegram message IDs that were updated for reviewed transactions
     """
     lunch = get_lunch_client_for_chat_id(chat_id)
-    logger.info(f"Checking if any previously sent pending transactions are now posted for {chat_id}...")
+    logger.info(f"Checking if any previously sent transactions are now posted for {chat_id}...")
     updated_message_ids = []
 
     # Get all previously sent pending transactions
-    sent_txs = get_db().get_sent_pending_transactions(chat_id)
+    sent_txs = get_db().get_sent_transactions(chat_id) or []
 
-    if sent_txs:
-        logger.info(f"Found {len(sent_txs)} previously sent transactions for {chat_id}")
+    logger.info(f"Found {len(sent_txs)} previously sent transactions for {chat_id}")
 
-        # Print basic info for each posted transaction
-        for tx in posted_transactions:
-            logger.debug(
-                f"Posted Transaction: ID={tx.id}, Date={tx.date}, Amount={tx.amount}, Status={tx.status}, Payee={tx.payee}"
+    # Print basic info for each posted transaction
+    for tx in posted_transactions:
+        logger.debug(
+            f"Posted Transaction: ID={tx.id}, Date={tx.date}, Amount={tx.amount}, Status={tx.status}, Payee={tx.payee}"
+        )
+
+    # Create lookup dictionaries for efficient matching
+    posted_by_id = {tx.id: tx for tx in posted_transactions}
+
+    # Create a map of still pending "sent tx messages" to posted_tx object
+    tx_to_process = {}
+    for sent_tx in sent_txs:
+        posted_tx = None
+
+        # First try to match by transaction ID
+        if sent_tx.tx_id in posted_by_id:
+            posted_tx = posted_by_id[sent_tx.tx_id]
+        else:
+            continue
+
+        if not posted_tx or not sent_tx.pending:
+            continue
+
+        tx_to_process[sent_tx] = posted_tx
+
+    logger.info(f"Found {len(tx_to_process)} transactions to process in chat {chat_id}")
+
+    # Check each sent transaction
+    for sent_tx, posted_tx in tx_to_process:
+        # Mark the found transaction as reviewed (transactions are pre-filtered to uncleared only)
+        logger.info(
+            f"Checking sent transaction {sent_tx.id} against posted transaction {posted_tx.id} with status {posted_tx.status}"
+        )
+        logger.info(f"Marking previously sent transaction {posted_tx.id} as reviewed")
+        try:
+            lunch.update_transaction(
+                posted_tx.id,
+                TransactionUpdateObject(status=TransactionUpdateObject.StatusEnum.cleared),  # type: ignore
             )
 
-        # Create lookup dictionaries for efficient matching
-        posted_by_id = {tx.id: tx for tx in posted_transactions}
+            # update transaction record in the db and the Telegram message
+            # Update pending status to False as it's now posted
+            get_db().update_pending_status(posted_tx.id, False)
 
-        # Check each sent pending transaction
-        for sent_tx in sent_txs:
-            posted_tx = None
+            # Also mark as reviewed in the db
+            get_db().mark_as_reviewed_by_tx_id(posted_tx.id, chat_id)
 
-            # First try to match by transaction ID
-            if sent_tx.tx_id in posted_by_id:
-                posted_tx = posted_by_id[sent_tx.tx_id]
-            else:
-                continue
-
-            if not posted_tx or sent_tx.pending is False:
-                continue
-
-            # Mark the found transaction as reviewed (transactions are pre-filtered to uncleared only)
-            logger.info(
-                f"Checking sent transaction {sent_tx.id} against posted transaction {posted_tx.id} with status {posted_tx.status}"
-            )
-            logger.info(f"Marking previously sent transaction {posted_tx.id} as reviewed")
-            try:
-                lunch.update_transaction(
-                    posted_tx.id,
-                    TransactionUpdateObject(status=TransactionUpdateObject.StatusEnum.cleared),  # type: ignore
-                )
-
-                # update transaction record in the db and the Telegram message
-                # Update pending status to False as it's now posted
-                get_db().update_pending_status(posted_tx.id, False)
-
-                # Also mark as reviewed in the db
-                get_db().mark_as_reviewed_by_tx_id(posted_tx.id, chat_id)
-
-                updated_tx = lunch.get_transaction(posted_tx.id)
-                msg_id = get_db().get_message_id_associated_with(posted_tx.id, chat_id)
-                await send_transaction_message(context, transaction=updated_tx, chat_id=chat_id, message_id=msg_id)
-                if msg_id:
-                    updated_message_ids.append(msg_id)
-            except Exception:
-                logger.exception(f"Failed to mark transaction {posted_tx.id} as reviewed")
+            updated_tx = lunch.get_transaction(posted_tx.id)
+            msg_id = get_db().get_message_id_associated_with(posted_tx.id, chat_id)
+            await send_transaction_message(context, transaction=updated_tx, chat_id=chat_id, message_id=msg_id)
+            if msg_id:
+                updated_message_ids.append(msg_id)
+        except Exception:
+            logger.exception(f"Failed to mark transaction {posted_tx.id} as reviewed")
 
     if not updated_message_ids:
         logger.info(f"No transactions were updated for chat {chat_id}")

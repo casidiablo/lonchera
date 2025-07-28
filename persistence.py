@@ -410,28 +410,12 @@ class Persistence:
         with self.Session() as session:
             return session.query(Transaction).count()
 
-    def get_sent_pending_transactions(self, chat_id: int, since: datetime | None = None) -> list[Transaction]:
-        """Get all previously sent pending transactions for a specific chat from a given date (defaults to last 3 months)."""
-        with self.Session() as session:
-            if since is None:
-                since = datetime.now() - timedelta(days=90)  # Set default since date to 90 days ago
-            return (
-                session.query(Transaction)
-                .filter_by(chat_id=chat_id, pending=True)
-                .filter(Transaction.created_at >= since)
-                .all()
-            )
-
     def get_sent_transactions(self, chat_id: int, since: datetime | None = None) -> list[Transaction]:
         """Get all previously sent pending transactions for a specific chat from a given date (defaults to last 3 months)."""
         with self.Session() as session:
             if since is None:
                 since = datetime.now() - timedelta(days=90)  # Set default since date to 90 days ago
-            return (
-                session.query(Transaction)
-                .filter(Transaction.created_at >= since)
-                .all()
-            )
+            return session.query(Transaction).filter(Transaction.created_at >= since).all()
 
     def update_transaction_ids_by_plaid_id(self, old_plaid_id: str, new_tx_id: int, new_plaid_id: str | None) -> bool:
         """Update transaction tx_id and plaid_id by matching old plaid_id."""
