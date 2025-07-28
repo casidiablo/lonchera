@@ -363,6 +363,7 @@ async def handle_ai_response(update: Update, context: ContextTypes.DEFAULT_TYPE,
                 tx.recurring_type,
                 reviewed=True,
                 plaid_id=None,  # this is a manual transaction
+                pending=tx.is_pending or False,
             )
 
     if response.transaction_updated_ids:

@@ -26,7 +26,7 @@ logger = logging.getLogger("tx_handler")
 # Use plaid's authorized_datetime if available for more precise sorting
 def get_transaction_datetime(t):
     if t.plaid_metadata and "authorized_datetime" in t.plaid_metadata and t.plaid_metadata["authorized_datetime"]:
-        return datetime.fromisoformat(t.plaid_metadata["authorized_datetime"].replace("Z", "+00:00"))
+        return datetime.fromisoformat(t.plaid_metadata["authorized_datetime"])
     return datetime.combine(t.date, datetime.min.time()).replace(tzinfo=UTC)
 
 
@@ -136,6 +136,7 @@ async def check_transactions_and_telegram_them(
             msg_id,
             transaction.recurring_type,
             plaid_id=(transaction.plaid_metadata.get("transaction_id", None) if transaction.plaid_metadata else None),
+            pending=transaction.is_pending or False,
         )
 
     # 4. Update Telegram messages for transactions that had their IDs updated or were marked as reviewed
@@ -211,13 +212,13 @@ async def update_transaction_ids_for_posted_transactions(
     updated_message_ids = []
 
     # Get all previously sent pending transactions for this chat
-    sent_pending_txs = get_db().get_sent_pending_transactions(chat_id)
+    sent_txs = get_db().get_sent_transactions(chat_id)
 
-    if not sent_pending_txs:
-        logger.info(f"No sent pending transactions found for chat {chat_id}")
+    if not sent_txs:
+        logger.info(f"No sent transactions found for chat {chat_id}")
         return updated_message_ids
 
-    logger.info(f"Found {len(sent_pending_txs)} sent pending transactions to check")
+    logger.info(f"Found {len(sent_txs)} sent transactions to check in chat {chat_id}")
 
     # Create a mapping of pending_transaction_id to posted transaction for efficient lookup
     posted_by_pending_id = {}
@@ -226,11 +227,12 @@ async def update_transaction_ids_for_posted_transactions(
             pending_id = posted_tx.plaid_metadata["pending_transaction_id"]
             posted_by_pending_id[pending_id] = posted_tx
 
-    logger.debug(f"Found {len(posted_by_pending_id)} posted transactions with pending_transaction_id")
+    logger.info(f"Found {len(posted_by_pending_id)} posted transactions with pending_transaction_id in chat {chat_id}")
 
     # Check each sent pending transaction to see if it needs to be updated
-    for sent_tx in sent_pending_txs:
+    for sent_tx in sent_txs:
         if not sent_tx.plaid_id:
+            logger.debug(f"Skipping sent pending transaction {sent_tx.tx_id} without plaid_id in chat {chat_id}")
             continue
 
         # Look for a posted transaction that has this transaction's plaid_id as pending_transaction_id
@@ -275,14 +277,14 @@ async def mark_posted_txs_as_reviewed(
     updated_message_ids = []
 
     # Get all previously sent pending transactions
-    sent_pending_txs = get_db().get_sent_pending_transactions(chat_id)
+    sent_txs = get_db().get_sent_pending_transactions(chat_id)
 
-    if sent_pending_txs:
-        logger.info(f"Found {len(sent_pending_txs)} previously sent pending transactions for {chat_id}")
+    if sent_txs:
+        logger.info(f"Found {len(sent_txs)} previously sent transactions for {chat_id}")
 
         # Print basic info for each posted transaction
         for tx in posted_transactions:
-            logger.info(
+            logger.debug(
                 f"Posted Transaction: ID={tx.id}, Date={tx.date}, Amount={tx.amount}, Status={tx.status}, Payee={tx.payee}"
             )
 
@@ -290,7 +292,7 @@ async def mark_posted_txs_as_reviewed(
         posted_by_id = {tx.id: tx for tx in posted_transactions}
 
         # Check each sent pending transaction
-        for sent_tx in sent_pending_txs:
+        for sent_tx in sent_txs:
             posted_tx = None
 
             # First try to match by transaction ID
@@ -299,32 +301,34 @@ async def mark_posted_txs_as_reviewed(
             else:
                 continue
 
+            if not posted_tx or sent_tx.pending is False:
+                continue
+
             # Mark the found transaction as reviewed (transactions are pre-filtered to uncleared only)
             logger.info(
-                f"Checking sent pending transaction {sent_tx.id} against posted transaction {posted_tx.id} with status {posted_tx.status}"
+                f"Checking sent transaction {sent_tx.id} against posted transaction {posted_tx.id} with status {posted_tx.status}"
             )
-            if posted_tx:
-                logger.info(f"Marking previously sent pending transaction {posted_tx.id} as reviewed")
-                try:
-                    lunch.update_transaction(
-                        posted_tx.id,
-                        TransactionUpdateObject(status=TransactionUpdateObject.StatusEnum.cleared),  # type: ignore
-                    )
+            logger.info(f"Marking previously sent transaction {posted_tx.id} as reviewed")
+            try:
+                lunch.update_transaction(
+                    posted_tx.id,
+                    TransactionUpdateObject(status=TransactionUpdateObject.StatusEnum.cleared),  # type: ignore
+                )
 
-                    # update transaction record in the db and the Telegram message
-                    # Update pending status to False as it's now posted
-                    get_db().update_pending_status(posted_tx.id, False)
+                # update transaction record in the db and the Telegram message
+                # Update pending status to False as it's now posted
+                get_db().update_pending_status(posted_tx.id, False)
 
-                    # Also mark as reviewed in the db
-                    get_db().mark_as_reviewed_by_tx_id(posted_tx.id, chat_id)
+                # Also mark as reviewed in the db
+                get_db().mark_as_reviewed_by_tx_id(posted_tx.id, chat_id)
 
-                    updated_tx = lunch.get_transaction(posted_tx.id)
-                    msg_id = get_db().get_message_id_associated_with(posted_tx.id, chat_id)
-                    await send_transaction_message(context, transaction=updated_tx, chat_id=chat_id, message_id=msg_id)
-                    if msg_id:
-                        updated_message_ids.append(msg_id)
-                except Exception:
-                    logger.exception(f"Failed to mark transaction {posted_tx.id} as reviewed")
+                updated_tx = lunch.get_transaction(posted_tx.id)
+                msg_id = get_db().get_message_id_associated_with(posted_tx.id, chat_id)
+                await send_transaction_message(context, transaction=updated_tx, chat_id=chat_id, message_id=msg_id)
+                if msg_id:
+                    updated_message_ids.append(msg_id)
+            except Exception:
+                logger.exception(f"Failed to mark transaction {posted_tx.id} as reviewed")
 
     if not updated_message_ids:
         logger.info(f"No transactions were updated for chat {chat_id}")

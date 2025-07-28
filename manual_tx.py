@@ -73,6 +73,7 @@ async def do_save_transaction(update: Update, context: ContextTypes.DEFAULT_TYPE
         transaction.recurring_type,
         reviewed=True,
         plaid_id=None,  # this is a manual transaction
+        pending=transaction.is_pending or False,
     )
 
 

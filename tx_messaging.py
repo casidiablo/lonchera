@@ -36,8 +36,7 @@ def _add_expanded_buttons(
     if plaid_id:
         kbd += ("Plaid details", f"plaid_{transaction_id}")
 
-    skip = not is_pending
-    if skip and not is_reviewed:
+    if not is_pending and not is_reviewed:
         kbd += ("Skip", f"skip_{transaction_id}")
 
     if is_reviewed:

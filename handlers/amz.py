@@ -352,7 +352,7 @@ def _build_update_details(updates: list, will_update_transactions: int) -> str:
         return ""
 
     updates = updates[:MAX_PREVIEW_UPDATES]
-    first_n = MAX_PREVIEW_UPDATES if len(updates) >= MAX_PREVIEW_UPDATES else len(updates)
+    first_n = min(MAX_PREVIEW_UPDATES, len(updates))
     update_details = f"Here are the first {first_n} transactions that will be updated:\n\n"
 
     update_lines = []
