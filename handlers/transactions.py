@@ -317,7 +317,7 @@ async def mark_posted_txs_as_reviewed(
     logger.info(f"Found {len(tx_to_process)} transactions to mark as reviewed in chat {chat_id}")
 
     # Check each sent transaction
-    for sent_tx, posted_tx in tx_to_process:
+    for sent_tx, posted_tx in tx_to_process.items():
         # Mark the found transaction as reviewed (transactions are pre-filtered to uncleared only)
         logger.info(
             f"Checking sent transaction {sent_tx.id} against posted transaction {posted_tx.id} with status {posted_tx.status}"
