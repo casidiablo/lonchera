@@ -296,7 +296,7 @@ async def mark_posted_txs_as_reviewed(
         )
 
     # Create lookup dictionaries for efficient matching
-    posted_by_id = {tx.id: tx for tx in posted_transactions}
+    posted_by_id = {int(tx.id): tx for tx in posted_transactions}
 
     # Create a map of still pending "sent tx messages" to posted_tx object
     tx_to_process = {}
@@ -309,7 +309,7 @@ async def mark_posted_txs_as_reviewed(
         else:
             continue
 
-        if not posted_tx or not sent_tx.pending:
+        if not posted_tx: # TODO: this should also check for pending but not now because of a previous bug
             continue
 
         tx_to_process[sent_tx] = posted_tx
@@ -336,9 +336,7 @@ async def mark_posted_txs_as_reviewed(
             # Also mark as reviewed in the db
             get_db().mark_as_reviewed_by_tx_id(posted_tx.id, chat_id)
 
-            updated_tx = lunch.get_transaction(posted_tx.id)
             msg_id = get_db().get_message_id_associated_with(posted_tx.id, chat_id)
-            await send_transaction_message(context, transaction=updated_tx, chat_id=chat_id, message_id=msg_id)
             if msg_id:
                 updated_message_ids.append(msg_id)
         except Exception:
