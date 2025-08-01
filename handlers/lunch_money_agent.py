@@ -30,6 +30,7 @@ from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
 from telegram_extensions import Update
 from tx_messaging import send_transaction_message
+from utils import Keyboard
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -336,15 +337,24 @@ async def handle_ai_response(update: Update, context: ContextTypes.DEFAULT_TYPE,
     chat_id = update.chat_id
     get_db().inc_metric("ai_agent_responses_sent")
 
+    ai_message = response.message
+
     try:
         await message.reply_text(
-            text=response.message, parse_mode=ParseMode.MARKDOWN, reply_to_message_id=message.message_id
+            text=ai_message,
+            parse_mode=ParseMode.MARKDOWN,
+            reply_to_message_id=message.message_id,
+            reply_markup=Keyboard.build_from(("Done", "cancel")),
         )
         get_db().inc_metric("ai_agent_responses_sent_markdown")
     except Exception as se:
         if "Can't parse entities" in str(se):
             # try to send without markdown
-            await message.reply_text(text=response.message, reply_to_message_id=message.message_id)
+            await message.reply_text(
+                text=ai_message,
+                reply_to_message_id=message.message_id,
+                reply_markup=Keyboard.build_from(("Done", "cancel")),
+            )
             get_db().inc_metric("ai_agent_responses_sent_plaintext")
         else:
             raise
@@ -370,7 +380,7 @@ async def handle_ai_response(update: Update, context: ContextTypes.DEFAULT_TYPE,
         for tx_id, telegram_message_id in response.transaction_updated_ids.items():
             if telegram_message_id is None:
                 continue
-            # update the transaction message to show the new notes
+            # update the transaction message to show its new content
             updated_tx = lunch_client.get_transaction(tx_id)
             await send_transaction_message(
                 context, transaction=updated_tx, chat_id=chat_id, message_id=telegram_message_id
