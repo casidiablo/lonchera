@@ -310,7 +310,7 @@ async def mark_posted_txs_as_reviewed(
         else:
             continue
 
-        if not posted_tx: # TODO: this should also check for pending but not now because of a previous bug
+        if not posted_tx:  # TODO: this should also check for pending but not now because of a previous bug
             continue
 
         tx_to_process[sent_tx] = posted_tx

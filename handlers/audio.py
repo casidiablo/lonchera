@@ -13,9 +13,6 @@ from telegram_extensions import Update
 
 logger = logging.getLogger("handlers.audio")
 
-# Constants
-HTTP_OK = 200
-
 
 async def handle_audio_transcription(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     """
@@ -188,7 +185,7 @@ def transcribe_audio(file_path: str) -> tuple[str, str]:
         # Track DeepInfra usage metrics
         get_db().inc_metric("deepinfra_whisper_requests")
 
-        if response.status_code == HTTP_OK:
+        if response.status_code == 200:  # noqa: PLR2004
             response_json = response.json()
 
             # Extract the transcription text and language from the response

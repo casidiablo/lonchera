@@ -102,3 +102,4 @@ ENV/
 *.db
 dump.py
 output.md
+.crush/
