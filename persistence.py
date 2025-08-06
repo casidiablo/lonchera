@@ -92,6 +92,9 @@ class Settings(Base):
     # The AI model to use for agent responses (None means default model)
     ai_model: Mapped[str | None] = mapped_column(String, nullable=True)
 
+    # Whether to use compact view for transaction messages
+    compact_view: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
 
 class Analytics(Base):
     __tablename__ = "analytics"
@@ -304,6 +307,12 @@ class Persistence:
     def update_ai_model(self, chat_id: int, model: str | None) -> None:
         with self.Session() as session:
             stmt = update(Settings).where(Settings.chat_id == chat_id).values(ai_model=model)
+            session.execute(stmt)
+            session.commit()
+
+    def update_compact_view(self, chat_id: int, compact_view: bool) -> None:
+        with self.Session() as session:
+            stmt = update(Settings).where(Settings.chat_id == chat_id).values(compact_view=compact_view)
             session.execute(stmt)
             session.commit()
 

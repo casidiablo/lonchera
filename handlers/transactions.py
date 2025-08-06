@@ -16,7 +16,7 @@ from handlers.lunch_money_agent import handle_generic_message_with_ai
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
 from telegram_extensions import Update
-from tx_messaging import get_tx_buttons, send_plaid_details, send_transaction_message
+from tx_messaging import get_rendered_transaction_message, get_tx_buttons, send_plaid_details, send_transaction_message
 from utils import Keyboard, ensure_token
 
 logger = logging.getLogger("tx_handler")
@@ -364,7 +364,13 @@ async def handle_btn_skip_transaction(update: Update, _: ContextTypes.DEFAULT_TY
 
 async def handle_btn_collapse_transaction(update: Update, _: ContextTypes.DEFAULT_TYPE):
     tx_id = int(update.callback_data_suffix)
-    await update.safe_edit_message_reply_markup(reply_markup=get_tx_buttons(update.chat_id, tx_id, collapsed=True))
+    lunch_client = get_lunch_client_for_chat_id(update.chat_id)
+    transaction = lunch_client.get_transaction(tx_id)
+    await update.safe_edit_message_text(
+        text=get_rendered_transaction_message(update.chat_id, transaction),
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=get_tx_buttons(update.chat_id, tx_id, collapsed=True),
+    )
 
 
 async def handle_btn_cancel_categorization(update: Update, _: ContextTypes.DEFAULT_TYPE):
@@ -643,9 +649,15 @@ async def poll_transactions_on_schedule(context: ContextTypes.DEFAULT_TYPE):
             get_db().update_last_poll_at(chat_id, datetime.now().isoformat())
 
 
-async def handle_expand_tx_options(update: Update, _: ContextTypes.DEFAULT_TYPE):
+async def handle_expand_tx_options(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tx_id = int(update.callback_data_suffix)
-    await update.safe_edit_message_reply_markup(reply_markup=get_tx_buttons(update.chat_id, tx_id, collapsed=False))
+    lunch_client = get_lunch_client_for_chat_id(update.chat_id)
+    transaction = lunch_client.get_transaction(tx_id)
+    await update.safe_edit_message_text(
+        text=get_rendered_transaction_message(update.chat_id, transaction, detailed_view=True),
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=get_tx_buttons(update.chat_id, tx_id, collapsed=False),
+    )
 
 
 async def handle_rename_payee(update: Update, context: ContextTypes.DEFAULT_TYPE):

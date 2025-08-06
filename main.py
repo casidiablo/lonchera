@@ -45,6 +45,7 @@ from handlers.settings.schedule_rendering import (
     handle_btn_cancel_poll_interval_change,
     handle_btn_change_poll_interval,
     handle_btn_change_timezone,
+    handle_btn_toggle_compact_view,
     handle_btn_toggle_poll_pending,
     handle_btn_toggle_show_datetime,
     handle_btn_toggle_tagging,
@@ -132,6 +133,7 @@ def add_settings_callback_query_handlers(app):
     app.add_handler(CallbackQueryHandler(handle_btn_toggle_poll_pending, pattern=r"^togglePollPending"))
     app.add_handler(CallbackQueryHandler(handle_btn_toggle_show_datetime, pattern=r"^toggleShowDateTime"))
     app.add_handler(CallbackQueryHandler(handle_btn_toggle_tagging, pattern=r"^toggleTagging"))
+    app.add_handler(CallbackQueryHandler(handle_btn_toggle_compact_view, pattern=r"^toggleCompactView"))
     app.add_handler(CallbackQueryHandler(handle_btn_change_timezone, pattern=r"^changeTimezone"))
 
     # Transaction handling settings

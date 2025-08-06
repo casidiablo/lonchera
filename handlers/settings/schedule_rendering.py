@@ -75,6 +75,9 @@ def get_schedule_rendering_text(chat_id: int) -> str | None:
 
         ➎ *Timezone*: `{settings.timezone}`
         > This is the timezone used for displaying dates and times\\.
+
+        ➏ *Compact view*: {"🟢 ᴏɴ" if settings.compact_view else "🔴 ᴏꜰꜰ"}
+        > When enabled, shows a compact view of transactions with less information\\.
         """
     )
 
@@ -86,6 +89,7 @@ def get_schedule_rendering_buttons(settings: Settings) -> InlineKeyboardMarkup:
     kbd += ("➌ Show date/time?", f"toggleShowDateTime_{settings.show_datetime}")
     kbd += ("➍ Toggle tagging", f"toggleTagging_{settings.tagging}")
     kbd += ("➎ Change timezone", "changeTimezone")
+    kbd += ("➏ Toggle compact view", f"toggleCompactView_{settings.compact_view}")
     kbd += ("Back", "settingsMenu")
     return kbd.build()
 
@@ -159,6 +163,18 @@ async def handle_btn_toggle_tagging(update: Update, _: ContextTypes.DEFAULT_TYPE
     settings = get_db().get_current_settings(update.chat_id)
 
     get_db().update_tagging(update.chat_id, not settings.tagging)
+
+    await update.safe_edit_message_text(
+        text=get_schedule_rendering_text(update.chat_id),
+        reply_markup=get_schedule_rendering_buttons(settings),
+        parse_mode=ParseMode.MARKDOWN_V2,
+    )
+
+
+async def handle_btn_toggle_compact_view(update: Update, _: ContextTypes.DEFAULT_TYPE):
+    settings = get_db().get_current_settings(update.chat_id)
+
+    get_db().update_compact_view(update.chat_id, not settings.compact_view)
 
     await update.safe_edit_message_text(
         text=get_schedule_rendering_text(update.chat_id),

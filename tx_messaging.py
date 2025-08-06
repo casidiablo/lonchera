@@ -174,6 +174,33 @@ def format_transaction_message(transaction: TransactionObject, tagging: bool, sh
     return message
 
 
+def format_compact_transaction_message(
+    transaction: TransactionObject, tagging: bool
+) -> str:
+    """Format the message string for a transaction in a compact view."""
+    explicit_sign = ""
+    if transaction.amount < 0:
+        # lunch money shows credits as negative
+        # here I just want to denote that this was a credit by
+        # explicitly showing a + sign before the amount
+        explicit_sign = "➕"
+    category_name = transaction.category_name or "Uncategorized"
+    return f"*{transaction.payee}* `{explicit_sign}{abs(transaction.amount):,.2f}` {make_tag(category_name, tagging=tagging)}"
+
+
+def get_rendered_transaction_message(chat_id: str | int, transaction: TransactionObject, detailed_view: bool = False):
+    settings = get_db().get_current_settings(chat_id)
+    # Ensure settings fields are bool, not SQLAlchemy Columns
+    show_datetime = settings.show_datetime if settings else True
+    tagging = settings.tagging if settings else True
+    compact_view_enabled = settings.compact_view if settings else False
+
+    if compact_view_enabled and not detailed_view:
+        return format_compact_transaction_message(transaction, tagging)
+    else:
+        return format_transaction_message(transaction, tagging, show_datetime)
+
+
 async def send_transaction_message(
     context: ContextTypes.DEFAULT_TYPE,
     transaction: TransactionObject,
@@ -183,12 +210,8 @@ async def send_transaction_message(
 ) -> int:
     """Sends a message to the chat_id with the details of a transaction.
     If message_id is provided, edits the existing"""
-    settings = get_db().get_current_settings(chat_id)
-    # Ensure settings fields are bool, not SQLAlchemy Columns
-    show_datetime = settings.show_datetime if settings else True
-    tagging = settings.tagging if settings else True
 
-    message = format_transaction_message(transaction, tagging, show_datetime)
+    message = get_rendered_transaction_message(chat_id, transaction)
 
     logger.info(f"Sending message to chat_id {chat_id} (tx id: {transaction.id}): {message}")
     get_db().inc_metric("sent_transaction_messages")
