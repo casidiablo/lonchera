@@ -245,9 +245,6 @@ async def handle_amazon_export(update: Update, context: ContextTypes.DEFAULT_TYP
 
     # get summary of the csv file
     try:
-        if not context.user_data:
-            context.user_data = {}
-
         context.user_data["amazon_export_file"] = download_path
         context.user_data["ai_categorization_enabled"] = True
         await pre_processing_amazon_transactions(update, context)
