@@ -155,7 +155,7 @@ def update_amazon_transaction(transaction, found, lunch, categories, dry_run, au
         logger.info(
             lunch.update_transaction(
                 transaction.id,
-                TransactionUpdateObject(
+                TransactionUpdateObject( # type: ignore
                     notes=product_name,
                     category_id=category_id,
                 ),
