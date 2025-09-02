@@ -341,6 +341,7 @@ Processed {processed_transactions} Amazon transactions from Lunch Money,
 
         await update.safe_edit_message_text(text=message, parse_mode=ParseMode.MARKDOWN, reply_markup=kbd.build())
     except Exception as e:
+        logger.exception("Error processing Amazon transactions")
         await update.safe_edit_message_text(f"Error processing Amazon transactions: {e}")
 
 
@@ -443,6 +444,7 @@ async def handle_process_amazon_transactions(update: Update, context: ContextTyp
             await context.bot.send_message(chat_id=update.chat_id, text=message, parse_mode=ParseMode.MARKDOWN)
             await update.safe_delete_message()
     except Exception as e:
+        logger.exception("Error processing Amazon transactions")
         await update.safe_edit_message_text(f"Error processing Amazon transactions: {e}")
     finally:
         # Clean up extracted files
