@@ -258,6 +258,7 @@ async def handle_amazon_export(update: Update, context: ContextTypes.DEFAULT_TYP
             if prev and prev.get("msg_id") and context.bot:
                 await context.bot.delete_message(chat_id=update.chat_id, message_id=int(prev["msg_id"]))
     except Exception as e:
+        logger.exception("Error processing Amazon export file")
         await update.message.reply_text(f"Error processing the file: {e}")
 
 
