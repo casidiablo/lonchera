@@ -232,14 +232,19 @@ async def send_transaction_message(
                 raise
         return message_id
     else:
-        msg = await context.bot.send_message(
-            chat_id=chat_id,
-            text=message,
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=get_tx_buttons(int(chat_id), transaction),
-            reply_to_message_id=reply_to_message_id,
-        )
-        return msg.id
+        try:
+            msg = await context.bot.send_message(
+                chat_id=chat_id,
+                text=message,
+                parse_mode=ParseMode.MARKDOWN,
+                reply_markup=get_tx_buttons(int(chat_id), transaction),
+                reply_to_message_id=reply_to_message_id,
+            )
+        except Exception:
+            logger.exception(f"Failed to send message for chat_id {chat_id}")
+            raise
+        else:
+            return msg.id
 
 
 async def send_plaid_details(
