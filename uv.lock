@@ -583,7 +583,7 @@ provides-extras = ["dev"]
 
 [[package]]
 name = "lunchable"
-version = "1.4.2"
+version = "1.4.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -593,9 +593,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "rich" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/86/58/4bd33974b1b2247309b04196a6ff9b66368f7ad0bf2f70d88af7d157bf69/lunchable-1.4.2.tar.gz", hash = "sha256:2e5e0dc2658a0f57412acc8ad333cda853368a74e7c6f57f5ecc14ae51b9cb5a", size = 284967, upload-time = "2024-12-27T01:14:13.066Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9f/b0/964cbe9a56102079d063c1f0a8347ba921b4b391503dc91e8379b4290d89/lunchable-1.4.3.tar.gz", hash = "sha256:997d13b3a196f89f99a6d434c636226bede3e8625e71d77ed379cce580262ccf", size = 295728, upload-time = "2025-08-23T04:00:34.462Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a3/c0/30cb36dca50df2d03db0f9e5e846505b8698a3c79bbab308a4f1cbb5fe9b/lunchable-1.4.2-py3-none-any.whl", hash = "sha256:c00ef439446a3b0a8345bb87a49e3ff492e23d455f5515169dc29140aadbbb71", size = 45139, upload-time = "2024-12-27T01:14:08.592Z" },
+    { url = "https://files.pythonhosted.org/packages/f9/5a/c951526a4786f4c485f945f4ae29a85dfdfbeba1c1dc67ae15335a229671/lunchable-1.4.3-py3-none-any.whl", hash = "sha256:3ee665ba6b1b5c2e8d45c2e0bf8f94cc16ee2fc13182f8bf41b3516a06686a3c", size = 45284, upload-time = "2025-08-23T04:00:32.81Z" },
 ]
 
 [[package]]
