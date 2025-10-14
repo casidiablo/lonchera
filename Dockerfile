@@ -9,8 +9,13 @@ ENV UV_PYTHON_INSTALL_DIR=/python
 ENV UV_PYTHON_PREFERENCE=only-managed
 
 # Install build tools and Python before the project for caching
-RUN apt-get update && apt-get install -y build-essential && rm -rf /var/lib/apt/lists/*
-RUN uv python install 3.12
+RUN apt-get update && apt-get install -y build-essential curl libffi-dev && rm -rf /var/lib/apt/lists/*
+
+# Install Rust for building Rust-based Python packages
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+ENV PATH="/root/.cargo/bin:$PATH"
+
+RUN uv python install 3.13
 
 WORKDIR /app
 COPY pyproject.toml uv.lock* ./
