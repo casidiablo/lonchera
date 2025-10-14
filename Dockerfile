@@ -8,7 +8,8 @@ ENV UV_PYTHON_INSTALL_DIR=/python
 # Only use the managed Python version
 ENV UV_PYTHON_PREFERENCE=only-managed
 
-# Install Python before the project for caching
+# Install build tools and Python before the project for caching
+RUN apt-get update && apt-get install -y build-essential && rm -rf /var/lib/apt/lists/*
 RUN uv python install 3.12
 
 WORKDIR /app
