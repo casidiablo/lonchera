@@ -151,13 +151,14 @@ def update_amazon_transaction(transaction, found, lunch, categories, dry_run, au
         if len(product_name) > NOTES_MAX_LENGTH:
             product_name = product_name[:NOTES_MAX_LENGTH]
 
-        logger.info(f"Updating transaction {transaction.id} with product name: {product_name} and category: {category_id}")
+        logger.info(
+            f"Updating transaction {transaction.id} with product name: {product_name} and category: {category_id}"
+        )
         logger.info(
             lunch.update_transaction(
                 transaction.id,
-                TransactionUpdateObject( # type: ignore
-                    notes=product_name,
-                    category_id=category_id,
+                TransactionUpdateObject(  # type: ignore
+                    notes=product_name, category_id=category_id
                 ),
             )
         )

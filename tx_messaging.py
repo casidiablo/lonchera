@@ -174,9 +174,7 @@ def format_transaction_message(transaction: TransactionObject, tagging: bool, sh
     return message
 
 
-def format_compact_transaction_message(
-    transaction: TransactionObject, tagging: bool
-) -> str:
+def format_compact_transaction_message(transaction: TransactionObject, tagging: bool) -> str:
     """Format the message string for a transaction in a compact view."""
     explicit_sign = ""
     if transaction.amount < 0:
