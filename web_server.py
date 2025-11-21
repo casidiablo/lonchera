@@ -107,7 +107,7 @@ def get_masked_token():
 
 
 def get_ai_status():
-    api_key = os.getenv("DEEPINFRA_API_KEY", "")
+    api_key = os.getenv("OPENROUTER_API_KEY", "")
     if not api_key:
         return "AI features disabled (no API key provided)"
     return f"AI enabled (key: {api_key[:4]}...)"

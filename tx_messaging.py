@@ -24,7 +24,7 @@ def _add_expanded_buttons(
     categorize = recurring_type is None
     if categorize:
         kbd += ("Categorize", f"categorize_{transaction_id}")
-        if os.getenv("DEEPINFRA_API_KEY"):
+        if os.getenv("OPENROUTER_API_KEY"):
             kbd += ("AI-categorize 🪄", f"aicategorize_{transaction_id}")
 
     # These are disabled when AI Agent is enabled

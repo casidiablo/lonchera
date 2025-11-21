@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from lunchable import TransactionUpdateObject
 
 from constants import NOTES_MAX_LENGTH
-from deepinfra import get_suggested_category_id
+from handlers.categorization import categorize_transaction_with_agent
 from lunch import get_lunch_client
 
 logging.basicConfig(level=logging.INFO)
@@ -132,20 +132,13 @@ def get_amazon_transactions_summary(file_path: str):
     return summary
 
 
-def update_amazon_transaction(transaction, found, lunch, categories, dry_run, auto_categorize):
+def update_amazon_transaction(transaction, found, lunch, categories, dry_run, auto_categorize, chat_id):
     """Update a single Amazon transaction with product information and proper categorization."""
     category_id = transaction.category_id
     previous_category_name = [c.name for c in categories if c.id == category_id]
     previous_category_name = previous_category_name[0] if previous_category_name else None
 
     product_name = found["Product Name"]
-    if auto_categorize:
-        _, cat_id = get_suggested_category_id(tx_id=transaction.id, lunch=lunch, override_notes=product_name)
-        # make sure the category exists, since LLMs hallucinate
-        if cat_id not in [c.id for c in categories]:
-            category_id = transaction.category_id  # just leave it as is
-        else:
-            category_id = cat_id
 
     if not dry_run:
         if len(product_name) > NOTES_MAX_LENGTH:
@@ -154,14 +147,28 @@ def update_amazon_transaction(transaction, found, lunch, categories, dry_run, au
         logger.info(
             f"Updating transaction {transaction.id} with product name: {product_name} and category: {category_id}"
         )
-        logger.info(
-            lunch.update_transaction(
-                transaction.id,
-                TransactionUpdateObject(  # type: ignore
-                    notes=product_name, category_id=category_id
-                ),
-            )
+        # First update the notes
+        lunch.update_transaction(
+            transaction.id,
+            TransactionUpdateObject(notes=product_name),  # type: ignore
         )
+
+        # Then categorize if auto_categorize is enabled
+        if auto_categorize:
+            logger.info(f"Auto-categorizing transaction {transaction.id} using agent")
+            categorize_transaction_with_agent(transaction.id, chat_id)
+            # Fetch updated transaction to get the new category
+            updated_tx = lunch.get_transaction(transaction.id)
+            category_id = updated_tx.category_id
+        else:
+            # If not auto-categorizing, just update with notes only
+            logger.info(
+                lunch.update_transaction(
+                    transaction.id,
+                    TransactionUpdateObject(notes=product_name, category_id=category_id),  # type: ignore
+                )
+            )
+
     category_name = [c.name for c in categories if c.id == category_id]
     category_name = category_name[0] if category_name else None
 
@@ -185,6 +192,7 @@ def process_amazon_transactions(
     allow_days: int,
     auto_categorize: bool = True,
     lunch_money_token: str | None = None,
+    chat_id: int | None = None,
 ) -> dict:
     logger.info(
         f"Processing Amazon transactions in {file_path} with {days_back} days back and {allow_days} days threshold"
@@ -223,7 +231,7 @@ def process_amazon_transactions(
         if a.notes is None:
             logger.info("Will update tx %s %s %s %s with %s", a.date, a.amount, a.currency, a.notes, found)
 
-            update_result = update_amazon_transaction(a, found, lunch, categories, dry_run, auto_categorize)
+            update_result = update_amazon_transaction(a, found, lunch, categories, dry_run, auto_categorize, chat_id)
             report["updates"].append(update_result)
             will_update += 1
         else:

@@ -46,6 +46,16 @@ an env var, or by writing it to a `.env` file at the root of the project:
 TELEGRAM_BOT_TOKEN=<TOKEN PROVIDED BY BOTFATHER>
 ```
 
+Optionally, add API keys for AI features to your `.env` file:
+
+```
+# Optional: For AI agent features (categorization, natural language queries)
+OPENROUTER_API_KEY=<YOUR OPENROUTER API KEY>
+
+# Optional: For audio transcription (voice messages)
+DEEPINFRA_API_KEY=<YOUR DEEPINFRA API KEY>
+```
+
 The bot is written in Python. Make sure to install its dependencies first:
 
 ```
@@ -66,6 +76,7 @@ docker run -d \
     -v "${DATA_DIR}:/data" \
     -e DB_PATH=/data/lonchera.db \
     -e TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN}" \
+    -e OPENROUTER_API_KEY="${OPENROUTER_API_KEY}" \
     -e DEEPINFRA_API_KEY="${DEEPINFRA_API_KEY}" \
     --name lonchera \
     lonchera
@@ -111,12 +122,26 @@ This will create a new app in fly.io with the name provided, but will not run it
 fly secrets set TELEGRAM_BOT_TOKEN=<TOKEN PROVIDED BY BOTFATHER>
 ```
 
-Optionally, set a https://deepinfra.com/ API token which enables the AI-categorize feature,
-which uses an LLM to find you the best category for a particular transaction:
+Optionally, set API keys for AI features:
+
+**OpenRouter API Key** (optional) - Enables AI agent features including:
+- AI-powered transaction categorization
+- Natural language queries and interactions
 
 ```
-fly secrets set DEEPINFRA_API_KEY=<SOME SECRET>
+fly secrets set OPENROUTER_API_KEY=<YOUR OPENROUTER API KEY>
 ```
+
+Get your API key from https://openrouter.ai/
+
+**DeepInfra API Key** (optional) - Enables audio transcription:
+- Voice message transcription using Whisper API
+
+```
+fly secrets set DEEPINFRA_API_KEY=<YOUR DEEPINFRA API KEY>
+```
+
+Get your API key from https://deepinfra.com/
 
 3. Actually run the application:
 

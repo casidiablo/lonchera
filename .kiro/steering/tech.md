@@ -81,4 +81,5 @@ Required in `.env` file or environment:
 
 - `TELEGRAM_BOT_TOKEN`: Bot token from BotFather
 - `DB_PATH`: SQLite database path (default: `lonchera.db`)
-- `DEEPINFRA_API_KEY`: Optional, for AI categorization features
+- `OPENROUTER_API_KEY`: Optional, for AI agent features (categorization, natural language queries)
+- `DEEPINFRA_API_KEY`: Optional, for audio transcription (Whisper API)

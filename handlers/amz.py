@@ -310,6 +310,7 @@ async def handle_preview_process_amazon_transactions(update: Update, context: Co
             allow_days=5,
             auto_categorize=ai_categorization_enabled,
             lunch_money_token=lunch_money_token,
+            chat_id=update.chat_id,
         )
 
         processed_transactions = result.get("processed_transactions", 0)
@@ -419,6 +420,7 @@ async def handle_process_amazon_transactions(update: Update, context: ContextTyp
             allow_days=5,
             auto_categorize=ai_categorization_enabled,
             lunch_money_token=lunch_money_token,
+            chat_id=update.chat_id,
         )
 
         processed_transactions = result.get("processed_transactions", 0)

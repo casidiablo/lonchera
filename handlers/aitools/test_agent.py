@@ -14,6 +14,8 @@ import logging
 import sys
 from pathlib import Path
 
+import mlflow
+
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
@@ -42,7 +44,6 @@ def main():
     # Setup MLflow if requested
     mlflow_enabled = args.mlflow is not None
     if mlflow_enabled:
-        import mlflow
 
         mlflow.set_tracking_uri(args.mlflow)
         mlflow.set_experiment("lonchera")

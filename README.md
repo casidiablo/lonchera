@@ -35,12 +35,22 @@ This is very useful when tracking cash or other kinds of accounts.
 
 ![video3](media/3.gif)
 
-# 🤖 AI-Powered Transaction Categorization
+# 🤖 AI-Powered Features
 
-- Leverage the [DeepInfra API](https://deepinfra.com/) to automatically categorize transactions using AI
+## Transaction Categorization
+- Leverage [OpenRouter](https://openrouter.ai/) with DSPy agent-based categorization to automatically categorize transactions using AI
+- The AI agent intelligently analyzes transaction details (payee, amount, notes) to suggest the most appropriate category
 - This feature helps in accurately categorizing expenses without manual intervention
 
+## Audio Transcription
+- Voice message transcription powered by [DeepInfra's Whisper API](https://deepinfra.com/)
+- Send voice messages to add notes or interact with transactions hands-free
+
 ![ai_categorization](media/ai_categorization.png)
+
+**Note**: The bot uses two different AI services:
+- **OpenRouter** for AI agent features (categorization, natural language queries)
+- **DeepInfra** for audio transcription (Whisper API)
 
 # Show balances
 

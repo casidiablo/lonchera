@@ -9,9 +9,8 @@ from telegram.constants import ParseMode, ReactionEmoji
 from telegram.ext import ContextTypes
 
 from constants import NOTES_MAX_LENGTH
-from deepinfra import auto_categorize
 from handlers.ai_agent import handle_generic_message_with_ai
-from handlers.categorization import ai_categorize_transaction
+from handlers.categorization import ai_categorize_transaction, categorize_transaction_with_agent
 from handlers.expectations import EDIT_NOTES, RENAME_PAYEE, SET_TAGS, set_expectation
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
@@ -589,7 +588,7 @@ async def handle_btn_ai_categorize(update: Update, context: ContextTypes.DEFAULT
     tx_id = int(update.callback_data_suffix)
 
     chat_id = update.chat_id
-    response = auto_categorize(tx_id, chat_id)
+    response = categorize_transaction_with_agent(tx_id, chat_id)
     if update.callback_query:
         await update.callback_query.answer(text=response, show_alert=True)
 
