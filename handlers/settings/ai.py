@@ -25,6 +25,13 @@ def get_model_display_name(model: str | None) -> str:
         "openai/o4-mini": "o4\\-mini",
         "google/gemini-2.5-flash": "Gemini 2\\.5 Flash",
         "anthropic/claude-haiku-4.5": "Claude Haiku 4\\.5",
+        # handle legacy naming
+        "gpt-4.1-nano": "GPT\\-4\\.1 Nano",
+        "gpt-4.1-mini": "GPT\\-4\\.1 Mini",
+        "gpt-4.1": "GPT\\-4\\.1",
+        "gpt-4o": "GPT\\-4o",
+        "gpt-4o-mini": "GPT\\-4o Mini",
+        "o4-mini": "o4\\-mini",
     }
     return model_names.get(model, f"{model}")
 
