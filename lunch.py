@@ -1,3 +1,5 @@
+import os
+
 from lunchable import LunchMoney
 
 from errors import NoLunchTokenError
@@ -5,12 +7,17 @@ from persistence import get_db
 
 lunch_clients_cache: dict[int, LunchMoney] = {}
 
+TEST_CHAT_ID = 123456789
+
 
 def get_lunch_client(token: str) -> LunchMoney:
     return LunchMoney(access_token=token)
 
 
 def get_lunch_client_for_chat_id(chat_id: int) -> LunchMoney:
+    if chat_id == TEST_CHAT_ID:
+        test_token = os.environ.get("TEST_LUNCH_TOKEN")
+        return get_lunch_client(test_token)
     if chat_id in lunch_clients_cache:
         return lunch_clients_cache[chat_id]
 

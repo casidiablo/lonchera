@@ -7,7 +7,7 @@ import requests
 from telegram.constants import ParseMode, ReactionEmoji
 from telegram.ext import ContextTypes
 
-from handlers.lunch_money_agent import get_agent_response, handle_ai_response
+from handlers.ai_agent import get_agent_response, handle_ai_response
 from persistence import get_db
 from telegram_extensions import Update
 
