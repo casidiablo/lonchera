@@ -6,6 +6,7 @@ from sqlalchemy import Boolean, DateTime, Float, Integer, String, and_, create_e
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Mapped, mapped_column, sessionmaker
 
+from constants import TOKEN_BLOCKED, TOKEN_REVOKED
 from errors import NoLunchTokenError
 
 logger = logging.getLogger("db")
@@ -393,9 +394,87 @@ class Persistence:
                 metrics[date_key][metric_key] = value
             return metrics
 
+    def mark_user_as_blocked(self, chat_id: int) -> None:
+        """Mark a user as blocked by setting token to TOKEN_BLOCKED constant value."""
+        with self.Session() as session:
+            stmt = update(Settings).where(Settings.chat_id == chat_id).values(token=TOKEN_BLOCKED)
+            session.execute(stmt)
+            session.commit()
+            logger.info(f"User {chat_id} marked as blocked")
+
+    def get_blocked_users(self) -> list[int]:
+        """Get all blocked users' chat_ids.
+
+        Returns:
+            List of chat_ids for users with token == TOKEN_BLOCKED
+        """
+        with self.Session() as session:
+            # Query Settings table for blocked users
+            blocked_settings = session.query(Settings.chat_id).filter(Settings.token == TOKEN_BLOCKED).all()
+            return [chat_id for (chat_id,) in blocked_settings]
+
+    def get_user_transaction_count(self, chat_id: int) -> int:
+        """Get count of transactions associated with a user.
+
+        Args:
+            chat_id: The chat ID to get transaction count for
+
+        Returns:
+            Number of transactions for this user
+        """
+        with self.Session() as session:
+            return session.query(Transaction).filter(Transaction.chat_id == chat_id).count()
+
+    def is_user_blocked(self, chat_id: int) -> bool:
+        """Check if a user is blocked (token == TOKEN_BLOCKED).
+
+        Args:
+            chat_id: The chat ID to check
+
+        Returns:
+            True if token equals TOKEN_BLOCKED, False otherwise
+        """
+        with self.Session() as session:
+            setting = session.query(Settings).filter(Settings.chat_id == chat_id).first()
+            return setting is not None and setting.token == TOKEN_BLOCKED
+
+    def delete_user_data(self, chat_id: int) -> dict[str, int]:
+        """Delete all data for a user and return counts of deleted records.
+
+        Args:
+            chat_id: The chat ID whose data should be deleted
+
+        Returns:
+            Dictionary with counts of deleted records from each table:
+            {"transactions": count, "settings": count, "analytics": count}
+        """
+        with self.Session() as session:
+            # Count records before deletion
+            transaction_count = session.query(Transaction).filter(Transaction.chat_id == chat_id).count()
+            settings_count = session.query(Settings).filter(Settings.chat_id == chat_id).count()
+            # Analytics don't have chat_id, so we can't delete them by chat_id
+            analytics_count = 0
+
+            # Delete all Transaction records for chat_id
+            session.query(Transaction).filter(Transaction.chat_id == chat_id).delete()
+
+            # Delete Settings record for chat_id
+            session.query(Settings).filter(Settings.chat_id == chat_id).delete()
+
+            # Commit the transaction
+            session.commit()
+
+            logger.info(
+                f"Deleted user data for chat_id {chat_id}: {transaction_count} transactions, {settings_count} settings"
+            )
+
+            return {"transactions": transaction_count, "settings": settings_count, "analytics": analytics_count}
+
     def get_user_count(self) -> int:
         with self.Session() as session:
-            return session.query(Settings).filter(Settings.token != "revoked").count()
+            return (
+                session.query(Settings).filter(Settings.token != TOKEN_REVOKED, Settings.token != TOKEN_BLOCKED).count()
+            )
 
     def get_db_size(self) -> int:
         db_path = self.engine.url.database

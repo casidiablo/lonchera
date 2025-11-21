@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 
 import pytz
+import telegram.error
 from lunchable.models import TransactionObject
 from telegram import InlineKeyboardMarkup
 from telegram.constants import ParseMode
@@ -199,6 +200,15 @@ def get_rendered_transaction_message(chat_id: str | int, transaction: Transactio
         return format_transaction_message(transaction, tagging, show_datetime)
 
 
+async def _handle_blocked_user_error(e: telegram.error.Forbidden, chat_id: str | int) -> bool:
+    """Handle Forbidden error when user blocks the bot. Returns True if user was blocked."""
+    if "bot was blocked by the user" in str(e):
+        logger.warning(f"User {chat_id} has blocked the bot, marking as blocked")
+        get_db().mark_user_as_blocked(int(chat_id))
+        return True
+    return False
+
+
 async def send_transaction_message(
     context: ContextTypes.DEFAULT_TYPE,
     transaction: TransactionObject,
@@ -213,6 +223,7 @@ async def send_transaction_message(
 
     logger.info(f"Sending message to chat_id {chat_id} (tx id: {transaction.id}): {message}")
     get_db().inc_metric("sent_transaction_messages")
+
     if message_id:
         # edit existing message
         try:
@@ -223,26 +234,35 @@ async def send_transaction_message(
                 parse_mode=ParseMode.MARKDOWN,
                 reply_markup=get_tx_buttons(int(chat_id), transaction.id),
             )
+        except telegram.error.Forbidden as e:
+            if await _handle_blocked_user_error(e, chat_id):
+                return -1
+            raise
         except Exception as e:
             if "Message is not modified" in str(e):
                 logger.debug(f"Message is not modified, skipping edit ({message_id})")
             else:
                 raise
         return message_id
-    else:
-        try:
-            msg = await context.bot.send_message(
-                chat_id=chat_id,
-                text=message,
-                parse_mode=ParseMode.MARKDOWN,
-                reply_markup=get_tx_buttons(int(chat_id), transaction),
-                reply_to_message_id=reply_to_message_id,
-            )
-        except Exception:
-            logger.exception(f"Failed to send message for chat_id {chat_id}")
-            raise
-        else:
-            return msg.id
+
+    # send new message
+    try:
+        msg = await context.bot.send_message(
+            chat_id=chat_id,
+            text=message,
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=get_tx_buttons(int(chat_id), transaction),
+            reply_to_message_id=reply_to_message_id,
+        )
+    except telegram.error.Forbidden as e:
+        if await _handle_blocked_user_error(e, chat_id):
+            return -1
+        raise
+    except Exception:
+        logger.exception(f"Failed to send message for chat_id {chat_id}")
+        raise
+
+    return msg.id
 
 
 async def send_plaid_details(

@@ -1,4 +1,3 @@
-import os
 from textwrap import dedent
 
 from telegram import InlineKeyboardMarkup
@@ -7,7 +6,7 @@ from telegram.ext import ContextTypes
 
 from persistence import get_db
 from telegram_extensions import Update
-from utils import Keyboard
+from utils import Keyboard, is_admin_user
 
 
 def get_model_display_name(model: str | None) -> str:
@@ -159,8 +158,7 @@ async def handle_set_language(update: Update, _: ContextTypes.DEFAULT_TYPE):
 def get_model_selection_buttons(chat_id: int) -> InlineKeyboardMarkup:
     kbd = Keyboard()
     # Only show advanced models for authorized chat_id
-    admin_user_id = os.getenv("ADMIN_USER_ID")
-    if admin_user_id and chat_id == int(admin_user_id):
+    if is_admin_user(chat_id):
         kbd += ("Gemini 2.5 Flash (Default)", "setModel_none")
         kbd += ("GPT-4.1 Nano", "setModel_openai/gpt-4.1-nano")
         kbd += ("GPT-4.1 Mini", "setModel_openai/gpt-4.1-mini")
@@ -177,8 +175,7 @@ def get_model_selection_buttons(chat_id: int) -> InlineKeyboardMarkup:
 
 async def handle_set_ai_model(update: Update, _: ContextTypes.DEFAULT_TYPE):
     chat_id = update.chat_id
-    admin_user_id = os.getenv("ADMIN_USER_ID")
-    if admin_user_id and chat_id == int(admin_user_id):
+    if is_admin_user(chat_id):
         message_text = "🤖 *Choose AI Model*\n\nSelect the AI model for processing your requests:"
     else:
         message_text = "🤖 *AI Model Selection*\n\nOnly Llama model is available for your account:"

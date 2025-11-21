@@ -1,3 +1,5 @@
+import os
+
 import emoji
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
@@ -124,3 +126,28 @@ def ensure_token(update: Update) -> Settings:
     # which will raise an exception if the token is not set
     chat_id = update.chat_id
     return get_db().get_current_settings(chat_id)
+
+
+def is_admin_user(chat_id: int) -> bool:
+    """Check if the given chat_id belongs to an admin user.
+
+    Admin users are defined by the ADMIN_USER_ID environment variable,
+    which can be a single ID or comma-separated list of IDs.
+
+    Args:
+        chat_id: The Telegram chat ID to check
+
+    Returns:
+        True if the chat_id is in the admin list, False otherwise
+    """
+    admin_ids = os.getenv("ADMIN_USER_ID", "")
+    if not admin_ids:
+        return False
+
+    try:
+        admin_id_list = [int(id.strip()) for id in admin_ids.split(",") if id.strip()]
+    except ValueError:
+        # Handle case where ADMIN_USER_ID contains non-integer values
+        return False
+    else:
+        return chat_id in admin_id_list

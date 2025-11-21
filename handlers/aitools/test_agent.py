@@ -44,7 +44,6 @@ def main():
     # Setup MLflow if requested
     mlflow_enabled = args.mlflow is not None
     if mlflow_enabled:
-
         mlflow.set_tracking_uri(args.mlflow)
         mlflow.set_experiment("lonchera")
         mlflow.dspy.autolog()

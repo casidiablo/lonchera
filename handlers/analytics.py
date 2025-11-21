@@ -1,5 +1,4 @@
 import logging
-import os
 from datetime import datetime, timedelta
 
 from telegram.constants import ParseMode
@@ -7,15 +6,14 @@ from telegram.ext import ContextTypes
 
 from persistence import get_db
 from telegram_extensions import Update
-from utils import Keyboard
+from utils import Keyboard, is_admin_user
 
 logger = logging.getLogger(__name__)
 
 
 async def is_authorized(update: Update) -> bool:
     """Check if user is authorized to use admin commands."""
-    admin_user_id = os.getenv("ADMIN_USER_ID")
-    return bool(admin_user_id and update.effective_user and update.effective_user.id == int(admin_user_id))
+    return update.effective_user is not None and is_admin_user(update.effective_user.id)
 
 
 def collect_metrics_data(metrics, start_of_week):

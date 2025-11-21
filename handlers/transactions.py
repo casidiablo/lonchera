@@ -8,7 +8,7 @@ from telegram import ForceReply
 from telegram.constants import ParseMode, ReactionEmoji
 from telegram.ext import ContextTypes
 
-from constants import NOTES_MAX_LENGTH
+from constants import NOTES_MAX_LENGTH, TOKEN_BLOCKED, TOKEN_REVOKED
 from handlers.ai_agent import handle_generic_message_with_ai
 from handlers.categorization import ai_categorize_transaction, categorize_transaction_with_agent
 from handlers.expectations import EDIT_NOTES, RENAME_PAYEE, SET_TAGS, set_expectation
@@ -615,8 +615,12 @@ async def poll_transactions_on_schedule(context: ContextTypes.DEFAULT_TYPE):
             logger.error(f"No settings found for chat {chat_id}!")
             continue
 
-        if settings.token == "revoked":
+        if settings.token == TOKEN_REVOKED:
             logger.debug(f"Skipping chat {chat_id} because API token was revoked.")
+            continue
+
+        if settings.token == TOKEN_BLOCKED:
+            logger.debug(f"Skipping chat {chat_id} because user blocked the bot.")
             continue
 
         # this is the last time we polled, saved as a string using:
@@ -639,11 +643,11 @@ async def poll_transactions_on_schedule(context: ContextTypes.DEFAULT_TYPE):
                 # check if the error message is lunchable.exceptions.LunchMoneyHTTPError
                 # and the message is: Access token does not exist, which means the user
                 # has revoked the access to the app.
-                # If that is the case, we should set the API token to 'revoked'.
+                # If that is the case, we should set the API token to TOKEN_REVOKED.
                 if "Access token does not exist" in str(e):
-                    get_db().set_api_token(chat_id, "revoked")
+                    get_db().set_api_token(chat_id, TOKEN_REVOKED)
                     logger.exception(
-                        f"User in chat {chat_id} has revoked access to the app. Setting API token to None."
+                        f"User in chat {chat_id} has revoked access to the app. Setting API token to TOKEN_REVOKED."
                     )
             get_db().update_last_poll_at(chat_id, datetime.now().isoformat())
 

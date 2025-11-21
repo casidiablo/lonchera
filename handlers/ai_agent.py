@@ -1,5 +1,4 @@
 import logging
-import os
 import time
 
 from telegram.constants import ParseMode, ReactionEmoji
@@ -10,7 +9,7 @@ from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
 from telegram_extensions import Update
 from tx_messaging import send_transaction_message
-from utils import Keyboard
+from utils import Keyboard, is_admin_user
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -53,8 +52,7 @@ def get_agent_response(
     model_name = settings.ai_model if settings else None
 
     # Determine if user is admin
-    admin_user_id = os.environ.get("ADMIN_USER_ID")
-    is_admin = admin_user_id is not None and str(chat_id) == admin_user_id
+    is_admin = is_admin_user(chat_id)
 
     # Create AgentConfig with fetched settings
     config = AgentConfig(
