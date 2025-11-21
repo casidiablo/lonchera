@@ -30,7 +30,7 @@ All handlers live in `handlers/` directory:
 - **analytics.py**: Stats and status reporting
 - **categorization.py**: AI-powered categorization logic
 - **expectations.py**: User input expectation management
-- **lunch_money_agent.py**: AI agent for natural language interactions
+- **ai_agent.py**: AI agent for natural language interactions
 - **amz.py**: Amazon transaction sync
 
 ### Settings Handlers

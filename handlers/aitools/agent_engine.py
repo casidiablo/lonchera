@@ -228,9 +228,9 @@ if __name__ == "__main__":
     This allows testing the agent logic independently without Telegram bot integration.
 
     Usage:
-        python handlers/lunch_money_agent_core.py
-        python handlers/lunch_money_agent_core.py --prompt "Show me my balances"
-        python handlers/lunch_money_agent_core.py --mlflow https://mlflow.example.com --prompt "What are my recent transactions?"
+        python handlers/aitools/agent_engine.py
+        python handlers/aitools/agent_engine.py --prompt "Show me my balances"
+        python handlers/aitools/agent_engine.py --mlflow https://mlflow.example.com --prompt "What are my recent transactions?"
     """
     import argparse
 

@@ -5,7 +5,7 @@ import time
 from telegram.constants import ParseMode, ReactionEmoji
 from telegram.ext import ContextTypes
 
-from handlers.lunch_money_agent_core import AgentConfig, LunchMoneyAgentResponse, execute_agent
+from handlers.aitools.agent_engine import AgentConfig, LunchMoneyAgentResponse, execute_agent
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
 from telegram_extensions import Update
