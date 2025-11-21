@@ -237,7 +237,9 @@ if __name__ == "__main__":
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Test Lunch Money agent with optional MLflow tracking")
     parser.add_argument("--mlflow", type=str, help="MLflow tracking URI (e.g., https://mlflow.example.com)")
-    parser.add_argument("--prompt", type=str, help="Custom prompt to test (default: 'What are my recent transactions?')")
+    parser.add_argument(
+        "--prompt", type=str, help="Custom prompt to test (default: 'What are my recent transactions?')"
+    )
     args = parser.parse_args()
 
     # Setup MLflow if requested

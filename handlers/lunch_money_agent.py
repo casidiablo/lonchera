@@ -66,7 +66,19 @@ def get_agent_response(
         structured_response = execute_agent(
             user_prompt=user_prompt, config=config, tx_id=tx_id, telegram_message_id=telegram_message_id
         )
-
+    except Exception as e:
+        processing_time = time.time() - start_time
+        get_db().inc_metric("ai_agent_requests_failed")
+        get_db().inc_metric("ai_agent_processing_time_seconds", processing_time)
+        logger.exception("Error in agent processing")
+        # Return a default LunchMoneyAgentResponse on error for type compliance
+        return LunchMoneyAgentResponse(
+            message=f"Agent failed to process request: {e}",
+            status="error",
+            transactions_created_ids=[],
+            transaction_updated_ids={},
+        )
+    else:
         # Track successful responses and their characteristics
         processing_time = time.time() - start_time
         get_db().inc_metric("ai_agent_requests_successful")
@@ -88,19 +100,6 @@ def get_agent_response(
             get_db().inc_metric(f"ai_agent_language_{settings.ai_response_language.lower()}")
 
         return structured_response
-
-    except Exception as e:
-        processing_time = time.time() - start_time
-        get_db().inc_metric("ai_agent_requests_failed")
-        get_db().inc_metric("ai_agent_processing_time_seconds", processing_time)
-        logger.exception("Error in agent processing: %s", e)
-        # Return a default LunchMoneyAgentResponse on error for type compliance
-        return LunchMoneyAgentResponse(
-            message=f"Agent failed to process request: {e}",
-            status="error",
-            transactions_created_ids=[],
-            transaction_updated_ids={},
-        )
 
 
 async def handle_generic_message_with_ai(update: Update, context: ContextTypes.DEFAULT_TYPE):
