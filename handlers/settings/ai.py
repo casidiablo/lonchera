@@ -13,15 +13,18 @@ from utils import Keyboard
 def get_model_display_name(model: str | None) -> str:
     """Get user-friendly display name for AI model."""
     if not model:
-        return "Llama \\(Default\\)"
+        return "Gemini 2\\.5 Flash \\(Default\\)"
 
+    # Model names with company/model format
     model_names = {
-        "gpt-4.1-nano": "GPT\\-4\\.1 Nano",
-        "gpt-4.1-mini": "GPT\\-4\\.1 Mini",
-        "gpt-4.1": "GPT\\-4\\.1",
-        "gpt-4o": "GPT\\-4o",
-        "gpt-4o-mini": "GPT\\-4o Mini",
-        "o4-mini": "o4\\-mini",
+        "openai/gpt-4.1-nano": "GPT\\-4\\.1 Nano",
+        "openai/gpt-4.1-mini": "GPT\\-4\\.1 Mini",
+        "openai/gpt-4.1": "GPT\\-4\\.1",
+        "openai/gpt-4o": "GPT\\-4o",
+        "openai/gpt-4o-mini": "GPT\\-4o Mini",
+        "openai/o4-mini": "o4\\-mini",
+        "google/gemini-2.5-flash": "Gemini 2\\.5 Flash",
+        "anthropic/claude-haiku-4.5": "Claude Haiku 4\\.5",
     }
     return model_names.get(model, f"{model}")
 
@@ -151,15 +154,16 @@ def get_model_selection_buttons(chat_id: int) -> InlineKeyboardMarkup:
     # Only show advanced models for authorized chat_id
     admin_user_id = os.getenv("ADMIN_USER_ID")
     if admin_user_id and chat_id == int(admin_user_id):
-        kbd += ("🦙 Llama (Default)", "setModel_none")
-        kbd += ("GPT-4.1 Nano", "setModel_gpt-4.1-nano")
-        kbd += ("GPT-4.1 Mini", "setModel_gpt-4.1-mini")
-        kbd += ("GPT-4.1", "setModel_gpt-4.1")
-        kbd += ("GPT-4o", "setModel_gpt-4o")
-        kbd += ("GPT-4o Mini", "setModel_gpt-4o-mini")
-        kbd += ("o4-mini", "setModel_o4-mini")
+        kbd += ("Gemini 2.5 Flash (Default)", "setModel_none")
+        kbd += ("GPT-4.1 Nano", "setModel_openai/gpt-4.1-nano")
+        kbd += ("GPT-4.1 Mini", "setModel_openai/gpt-4.1-mini")
+        kbd += ("GPT-4.1", "setModel_openai/gpt-4.1")
+        kbd += ("GPT-4o", "setModel_openai/gpt-4o")
+        kbd += ("GPT-4o Mini", "setModel_openai/gpt-4o-mini")
+        kbd += ("o4-mini", "setModel_openai/o4-mini")
+        kbd += ("Claude Haiku 4.5", "setModel_anthropic/claude-haiku-4.5")
     else:
-        kbd += ("🦙 Llama (Only Available)", "setModel_none")
+        kbd += ("Gemini 2.5 Flash (Only Available)", "setModel_none")
     kbd += ("Back", "aiSettings")
     return kbd.build()
 

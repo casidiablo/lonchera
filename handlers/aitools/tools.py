@@ -3,7 +3,6 @@ import json
 import logging
 
 import dateparser
-from langchain_core.tools import tool
 from lunchable import TransactionInsertObject, TransactionUpdateObject
 
 from constants import NOTES_MAX_LENGTH
@@ -50,7 +49,6 @@ def transaction_to_dict(transaction) -> dict:
     return transaction_info
 
 
-@tool
 async def get_my_lunch_money_user_info(chat_id: int) -> str:
     """get my lunch money user info"""
     logger.info("Calling get_my_lunch_money_user_info for chat_id: %s", chat_id)
@@ -63,7 +61,6 @@ async def get_my_lunch_money_user_info(chat_id: int) -> str:
         return json.dumps({"error": str(e)})
 
 
-@tool
 def get_plaid_account_balances(chat_id: int) -> str:
     """Get current balance for all Plaid-managed accounts"""
     logger.info("Calling get_plaid_account_balances for chat_id: %s", chat_id)
@@ -99,7 +96,6 @@ def get_plaid_account_balances(chat_id: int) -> str:
         return json.dumps({"error": str(e)})
 
 
-@tool
 def get_manual_accounts_balances(chat_id: int) -> str:
     """Get manually-managed asset accounts that can be used for manual transactions"""
     logger.info("Calling get_manual_accounts_balances for chat_id: %s", chat_id)
@@ -139,7 +135,6 @@ def get_manual_accounts_balances(chat_id: int) -> str:
         return json.dumps({"error": str(e)})
 
 
-@tool
 def get_categories(chat_id: int) -> str:
     """Get all available categories for transactions"""
     logger.info("Calling get_categories for chat_id: %s", chat_id)
@@ -161,7 +156,6 @@ def get_categories(chat_id: int) -> str:
         return json.dumps({"error": str(e)})
 
 
-@tool
 def add_manual_transaction(
     chat_id: int,
     date: str,
@@ -286,7 +280,6 @@ def add_manual_transaction(
         return json.dumps({"error": str(e)})
 
 
-@tool
 def get_crypto_accounts_balances(chat_id: int) -> str:
     """Get all cryptocurrency accounts and their balances"""
     logger.info("Calling get_crypto_accounts_balances for chat_id: %s", chat_id)
@@ -383,7 +376,6 @@ def prepare_transaction_update_data(
     return update_data
 
 
-@tool
 def update_transaction(
     chat_id: int,
     transaction_id: int,
@@ -453,7 +445,6 @@ def update_transaction(
         return json.dumps({"error": str(e)})
 
 
-@tool
 def get_transactions(
     chat_id: int,
     limit: int = 10,
@@ -574,7 +565,6 @@ def get_transactions(
         return json.dumps({"error": str(e)})
 
 
-@tool
 def get_single_transaction(chat_id: int, transaction_id: int) -> str:
     """Get details of a specific transaction by ID.
 
@@ -602,7 +592,6 @@ def get_single_transaction(chat_id: int, transaction_id: int) -> str:
         return json.dumps({"error": str(e)})
 
 
-@tool
 def get_recent_transactions(chat_id: int, days: int = 7, limit: int = 20) -> str:
     """Get recent transactions from the last few days.
 
@@ -651,7 +640,6 @@ def get_recent_transactions(chat_id: int, days: int = 7, limit: int = 20) -> str
         return json.dumps({"error": str(e)})
 
 
-@tool
 def calculate(expression: str) -> str:
     """Perform basic arithmetic calculations safely.
 
@@ -690,7 +678,6 @@ def calculate(expression: str) -> str:
         return json.dumps({"error": f"Calculation error: {e!s}"})
 
 
-@tool
 def parse_date_reference(date_reference: str) -> str:
     """Parse date references using the powerful dateparser library.
 
