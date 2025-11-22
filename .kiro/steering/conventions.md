@@ -61,5 +61,3 @@ Always run these commands:
 uv run ruff format .
 uv run ruff check .
 ```
-
-Pre-commit hooks will enforce these automatically if configured.

@@ -22,7 +22,6 @@ inclusion: always
 ## Development Tools
 
 - **ruff**: Linting and formatting (replaces black, isort, flake8)
-- **pre-commit**: Git hooks for code quality
 - **mypy**: Type checking (optional)
 
 ## Deployment
@@ -41,9 +40,6 @@ uv run ruff format .
 
 # Lint code
 uv run ruff check .
-
-# Run pre-commit hooks
-pre-commit run --all-files
 
 # Type check (optional)
 python -m mypy .
