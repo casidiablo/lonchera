@@ -100,10 +100,10 @@ async def handle_btn_show_budget_for_category(update: Update, _: ContextTypes.DE
     if not update.callback_query or not update.callback_query.data or not update.callback_query.message:
         return
 
-    parts = update.callback_data_suffix
-    budget_date = parts[1]
+    parts = update.callback_data_suffix.split("_")
+    budget_date = parts[0]
     budget_date = datetime.fromisoformat(budget_date)
-    category_id = int(parts[2])
+    category_id = int(parts[1])
 
     lunch = get_lunch_client_for_chat_id(update.chat_id)
 
