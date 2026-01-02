@@ -13,7 +13,7 @@ This implementation plan breaks down the account transaction filtering feature i
   - Handle edge cases: empty/null values, malformed strings, invalid account IDs
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
 
-- [ ] 2. Create account filtering settings handler
+- [x] 2. Create account filtering settings handler
   - Create `handlers/settings/account_filtering.py` module
   - Implement `get_account_filtering_text()` to render menu with account list and ignore status
   - Implement `get_account_filtering_buttons()` to create toggle buttons for each account
