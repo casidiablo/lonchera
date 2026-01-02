@@ -30,6 +30,10 @@ def get_transactions_handling_text(chat_id: int) -> str | None:
         ➌ *Auto\\-categorize after adding notes*: {"🟢 ᴏɴ" if settings.auto_categorize_after_notes else "🔴 ᴏꜰꜰ"}
         > When enabled, automatically runs auto\\-categorization after a note is added to a transaction\\.
         > _Requires AI to be enabled_\\.
+
+
+        ➍ *Account Filtering*
+        > Configure which accounts should be ignored for transaction notifications\\.
         """
     )
 
@@ -39,6 +43,7 @@ def get_transactions_handling_buttons(settings: Settings) -> InlineKeyboardMarku
     kbd += ("➊ Auto-mark reviewed?", f"toggleAutoMarkReviewed_{settings.auto_mark_reviewed}")
     kbd += ("➋ Mark reviewed after categorization?", "toggleMarkReviewedAfterCategorized")
     kbd += ("➌ Auto-categorize after notes?", f"toggleAutoCategorizeAfterNotes_{settings.auto_categorize_after_notes}")
+    kbd += ("➍ Account Filtering", "accountFilteringSettings")
     kbd += ("Back", "settingsMenu")
     return kbd.build()
 

@@ -22,7 +22,7 @@ This implementation plan breaks down the account transaction filtering feature i
   - Show account count summary and handle empty account lists
   - _Requirements: 1.2, 1.3, 1.4, 1.5, 5.2, 5.3_
 
-- [ ] 3. Implement account toggle functionality
+- [x] 3. Implement account toggle functionality
   - Implement `handle_btn_toggle_account_ignore()` callback handler
   - Toggle account ignore status in database using account ID from callback data
   - Update UI immediately to reflect new ignore status
@@ -30,7 +30,7 @@ This implementation plan breaks down the account transaction filtering feature i
   - Handle callback data parsing and validation
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 5.1_
 
-- [ ] 4. Integrate account filtering into settings menu
+- [x] 4. Integrate account filtering into settings menu
   - Add "Account Filtering" button to `handlers/settings/transactions_handling.py`
   - Update `get_transactions_handling_text()` and `get_transactions_handling_buttons()`
   - Register new callback handlers in main application
