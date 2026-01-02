@@ -45,7 +45,7 @@ This implementation plan breaks down the account transaction filtering feature i
   - Handle empty ignored accounts list (process all transactions normally)
   - _Requirements: 3.1, 3.2, 3.3, 3.5_
 
-- [ ] 6. Add error handling and edge cases
+- [x] 6. Add error handling and edge cases
   - Handle Lunch Money API errors when fetching accounts
   - Display user-friendly error messages and suggest retry
   - Handle malformed ignored accounts data gracefully

@@ -61,6 +61,28 @@ async def fetch_transactions(chat_id: int, days_lookback: int, pending: bool):
     return transactions
 
 
+def _apply_account_filtering(chat_id: int, transactions: list[TransactionObject]) -> list[TransactionObject]:
+    """Apply account filtering to remove transactions from ignored accounts."""
+    try:
+        ignored_accounts = get_db().get_ignored_accounts_list(chat_id)
+        if ignored_accounts:
+            logger.info(f"Filtering out transactions from {len(ignored_accounts)} ignored accounts for chat {chat_id}")
+            original_count = len(transactions)
+            filtered_transactions = [tx for tx in transactions if tx.plaid_account_id not in ignored_accounts]
+            filtered_count = original_count - len(filtered_transactions)
+            if filtered_count > 0:
+                logger.info(f"Filtered out {filtered_count} transactions from ignored accounts for chat {chat_id}")
+            return filtered_transactions
+        else:
+            logger.debug(f"No ignored accounts configured for chat {chat_id}, processing all transactions")
+            return transactions
+    except Exception:
+        logger.exception(f"Error applying account filtering for chat {chat_id}")
+        # Continue processing all transactions if filtering fails
+        logger.warning(f"Continuing with unfiltered transactions for chat {chat_id} due to filtering error")
+        return transactions
+
+
 async def check_transactions_and_telegram_them(
     context: ContextTypes.DEFAULT_TYPE, chat_id: int, poll_pending: bool = False
 ):
@@ -99,16 +121,7 @@ async def check_transactions_and_telegram_them(
     all_updated_message_ids = set()
 
     ## 2. Apply account filtering to remove transactions from ignored accounts
-    ignored_accounts = get_db().get_ignored_accounts_list(chat_id)
-    if ignored_accounts:
-        logger.info(f"Filtering out transactions from {len(ignored_accounts)} ignored accounts for chat {chat_id}")
-        original_count = len(transactions_to_process)
-        transactions_to_process = [tx for tx in transactions_to_process if tx.plaid_account_id not in ignored_accounts]
-        filtered_count = original_count - len(transactions_to_process)
-        if filtered_count > 0:
-            logger.info(f"Filtered out {filtered_count} transactions from ignored accounts for chat {chat_id}")
-    else:
-        logger.debug(f"No ignored accounts configured for chat {chat_id}, processing all transactions")
+    transactions_to_process = _apply_account_filtering(chat_id, transactions_to_process)
 
     ## 3. Handle transaction ID updates and auto-review based on settings
     if poll_pending:

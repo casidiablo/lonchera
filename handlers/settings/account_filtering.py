@@ -1,10 +1,12 @@
 import logging
 from textwrap import dedent
 
+from lunchable.exceptions import LunchMoneyError
 from telegram import InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
+from errors import NoLunchTokenError
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
 from telegram_extensions import Update
@@ -20,11 +22,28 @@ def get_account_filtering_text(chat_id: int) -> str | None:
         lunch_client = get_lunch_client_for_chat_id(chat_id)
         accounts = lunch_client.get_plaid_accounts()
 
+        logger.info(f"Successfully fetched {len(accounts)} accounts for chat {chat_id}")
+
         # Get ignored accounts from database
         ignored_accounts = get_db().get_ignored_accounts_list(chat_id)
         ignored_set = set(ignored_accounts)
 
+        # Filter out any ignored accounts that no longer exist (account deletion scenario)
+        valid_account_ids = {acc.id for acc in accounts}
+        stale_ignored_accounts = [acc_id for acc_id in ignored_accounts if acc_id not in valid_account_ids]
+
+        if stale_ignored_accounts:
+            logger.warning(
+                f"Found {len(stale_ignored_accounts)} stale ignored account IDs for chat {chat_id}: {stale_ignored_accounts}"
+            )
+            # Remove stale account IDs from ignored list
+            cleaned_ignored_accounts = [acc_id for acc_id in ignored_accounts if acc_id in valid_account_ids]
+            get_db().update_ignored_accounts(chat_id, cleaned_ignored_accounts)
+            ignored_set = set(cleaned_ignored_accounts)
+            logger.info(f"Cleaned up stale ignored accounts for chat {chat_id}")
+
         if not accounts:
+            logger.warning(f"No Plaid accounts found for chat {chat_id}")
             return dedent(
                 """
                 🛠️ 🆂🅴🆃🆃🅸🅽🅶🆂 \\- *Account Filtering*
@@ -51,15 +70,37 @@ def get_account_filtering_text(chat_id: int) -> str | None:
             """
         )
 
-    except Exception:
-        logger.exception("Error fetching accounts for filtering menu")
+    except NoLunchTokenError:
+        logger.exception(f"No Lunch Money token found for chat {chat_id}")
         return dedent(
             """
             🛠️ 🆂🅴🆃🆃🅸🅽🅶🆂 \\- *Account Filtering*
 
-            ❌ Error loading accounts\\.
+            ❌ Lunch Money token not found\\.
 
-            Please check your Lunch Money connection and try again\\.
+            Please set up your Lunch Money connection first in Settings → Session\\.
+            """
+        )
+    except LunchMoneyError:
+        logger.exception(f"Lunch Money API error for chat {chat_id}")
+        return dedent(
+            """
+            🛠️ 🆂🅴🆃🆃🅸🅽🅶🆂 \\- *Account Filtering*
+
+            ❌ Error connecting to Lunch Money API\\.
+
+            Please check your connection and try again\\. If the problem persists, your token may need to be refreshed\\.
+            """
+        )
+    except Exception:
+        logger.exception(f"Unexpected error fetching accounts for filtering menu for chat {chat_id}")
+        return dedent(
+            """
+            🛠️ 🆂🅴🆃🆃🅸🅽🅶🆂 \\- *Account Filtering*
+
+            ❌ Unexpected error loading accounts\\.
+
+            Please try again later\\. If the problem persists, please contact support\\.
             """
         )
 
