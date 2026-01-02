@@ -8,7 +8,7 @@ from telegram.ext import ContextTypes
 from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
 from telegram_extensions import Update
-from utils import Keyboard, get_emoji_for_account_type
+from utils import Keyboard
 
 logger = logging.getLogger("account_filtering")
 
@@ -16,9 +16,9 @@ logger = logging.getLogger("account_filtering")
 def get_account_filtering_text(chat_id: int) -> str | None:
     """Render menu with account list and ignore status."""
     try:
-        # Get user's accounts from Lunch Money API
+        # Get user's Plaid accounts from Lunch Money API (only these have transactions)
         lunch_client = get_lunch_client_for_chat_id(chat_id)
-        accounts = lunch_client.get_accounts()
+        accounts = lunch_client.get_plaid_accounts()
 
         # Get ignored accounts from database
         ignored_accounts = get_db().get_ignored_accounts_list(chat_id)
@@ -39,39 +39,6 @@ def get_account_filtering_text(chat_id: int) -> str | None:
         ignored_count = len([acc for acc in accounts if acc.id in ignored_set])
         total_count = len(accounts)
 
-        # Build account list text
-        account_lines = []
-        for account in accounts:
-            emoji = get_emoji_for_account_type(account.type or "other")
-            status_icon = "🔕" if account.id in ignored_set else "🔔"
-            status_text = "Ignored" if account.id in ignored_set else "Active"
-
-            # Escape special characters for Markdown V2
-            account_name = (
-                account.name.replace("_", "\\_")
-                .replace("*", "\\*")
-                .replace("[", "\\[")
-                .replace("]", "\\]")
-                .replace("(", "\\(")
-                .replace(")", "\\)")
-                .replace("~", "\\~")
-                .replace("`", "\\`")
-                .replace(">", "\\>")
-                .replace("#", "\\#")
-                .replace("+", "\\+")
-                .replace("-", "\\-")
-                .replace("=", "\\=")
-                .replace("|", "\\|")
-                .replace("{", "\\{")
-                .replace("}", "\\}")
-                .replace(".", "\\.")
-                .replace("!", "\\!")
-            )
-
-            account_lines.append(f"{emoji} *{account_name}*: {status_icon} {status_text}")
-
-        accounts_text = "\n".join(account_lines)
-
         return dedent(
             f"""
             🛠️ 🆂🅴🆃🆃🅸🅽🅶🆂 \\- *Account Filtering*
@@ -80,9 +47,7 @@ def get_account_filtering_text(chat_id: int) -> str | None:
 
             📊 *Summary*: {ignored_count} of {total_count} accounts ignored
 
-            {accounts_text}
-
-            Tap an account to toggle its notification status\\.
+            Tap an account below to toggle its notification status\\.
             """
         )
 
@@ -104,9 +69,9 @@ def get_account_filtering_buttons(chat_id: int) -> InlineKeyboardMarkup:
     kbd = Keyboard()
 
     try:
-        # Get user's accounts from Lunch Money API
+        # Get user's Plaid accounts from Lunch Money API (only these have transactions)
         lunch_client = get_lunch_client_for_chat_id(chat_id)
-        accounts = lunch_client.get_accounts()
+        accounts = lunch_client.get_plaid_accounts()
 
         # Get ignored accounts from database
         ignored_accounts = get_db().get_ignored_accounts_list(chat_id)
@@ -115,7 +80,11 @@ def get_account_filtering_buttons(chat_id: int) -> InlineKeyboardMarkup:
         # Create toggle buttons for each account
         for account in accounts:
             status_icon = "🔕" if account.id in ignored_set else "🔔"
-            button_text = f"{status_icon} {account.name}"
+
+            # Get account name - use display_name if available, otherwise name
+            account_name = getattr(account, "display_name", None) or account.name
+
+            button_text = f"{status_icon} {account_name}"
             callback_data = f"toggleAccountIgnore_{account.id}"
             kbd += (button_text, callback_data)
 
