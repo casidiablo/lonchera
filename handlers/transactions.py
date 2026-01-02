@@ -69,9 +69,10 @@ async def check_transactions_and_telegram_them(
 
     This function orchestrates the entire transaction processing workflow:
     1. Fetches transactions from LunchMoney API (pending or posted)
-    2. Handles transaction ID updates and auto-review based on settings
-    3. Sends new transactions to Telegram
-    4. Updates existing Telegram messages for pending transactions
+    2. Applies account filtering to remove transactions from ignored accounts
+    3. Handles transaction ID updates and auto-review based on settings
+    4. Sends new transactions to Telegram
+    5. Updates existing Telegram messages for pending transactions
 
     Args:
         context: Telegram context
@@ -97,7 +98,19 @@ async def check_transactions_and_telegram_them(
     settings = get_db().get_current_settings(chat_id)
     all_updated_message_ids = set()
 
-    ## 2. Handle transaction ID updates and auto-review based on settings
+    ## 2. Apply account filtering to remove transactions from ignored accounts
+    ignored_accounts = get_db().get_ignored_accounts_list(chat_id)
+    if ignored_accounts:
+        logger.info(f"Filtering out transactions from {len(ignored_accounts)} ignored accounts for chat {chat_id}")
+        original_count = len(transactions_to_process)
+        transactions_to_process = [tx for tx in transactions_to_process if tx.plaid_account_id not in ignored_accounts]
+        filtered_count = original_count - len(transactions_to_process)
+        if filtered_count > 0:
+            logger.info(f"Filtered out {filtered_count} transactions from ignored accounts for chat {chat_id}")
+    else:
+        logger.debug(f"No ignored accounts configured for chat {chat_id}, processing all transactions")
+
+    ## 3. Handle transaction ID updates and auto-review based on settings
     if poll_pending:
         # Update transaction IDs for transactions that changed from pending to posted
         id_update_message_ids = await update_transaction_ids_for_posted_transactions(chat_id, posted_transactions)
@@ -123,7 +136,7 @@ async def check_transactions_and_telegram_them(
                 )
                 transaction.status = "cleared"
 
-    # 3. Send new transactions to Telegram that haven't been sent before
+    # 4. Send new transactions to Telegram that haven't been sent before
     for transaction in transactions_to_process:
         if get_db().was_already_sent(transaction.id):
             logger.debug(f"Skipping already sent transaction {transaction.id} in chat {chat_id}")
@@ -139,7 +152,7 @@ async def check_transactions_and_telegram_them(
             plaid_id=(transaction.plaid_metadata.get("transaction_id", None) if transaction.plaid_metadata else None),
         )
 
-    # 4. Update Telegram messages for transactions that had their IDs updated or were marked as reviewed
+    # 5. Update Telegram messages for transactions that had their IDs updated or were marked as reviewed
     if poll_pending:
         await resync_updted_transactions(context, chat_id, all_updated_message_ids)
 

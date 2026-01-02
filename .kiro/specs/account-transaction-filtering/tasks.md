@@ -37,7 +37,7 @@ This implementation plan breaks down the account transaction filtering feature i
   - Ensure navigation flow works correctly between menus
   - _Requirements: 1.1_
 
-- [ ] 5. Implement transaction filtering logic
+- [x] 5. Implement transaction filtering logic
   - Modify `check_transactions_and_telegram_them()` in `handlers/transactions.py`
   - Add account filtering before processing transactions
   - Filter out transactions where `transaction.account_id` is in ignored accounts list
