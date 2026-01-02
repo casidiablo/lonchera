@@ -184,7 +184,7 @@ def format_compact_transaction_message(transaction: TransactionObject, tagging: 
         # explicitly showing a + sign before the amount
         explicit_sign = "➕"
     category_name = transaction.category_name or "Uncategorized"
-    return f"*{transaction.payee}* `{explicit_sign}{abs(transaction.amount):,.2f}` {make_tag(category_name, tagging=tagging)}"
+    return f"*{clean_md(transaction.payee)}* `{explicit_sign}{abs(transaction.amount):,.2f}` {make_tag(category_name, tagging=tagging)}"
 
 
 def get_rendered_transaction_message(chat_id: str | int, transaction: TransactionObject, detailed_view: bool = False):

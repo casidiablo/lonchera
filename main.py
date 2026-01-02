@@ -8,6 +8,7 @@ from telegram.error import Conflict, TelegramError
 from telegram.ext import Application, CallbackQueryHandler, CommandHandler, ContextTypes, MessageHandler, filters
 
 from handlers.admin import (
+    handle_backup,
     handle_blocked_users,
     handle_btn_cancel_delete_user,
     handle_btn_confirm_delete_user,
@@ -123,6 +124,7 @@ def add_command_handlers(app):
     app.add_handler(CommandHandler("balances", handle_show_balances))
     app.add_handler(CommandHandler("blocked_users", handle_blocked_users))
     app.add_handler(CommandHandler("delete_user", handle_delete_user))
+    app.add_handler(CommandHandler("backup", handle_backup))
 
 
 def add_settings_callback_query_handlers(app):

@@ -12,6 +12,19 @@ def is_emoji(char):
     return char in emoji.EMOJI_DATA
 
 
+def clean_md_v2(text: str) -> str:
+    return (
+        text.replace(" ", "")
+        .replace(".", "\\.")
+        .replace("!", "\\!")
+        .replace("*", "\\*")
+        .replace("_", "\\_")
+        .replace("-", "\\_")
+        .replace("/", "\\_")
+        .strip()
+    )
+
+
 def make_tag(t: str, title=False, tagging=True, no_emojis=False) -> str:
     result = "".join([char for char in t if char not in emoji.EMOJI_DATA])
     if tagging:

@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "aiohttp>=3.12.13",
+    "boto3>=1.35.0",
     "dateparser>=1.2.2",
     "dotenv>=0.9.9",
     "dspy>=3.0.3",
