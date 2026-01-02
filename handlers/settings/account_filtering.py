@@ -15,7 +15,7 @@ from utils import Keyboard
 logger = logging.getLogger("account_filtering")
 
 
-def get_account_filtering_text(chat_id: int) -> str | None:
+def get_account_filtering_text(chat_id: int) -> str:
     """Render menu with account list and ignore status."""
     try:
         # Get user's Plaid accounts from Lunch Money API (only these have transactions)
@@ -50,7 +50,7 @@ def get_account_filtering_text(chat_id: int) -> str | None:
 
                 ❌ No accounts available to configure\\.
 
-                Please ensure your Lunch Money account has connected accounts\\.
+                Please ensure your Lunch Money account has connected Plaid accounts\\.
                 """
             )
 
@@ -143,13 +143,11 @@ def get_account_filtering_buttons(chat_id: int) -> InlineKeyboardMarkup:
 
 async def handle_account_filtering_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Main menu handler for account filtering settings."""
-    settings_text = get_account_filtering_text(update.chat_id)
-    if settings_text:
-        await update.safe_edit_message_text(
-            text=settings_text,
-            reply_markup=get_account_filtering_buttons(update.chat_id),
-            parse_mode=ParseMode.MARKDOWN_V2,
-        )
+    await update.safe_edit_message_text(
+        text=get_account_filtering_text(update.chat_id),
+        reply_markup=get_account_filtering_buttons(update.chat_id),
+        parse_mode=ParseMode.MARKDOWN_V2,
+    )
 
 
 async def handle_btn_toggle_account_ignore(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -182,24 +180,14 @@ async def handle_btn_toggle_account_ignore(update: Update, context: ContextTypes
         # Update database
         get_db().update_ignored_accounts(update.chat_id, ignored_accounts)
 
-        # Update UI to reflect changes
-        settings_text = get_account_filtering_text(update.chat_id)
-        if settings_text:
-            await update.safe_edit_message_text(
-                text=settings_text,
-                reply_markup=get_account_filtering_buttons(update.chat_id),
-                parse_mode=ParseMode.MARKDOWN_V2,
-            )
-
         logger.info(f"Toggled account {account_id} ignore status for chat {update.chat_id}")
 
     except Exception:
         logger.exception("Error toggling account ignore status")
-        # Try to refresh the menu on error
-        settings_text = get_account_filtering_text(update.chat_id)
-        if settings_text:
-            await update.safe_edit_message_text(
-                text=settings_text,
-                reply_markup=get_account_filtering_buttons(update.chat_id),
-                parse_mode=ParseMode.MARKDOWN_V2,
-            )
+
+    # Update UI to reflect changes
+    await update.safe_edit_message_text(
+        text=get_account_filtering_text(update.chat_id),
+        reply_markup=get_account_filtering_buttons(update.chat_id),
+        parse_mode=ParseMode.MARKDOWN_V2,
+    )
