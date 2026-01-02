@@ -234,6 +234,20 @@ async def send_transaction_message(
                 parse_mode=ParseMode.MARKDOWN,
                 reply_markup=get_tx_buttons(int(chat_id), transaction.id),
             )
+        except telegram.error.BadRequest as e:
+            if "Can't parse entities" in str(e):
+                logger.warning(f"Markdown parsing failed for edit in chat_id {chat_id}, retrying without markdown: {e}")
+                # Retry without markdown formatting
+                await context.bot.edit_message_text(
+                    chat_id=chat_id,
+                    message_id=message_id,
+                    text=message,
+                    reply_markup=get_tx_buttons(int(chat_id), transaction.id),
+                )
+            elif "Message is not modified" in str(e):
+                logger.debug(f"Message is not modified, skipping edit ({message_id})")
+            else:
+                raise
         except telegram.error.Forbidden as e:
             if await _handle_blocked_user_error(e, chat_id):
                 return -1
@@ -254,6 +268,18 @@ async def send_transaction_message(
             reply_markup=get_tx_buttons(int(chat_id), transaction),
             reply_to_message_id=reply_to_message_id,
         )
+    except telegram.error.BadRequest as e:
+        if "Can't parse entities" in str(e):
+            logger.warning(f"Markdown parsing failed for chat_id {chat_id}, sending without markdown: {e}")
+            # Retry without markdown formatting
+            msg = await context.bot.send_message(
+                chat_id=chat_id,
+                text=message,
+                reply_markup=get_tx_buttons(int(chat_id), transaction),
+                reply_to_message_id=reply_to_message_id,
+            )
+        else:
+            raise
     except telegram.error.Forbidden as e:
         if await _handle_blocked_user_error(e, chat_id):
             return -1
