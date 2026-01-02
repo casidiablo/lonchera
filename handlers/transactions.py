@@ -685,7 +685,7 @@ async def handle_expand_tx_options(update: Update, context: ContextTypes.DEFAULT
     await update.safe_edit_message_text(
         text=get_rendered_transaction_message(update.chat_id, transaction, detailed_view=True),
         parse_mode=ParseMode.MARKDOWN,
-        reply_markup=get_tx_buttons(update.chat_id, tx_id, collapsed=False),
+        reply_markup=get_tx_buttons(update.chat_id, transaction, collapsed=False),
     )
 
 
