@@ -224,45 +224,46 @@ async def send_transaction_message(
     logger.info(f"Sending message to chat_id {chat_id} (tx id: {transaction.id}): {message}")
     get_db().inc_metric("sent_transaction_messages")
 
-    if message_id:
-        # edit existing message
-        try:
+    async def dispatch_message(parse_mode) -> int:
+        if message_id:
             await context.bot.edit_message_text(
                 chat_id=chat_id,
                 message_id=message_id,
                 text=message,
-                parse_mode=ParseMode.MARKDOWN,
-                reply_markup=get_tx_buttons(int(chat_id), transaction.id),
+                parse_mode=parse_mode,
+                reply_markup=get_tx_buttons(int(chat_id), transaction),
             )
-        except telegram.error.Forbidden as e:
-            if await _handle_blocked_user_error(e, chat_id):
-                return -1
-            raise
-        except Exception as e:
-            if "Message is not modified" in str(e):
-                logger.debug(f"Message is not modified, skipping edit ({message_id})")
-            else:
-                raise
-        return message_id
-
-    # send new message
-    try:
+            return message_id
         msg = await context.bot.send_message(
             chat_id=chat_id,
             text=message,
-            parse_mode=ParseMode.MARKDOWN,
+            parse_mode=parse_mode,
             reply_markup=get_tx_buttons(int(chat_id), transaction),
             reply_to_message_id=reply_to_message_id,
         )
+        return msg.id
+
+    try:
+        new_msg_id = await dispatch_message(parse_mode=ParseMode.MARKDOWN)
+    except telegram.error.BadRequest as e:
+        if "Can't parse entities" in str(e):
+            logger.warning(f"Markdown parsing failed for edit in chat_id {chat_id}, retrying without markdown: {e}")
+            # Retry without markdown formatting
+            new_msg_id = await dispatch_message(parse_mode=None)
+        elif "Message is not modified" in str(e):
+            logger.debug(f"Message is not modified, skipping edit ({message_id})")
+        else:
+            raise
     except telegram.error.Forbidden as e:
         if await _handle_blocked_user_error(e, chat_id):
             return -1
         raise
-    except Exception:
-        logger.exception(f"Failed to send message for chat_id {chat_id}")
-        raise
-
-    return msg.id
+    except Exception as e:
+        if "Message is not modified" in str(e):
+            logger.debug(f"Message is not modified, skipping edit ({message_id})")
+        else:
+            raise
+    return new_msg_id
 
 
 async def send_plaid_details(

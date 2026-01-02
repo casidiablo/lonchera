@@ -96,6 +96,9 @@ class Settings(Base):
     # Whether to use compact view for transaction messages
     compact_view: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
+    # Comma-separated list of account IDs to ignore for transaction notifications
+    ignored_accounts: Mapped[str | None] = mapped_column(String, nullable=True)
+
 
 class Analytics(Base):
     __tablename__ = "analytics"
@@ -316,6 +319,57 @@ class Persistence:
             stmt = update(Settings).where(Settings.chat_id == chat_id).values(compact_view=compact_view)
             session.execute(stmt)
             session.commit()
+
+    def update_ignored_accounts(self, chat_id: int, ignored_account_ids: list[int]) -> None:
+        """Store list of account IDs as comma-separated string in the database.
+
+        Args:
+            chat_id: The chat ID to update ignored accounts for
+            ignored_account_ids: List of account IDs to ignore for transaction notifications
+        """
+        # Convert list of integers to comma-separated string
+        ignored_accounts_str = (
+            ",".join(str(account_id) for account_id in ignored_account_ids) if ignored_account_ids else ""
+        )
+
+        with self.Session() as session:
+            stmt = update(Settings).where(Settings.chat_id == chat_id).values(ignored_accounts=ignored_accounts_str)
+            session.execute(stmt)
+            session.commit()
+
+    def get_ignored_accounts_list(self, chat_id: int) -> list[int]:
+        """Parse comma-separated string into list of integers.
+
+        Args:
+            chat_id: The chat ID to get ignored accounts for
+
+        Returns:
+            List of account IDs that should be ignored for transaction notifications
+        """
+        with self.Session() as session:
+            settings = session.query(Settings).filter_by(chat_id=chat_id).first()
+
+            # Handle case where settings don't exist or ignored_accounts is None/empty
+            if not settings or not settings.ignored_accounts:
+                return []
+
+            # Parse comma-separated string, handling edge cases
+            ignored_accounts = []
+            for raw_account_id in settings.ignored_accounts.split(","):
+                account_id_str = raw_account_id.strip()
+                if account_id_str:  # Skip empty strings
+                    try:
+                        account_id = int(account_id_str)
+                        if account_id > 0:  # Only include positive account IDs
+                            ignored_accounts.append(account_id)
+                    except ValueError:
+                        # Log malformed account ID but continue processing
+                        logger.warning(
+                            f"Malformed account ID '{account_id_str}' in ignored_accounts for chat {chat_id}"
+                        )
+                        continue
+
+            return ignored_accounts
 
     def set_api_token(self, chat_id: int, token: str | None) -> None:
         with self.Session() as session:

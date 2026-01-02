@@ -37,6 +37,7 @@ from handlers.general import (
     handle_generic_message,
     handle_start,
 )
+from handlers.settings.account_filtering import handle_account_filtering_settings, handle_btn_toggle_account_ignore
 from handlers.settings.ai import (
     handle_ai_settings,
     handle_btn_toggle_ai_agent,
@@ -154,6 +155,10 @@ def add_settings_callback_query_handlers(app):
     app.add_handler(
         CallbackQueryHandler(handle_btn_toggle_auto_categorize_after_notes, pattern=r"^toggleAutoCategorizeAfterNotes")
     )
+
+    # Account filtering settings
+    app.add_handler(CallbackQueryHandler(handle_account_filtering_settings, pattern=r"^accountFilteringSettings$"))
+    app.add_handler(CallbackQueryHandler(handle_btn_toggle_account_ignore, pattern=r"^toggleAccountIgnore_"))
 
     # AI settings
     app.add_handler(CallbackQueryHandler(handle_btn_toggle_ai_agent, pattern=r"^toggleAIAgent"))
