@@ -252,6 +252,7 @@ async def send_transaction_message(
             new_msg_id = await dispatch_message(parse_mode=None)
         elif "Message is not modified" in str(e):
             logger.debug(f"Message is not modified, skipping edit ({message_id})")
+            new_msg_id = message_id or -1  # Return existing message_id or -1 if no message_id
         else:
             raise
     except telegram.error.Forbidden as e:
@@ -261,6 +262,7 @@ async def send_transaction_message(
     except Exception as e:
         if "Message is not modified" in str(e):
             logger.debug(f"Message is not modified, skipping edit ({message_id})")
+            new_msg_id = message_id or -1  # Return existing message_id or -1 if no message_id
         else:
             raise
     return new_msg_id
