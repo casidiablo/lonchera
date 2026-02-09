@@ -539,7 +539,7 @@ wheels = [
 
 [[package]]
 name = "dspy"
-version = "3.1.2"
+version = "3.1.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -561,9 +561,9 @@ dependencies = [
     { name = "tqdm" },
     { name = "xxhash" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/22/92/4eeed6796c48e799a41aa521bf206fabab3dbb2fbf0958655b476e43726e/dspy-3.1.2.tar.gz", hash = "sha256:6dfd8a4bbf74b1b432ff466468994a590c43fce0d45c2c0094313c9314aa3bb6", size = 261253, upload-time = "2026-01-19T14:21:47.424Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/30/06/1b693d28a08e7a8b9ea17641259a73760de111ce0187cdcf030148a42ec1/dspy-3.1.3.tar.gz", hash = "sha256:e2fd9edc8678e0abcacd5d7b901f37b84a9f48a3c50718fc7fee95a492796019", size = 261178, upload-time = "2026-02-05T16:24:18.489Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/91/18/1c93641f25f4e76772b4ffb52a4e289f1706d6bda4f3b59bb6f7c339df46/dspy-3.1.2-py3-none-any.whl", hash = "sha256:23b98bf5abeda260722c445d397d07ea27488c204b8c0ccd6d3e607c4b41bc6b", size = 312290, upload-time = "2026-01-19T14:21:45.776Z" },
+    { url = "https://files.pythonhosted.org/packages/47/83/2432c2f987e738e4c15dfa3497daa5811a145facf4525bebcb9d240736db/dspy-3.1.3-py3-none-any.whl", hash = "sha256:26f983372ebb284324cc2162458f7bce509ef5ef7b48be4c9f490fa06ea73e37", size = 312353, upload-time = "2026-02-05T16:24:16.753Z" },
 ]
 
 [[package]]
@@ -727,11 +727,11 @@ wheels = [
 
 [[package]]
 name = "gepa"
-version = "0.0.24"
+version = "0.0.26"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/bc/2c/8f249827bcdc56212a445f4f671ee2201b864e433d2c88428933bd4b08f3/gepa-0.0.24.tar.gz", hash = "sha256:8035d1a0877661b6a63db457dc935b4878ee76acf7da1e488d7e6209bb32c054", size = 135673, upload-time = "2026-01-05T16:45:30.553Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ef/98/b8f1ccc8cc2a319f21433df45bcec8a8f7903ee08aacd0acfdc475f47c05/gepa-0.0.26.tar.gz", hash = "sha256:0119ca8022e93b6236bc154a57bb910bdb117485dc067d77777933dd3e9e9ad8", size = 141776, upload-time = "2026-01-24T18:11:18.362Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7e/b1/33b035ff1aaf22d4e104c5b15ba48fe5050639764457048e967c20d6317a/gepa-0.0.24-py3-none-any.whl", hash = "sha256:6d8b16699e7b24ed01435dea7bbbc89156a88cbb4b877b14d90e7455db2b0032", size = 137539, upload-time = "2026-01-05T16:45:29.244Z" },
+    { url = "https://files.pythonhosted.org/packages/05/6e/f1141b76398026ef77f0d52a17b37d26ceb7cd320e0ad3a72c59fe00b983/gepa-0.0.26-py3-none-any.whl", hash = "sha256:331e40d8693a4192de2eb3b2b4df10d410ead49173f748d50c32a035cf746e63", size = 139666, upload-time = "2026-01-24T18:11:16.836Z" },
 ]
 
 [[package]]
