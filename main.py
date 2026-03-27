@@ -71,6 +71,7 @@ from handlers.settings.transactions_handling import (
     handle_btn_toggle_auto_categorize_after_notes,
     handle_btn_toggle_auto_mark_reviewed,
     handle_btn_toggle_mark_reviewed_after_categorized,
+    handle_btn_toggle_sync_delete_with_lunchmoney,
     handle_transactions_handling_settings,
 )
 from handlers.syncing import handle_resync
@@ -156,6 +157,9 @@ def add_settings_callback_query_handlers(app):
     )
     app.add_handler(
         CallbackQueryHandler(handle_btn_toggle_auto_categorize_after_notes, pattern=r"^toggleAutoCategorizeAfterNotes")
+    )
+    app.add_handler(
+        CallbackQueryHandler(handle_btn_toggle_sync_delete_with_lunchmoney, pattern=r"^toggleSyncDeleteWithLunchMoney$")
     )
 
     # Account filtering settings

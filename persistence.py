@@ -99,6 +99,9 @@ class Settings(Base):
     # Comma-separated list of account IDs to ignore for transaction notifications
     ignored_accounts: Mapped[str | None] = mapped_column(String, nullable=True)
 
+    # When enabled, deleting a Telegram transaction message will also delete the transaction from Lunch Money
+    sync_delete_with_lunchmoney: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
 
 class Analytics(Base):
     __tablename__ = "analytics"
@@ -316,6 +319,12 @@ class Persistence:
     def update_compact_view(self, chat_id: int, compact_view: bool) -> None:
         with self.Session() as session:
             stmt = update(Settings).where(Settings.chat_id == chat_id).values(compact_view=compact_view)
+            session.execute(stmt)
+            session.commit()
+
+    def update_sync_delete_with_lunchmoney(self, chat_id: int, value: bool) -> None:
+        with self.Session() as session:
+            stmt = update(Settings).where(Settings.chat_id == chat_id).values(sync_delete_with_lunchmoney=value)
             session.execute(stmt)
             session.commit()
 
