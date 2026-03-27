@@ -81,6 +81,7 @@ from handlers.transactions import (
     handle_btn_cancel_categorization,
     handle_btn_close_plaid_details,
     handle_btn_collapse_transaction,
+    handle_btn_delete_transaction,
     handle_btn_dump_plaid_details,
     handle_btn_mark_tx_as_reviewed,
     handle_btn_mark_tx_as_unreviewed,
@@ -185,6 +186,7 @@ def add_settings_callback_query_handlers(app):
 def add_application_callback_query_handlers(app):
     # Transaction handlers
     app.add_handler(CallbackQueryHandler(handle_btn_skip_transaction, pattern=r"^skip_"))
+    app.add_handler(CallbackQueryHandler(handle_btn_delete_transaction, pattern=r"^deleteTx_"))
     app.add_handler(CallbackQueryHandler(handle_btn_collapse_transaction, pattern=r"^collapse_"))
     app.add_handler(CallbackQueryHandler(handle_btn_cancel_categorization, pattern=r"^cancelCategorization_"))
     app.add_handler(CallbackQueryHandler(handle_btn_show_categories, pattern=r"^categorize_"))

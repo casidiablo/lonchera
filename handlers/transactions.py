@@ -380,31 +380,29 @@ async def handle_check_transactions(update: Update, context: ContextTypes.DEFAUL
 
 
 async def handle_btn_skip_transaction(update: Update, _: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    if query is None:
-        return
-
-    settings = get_db().get_current_settings(update.chat_id)
-    if settings.sync_delete_with_lunchmoney:
-        tx_id = get_db().get_tx_associated_with(update.message_id, update.chat_id)
-        if tx_id is not None:
-            try:
-                lunch_client = get_lunch_client_for_chat_id(update.chat_id)
-                await lunch_client.amake_request("DELETE", ["v2", "transactions", tx_id])
-                logger.info(f"Deleted transaction {tx_id} from Lunch Money for chat {update.chat_id}")
-            except Exception:
-                logger.exception(f"Failed to delete transaction {tx_id} from Lunch Money for chat {update.chat_id}")
-                await query.answer(
-                    text="Failed to delete transaction from Lunch Money. Transaction was NOT dismissed.",
-                    show_alert=True,
-                )
-                return
-
     await update.safe_edit_message_reply_markup(
         reply_markup=None,
         answer_text="Transaction was left intact. You must review it manually from lunchmoney.app",
         show_alert=True,
     )
+
+
+async def handle_btn_delete_transaction(update: Update, _: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if query is None:
+        return
+
+    tx_id = int(update.callback_data_suffix)
+    try:
+        lunch_client = get_lunch_client_for_chat_id(update.chat_id)
+        await lunch_client.amake_request("DELETE", ["v2", "transactions", tx_id])
+        logger.info(f"Deleted transaction {tx_id} from Lunch Money for chat {update.chat_id}")
+    except Exception:
+        logger.exception(f"Failed to delete transaction {tx_id} from Lunch Money for chat {update.chat_id}")
+        await query.answer(text="Failed to delete transaction from Lunch Money.", show_alert=True)
+        return
+
+    await update.safe_delete_message(answer_text="Transaction deleted from Lunch Money.")
 
 
 async def handle_btn_collapse_transaction(update: Update, _: ContextTypes.DEFAULT_TYPE):

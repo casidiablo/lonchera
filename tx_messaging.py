@@ -18,7 +18,14 @@ logger = logging.getLogger("messaging")
 
 
 def _add_expanded_buttons(
-    kbd: Keyboard, transaction_id: int, recurring_type, is_pending: bool, is_reviewed: bool, plaid_id, ai_agent=False
+    kbd: Keyboard,
+    transaction_id: int,
+    recurring_type,
+    is_pending: bool,
+    is_reviewed: bool,
+    plaid_id,
+    ai_agent=False,
+    sync_delete: bool = False,
 ) -> Keyboard:
     """Adds buttons for the expanded view of a transaction."""
     # recurring transactions are not categorizable
@@ -40,6 +47,9 @@ def _add_expanded_buttons(
     if not is_pending and not is_reviewed:
         kbd += ("Skip", f"skip_{transaction_id}")
 
+    if sync_delete:
+        kbd += ("🗑️ Delete", f"deleteTx_{transaction_id}")
+
     if is_reviewed:
         kbd += ("Unreview", f"unreview_{transaction_id}")
 
@@ -58,9 +68,10 @@ def get_tx_buttons(chat_id: int, transaction: TransactionObject | int, collapsed
         tx_id = transaction
         transaction = lunch.get_transaction(tx_id)
 
-    # Fetch settings and ai_agent value
+    # Fetch settings
     settings = get_db().get_current_settings(chat_id)
     ai_agent = settings.ai_agent if settings else False
+    sync_delete = settings.sync_delete_with_lunchmoney if settings else False
 
     tx_id = transaction.id
     is_pending = transaction.is_pending
@@ -78,6 +89,7 @@ def get_tx_buttons(chat_id: int, transaction: TransactionObject | int, collapsed
             is_reviewed,
             transaction.plaid_account_id,
             ai_agent,
+            sync_delete,
         )
 
     if not is_reviewed and not is_pending:
