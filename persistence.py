@@ -112,7 +112,6 @@ class Analytics(Base):
 class Persistence:
     def __init__(self, db_path: str):
         self.engine = create_engine(f"sqlite:///{db_path}")
-        Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
 
     def save_token(self, chat_id: int, token: str):

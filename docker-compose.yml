@@ -6,4 +6,4 @@ services:
       - DB_PATH=/data/lonchera.db
     volumes:
       - /mnt/disco/k3s/lonchera/data/:/data
-    command: ["python", "main.py"]
+    command: ["sh", "-c", "alembic upgrade head && python main.py"]

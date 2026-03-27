@@ -44,5 +44,5 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Run the application
-CMD ["python", "main.py"]
+# Run migrations then start the application
+CMD alembic upgrade head && python main.py
