@@ -395,7 +395,8 @@ async def handle_btn_delete_transaction(update: Update, _: ContextTypes.DEFAULT_
     tx_id = int(update.callback_data_suffix)
     try:
         lunch_client = get_lunch_client_for_chat_id(update.chat_id)
-        await lunch_client.amake_request("DELETE", ["v2", "transactions", tx_id])
+        response = await lunch_client.arequest("DELETE", f"https://dev.lunchmoney.app/v2/transactions/{tx_id}")
+        response.raise_for_status()
         logger.info(f"Deleted transaction {tx_id} from Lunch Money for chat {update.chat_id}")
     except Exception:
         logger.exception(f"Failed to delete transaction {tx_id} from Lunch Money for chat {update.chat_id}")
