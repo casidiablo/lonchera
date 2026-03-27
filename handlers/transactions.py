@@ -396,7 +396,7 @@ async def handle_btn_confirm_delete_transaction(update: Update, _: ContextTypes.
 
     tx_id = int(update.callback_data_suffix)
     kbd = Keyboard()
-    kbd += ("✅ Yes, delete from Telegram and Lunch Money", f"deleteTx_{tx_id}")
+    kbd += ("✅ Delete from Telegram and Lunch Money", f"deleteTx_{tx_id}")
     kbd += ("❌ Cancel", f"cancelDeleteTx_{tx_id}")
     await query.answer()
     await update.safe_edit_message_reply_markup(reply_markup=kbd.build(columns=1))
