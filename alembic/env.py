@@ -1,6 +1,7 @@
 import os
 from logging.config import fileConfig
 
+import sqlalchemy as sa
 from sqlalchemy import create_engine, pool
 
 from alembic import context
@@ -23,10 +24,29 @@ def _get_url() -> str:
     return f"sqlite:///{db_path}"
 
 
+def _compare_type(context, inspected_column, metadata_column, inspected_type, metadata_type) -> bool:
+    """Suppress false-positive type differences on SQLite.
+
+    SQLite stores VARCHAR/String columns as TEXT internally. Without this filter,
+    autogenerate emits spurious alter_column operations for every String column
+    because it sees TEXT (from the DB) vs String (from the model).
+
+    Returning False means "no change needed".
+    """
+    # Treat SQLite TEXT and SQLAlchemy String/VARCHAR as equivalent
+    if isinstance(inspected_type, sa.TEXT) and isinstance(metadata_type, sa.String | sa.VARCHAR):
+        return False
+    return None
+
+
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode (emit SQL to stdout, no live connection)."""
     context.configure(
-        url=_get_url(), target_metadata=target_metadata, literal_binds=True, dialect_opts={"paramstyle": "named"}
+        url=_get_url(),
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+        compare_type=_compare_type,
     )
 
     with context.begin_transaction():
@@ -42,6 +62,7 @@ def run_migrations_online() -> None:
             connection=connection,
             target_metadata=target_metadata,
             render_as_batch=True,  # required for SQLite ALTER TABLE support
+            compare_type=_compare_type,
         )
 
         with context.begin_transaction():
