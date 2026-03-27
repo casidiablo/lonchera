@@ -2,6 +2,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 from textwrap import dedent
 
+import httpx
 from lunchable import TransactionUpdateObject
 from lunchable.models import TransactionObject
 from telegram import ForceReply
@@ -394,9 +395,12 @@ async def handle_btn_delete_transaction(update: Update, _: ContextTypes.DEFAULT_
 
     tx_id = int(update.callback_data_suffix)
     try:
-        lunch_client = get_lunch_client_for_chat_id(update.chat_id)
-        response = await lunch_client.arequest("DELETE", f"https://dev.lunchmoney.app/v2/transactions/{tx_id}")
-        response.raise_for_status()
+        token = get_db().get_token(update.chat_id)
+        async with httpx.AsyncClient() as client:
+            response = await client.delete(
+                f"https://api.lunchmoney.dev/v2/transactions/{tx_id}", headers={"Authorization": f"Bearer {token}"}
+            )
+            response.raise_for_status()
         logger.info(f"Deleted transaction {tx_id} from Lunch Money for chat {update.chat_id}")
     except Exception:
         logger.exception(f"Failed to delete transaction {tx_id} from Lunch Money for chat {update.chat_id}")
