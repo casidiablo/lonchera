@@ -388,6 +388,26 @@ async def handle_btn_skip_transaction(update: Update, _: ContextTypes.DEFAULT_TY
     )
 
 
+async def handle_btn_confirm_delete_transaction(update: Update, _: ContextTypes.DEFAULT_TYPE):
+    """Show a confirmation keyboard before actually deleting the transaction."""
+    query = update.callback_query
+    if query is None:
+        return
+
+    tx_id = int(update.callback_data_suffix)
+    kbd = Keyboard()
+    kbd += ("✅ Yes, delete from Telegram and Lunch Money", f"deleteTx_{tx_id}")
+    kbd += ("❌ Cancel", f"cancelDeleteTx_{tx_id}")
+    await query.answer()
+    await update.safe_edit_message_reply_markup(reply_markup=kbd.build(columns=1))
+
+
+async def handle_btn_cancel_delete_transaction(update: Update, _: ContextTypes.DEFAULT_TYPE):
+    """Restore the normal expanded keyboard after the user cancels deletion."""
+    tx_id = int(update.callback_data_suffix)
+    await update.safe_edit_message_reply_markup(reply_markup=get_tx_buttons(update.chat_id, tx_id, collapsed=False))
+
+
 async def handle_btn_delete_transaction(update: Update, _: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     if query is None:

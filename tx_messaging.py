@@ -48,7 +48,7 @@ def _add_expanded_buttons(
         kbd += ("Skip", f"skip_{transaction_id}")
 
     if sync_delete:
-        kbd += ("🗑️ Delete", f"deleteTx_{transaction_id}")
+        kbd += ("🗑️ Delete", f"confirmDeleteTx_{transaction_id}")
 
     if is_reviewed:
         kbd += ("Unreview", f"unreview_{transaction_id}")
