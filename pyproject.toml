@@ -7,7 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "aiohttp>=3.12.13",
     "alembic>=1.17.1",
-    "boto3>=1.42.88",
+    "boto3>=1.42.91",
     "dateparser>=1.2.2",
     "dotenv>=0.9.9",
     "dspy>=3.0.3",
