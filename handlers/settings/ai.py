@@ -9,20 +9,13 @@ from persistence import get_db
 from telegram_extensions import Update
 from utils import Keyboard
 
-DEFAULT_AI_MODEL = "anthropic/claude-haiku-4.5"
-
-
-def get_configured_ai_model() -> str:
-    """Return the AI model configured via the AI_MODEL env var."""
-    return os.getenv("AI_MODEL", DEFAULT_AI_MODEL)
-
 
 def get_ai_settings_text(chat_id: int) -> str | None:
     settings = get_db().get_current_settings(chat_id)
     if settings is None:
         return None
 
-    model_display = get_configured_ai_model().replace(".", "\\.").replace("-", "\\-")
+    model_display = os.getenv("AI_MODEL", "anthropic/claude-haiku-4.5").replace(".", "\\.").replace("-", "\\-")
 
     return dedent(
         f"""
