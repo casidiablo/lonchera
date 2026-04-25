@@ -1,5 +1,6 @@
 import datetime
 import logging
+import os
 from dataclasses import dataclass
 
 import dspy
@@ -32,7 +33,6 @@ class AgentConfig:
     language: str = "English"
     timezone: str = "UTC"
     model_name: str | None = None
-    is_admin: bool = False
 
 
 class LunchMoneyAgentResponse(BaseModel):
@@ -125,42 +125,13 @@ class LunchMoneyAgentSignature(dspy.Signature):
 
 
 def get_dspy_lm(config: AgentConfig) -> dspy.LM:
-    """Gets the language model based on agent configuration.
+    """Gets the language model.
 
-    Args:
-        config: AgentConfig containing model preferences and admin status
-
-    Returns:
-        Configured dspy.LM instance
+    Uses config.model_name if provided, else falls back to AI_MODEL env var
+    (default: anthropic/claude-haiku-4.5).
     """
-    # Default model for non-admin users
-    default_model = "google/gemini-2.5-flash"
-
-    # Admin-only models
-    admin_models = [
-        "openai/gpt-4.1-nano",
-        "openai/gpt-4.1-mini",
-        "openai/gpt-4.1",
-        "openai/gpt-4o",
-        "openai/gpt-4o-mini",
-        "openai/o4-mini",
-        "google/gemini-2.5-flash",
-        "anthropic/claude-haiku-4.5",
-    ]
-
-    # Determine which model to use
-    selected_model = config.model_name if config.model_name else default_model
-
-    # Only allow advanced models for admin users
-    if config.is_admin and selected_model in admin_models:
-        model_name = selected_model
-        logger.info(f"Using model: {model_name} (admin user)")
-    else:
-        # Use default model for non-admin users or invalid selections
-        model_name = default_model
-        logger.info(f"Using model: {model_name} (default)")
-
-    # Prepend openrouter/ for LiteLLM compatibility
+    model_name = config.model_name or os.getenv("AI_MODEL", "anthropic/claude-haiku-4.5")
+    logger.info(f"Using model: {model_name}")
     return dspy.LM(model=f"openrouter/{model_name}", temperature=0, max_tokens=50000)
 
 

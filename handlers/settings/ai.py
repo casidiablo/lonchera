@@ -1,3 +1,4 @@
+import os
 from textwrap import dedent
 
 from telegram import InlineKeyboardMarkup
@@ -6,39 +7,22 @@ from telegram.ext import ContextTypes
 
 from persistence import get_db
 from telegram_extensions import Update
-from utils import Keyboard, is_admin_user
+from utils import Keyboard
+
+DEFAULT_AI_MODEL = "anthropic/claude-haiku-4.5"
 
 
-def get_model_display_name(model: str | None) -> str:
-    """Get user-friendly display name for AI model."""
-    if not model:
-        return "Gemini 2\\.5 Flash \\(Default\\)"
-
-    # Model names with company/model format
-    model_names = {
-        "openai/gpt-4.1-nano": "GPT\\-4\\.1 Nano",
-        "openai/gpt-4.1-mini": "GPT\\-4\\.1 Mini",
-        "openai/gpt-4.1": "GPT\\-4\\.1",
-        "openai/gpt-4o": "GPT\\-4o",
-        "openai/gpt-4o-mini": "GPT\\-4o Mini",
-        "openai/o4-mini": "o4\\-mini",
-        "google/gemini-2.5-flash": "Gemini 2\\.5 Flash",
-        "anthropic/claude-haiku-4.5": "Claude Haiku 4\\.5",
-        # handle legacy naming
-        "gpt-4.1-nano": "GPT\\-4\\.1 Nano",
-        "gpt-4.1-mini": "GPT\\-4\\.1 Mini",
-        "gpt-4.1": "GPT\\-4\\.1",
-        "gpt-4o": "GPT\\-4o",
-        "gpt-4o-mini": "GPT\\-4o Mini",
-        "o4-mini": "o4\\-mini",
-    }
-    return model_names.get(model, f"{model}")
+def get_configured_ai_model() -> str:
+    """Return the AI model configured via the AI_MODEL env var."""
+    return os.getenv("AI_MODEL", DEFAULT_AI_MODEL)
 
 
 def get_ai_settings_text(chat_id: int) -> str | None:
     settings = get_db().get_current_settings(chat_id)
     if settings is None:
         return None
+
+    model_display = get_configured_ai_model().replace(".", "\\.").replace("-", "\\-")
 
     return dedent(
         f"""
@@ -57,8 +41,8 @@ def get_ai_settings_text(chat_id: int) -> str | None:
         3️⃣ *Response Language*: {settings.ai_response_language or "🌐 Auto\\-detect"}
         > Sets the language for AI agent responses\\. When set to auto\\-detect, the agent will respond in the same language as your input\\.
 
-        4️⃣ *AI Model*: {get_model_display_name(settings.ai_model)}
-        > Choose the AI model for processing your requests\\. Advanced models may provide better responses\\.
+        4️⃣ *AI Model*: {model_display}
+        > The AI model is configured by the server administrator and cannot be changed from here\\.
         """
     )
 
@@ -68,7 +52,6 @@ def get_ai_settings_buttons() -> InlineKeyboardMarkup:
     kbd += ("1️⃣ Toggle AI Mode", "toggleAIAgent")
     kbd += ("2️⃣ Toggle Show Transcription", "toggleShowTranscription")
     kbd += ("3️⃣ Set Response Language", "setAILanguage")
-    kbd += ("4️⃣ Select AI Model", "setAIModel")
     kbd += ("Back", "settingsMenu")
     return kbd.build()
 
@@ -147,57 +130,6 @@ async def handle_set_language(update: Update, _: ContextTypes.DEFAULT_TYPE):
 
     # Update the language in the database
     get_db().update_ai_response_language(update.chat_id, language)
-
-    # Get settings text and display updated AI settings
-    settings_text = get_ai_settings_text(update.chat_id)
-    await update.safe_edit_message_text(
-        text=settings_text, reply_markup=get_ai_settings_buttons(), parse_mode=ParseMode.MARKDOWN_V2
-    )
-
-
-def get_model_selection_buttons(chat_id: int) -> InlineKeyboardMarkup:
-    kbd = Keyboard()
-    # Only show advanced models for authorized chat_id
-    if is_admin_user(chat_id):
-        kbd += ("Gemini 2.5 Flash (Default)", "setModel_none")
-        kbd += ("GPT-4.1 Nano", "setModel_openai/gpt-4.1-nano")
-        kbd += ("GPT-4.1 Mini", "setModel_openai/gpt-4.1-mini")
-        kbd += ("GPT-4.1", "setModel_openai/gpt-4.1")
-        kbd += ("GPT-4o", "setModel_openai/gpt-4o")
-        kbd += ("GPT-4o Mini", "setModel_openai/gpt-4o-mini")
-        kbd += ("o4-mini", "setModel_openai/o4-mini")
-        kbd += ("Claude Haiku 4.5", "setModel_anthropic/claude-haiku-4.5")
-    else:
-        kbd += ("Gemini 2.5 Flash (Only Available)", "setModel_none")
-    kbd += ("Back", "aiSettings")
-    return kbd.build()
-
-
-async def handle_set_ai_model(update: Update, _: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.chat_id
-    if is_admin_user(chat_id):
-        message_text = "🤖 *Choose AI Model*\n\nSelect the AI model for processing your requests:"
-    else:
-        message_text = "🤖 *AI Model Selection*\n\nOnly Llama model is available for your account:"
-
-    await update.safe_edit_message_text(
-        text=message_text, reply_markup=get_model_selection_buttons(chat_id), parse_mode=ParseMode.MARKDOWN_V2
-    )
-
-
-async def handle_set_model(update: Update, _: ContextTypes.DEFAULT_TYPE):
-    # Extract model from callback data
-    if not update.callback_query or not update.callback_query.data:
-        return
-    callback_data = update.callback_query.data
-    if not callback_data.startswith("setModel_"):
-        return
-
-    model_code = callback_data.replace("setModel_", "")
-    model = None if model_code == "none" else model_code
-
-    # Update the model in the database
-    get_db().update_ai_model(update.chat_id, model)
 
     # Get settings text and display updated AI settings
     settings_text = get_ai_settings_text(update.chat_id)

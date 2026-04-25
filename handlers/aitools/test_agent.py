@@ -37,8 +37,7 @@ def main():
     parser.add_argument("--chat-id", type=int, default=123456789, help="Chat ID to use for testing")
     parser.add_argument("--language", type=str, default="English", help="Response language")
     parser.add_argument("--timezone", type=str, default="America/New_York", help="User timezone")
-    parser.add_argument("--model", type=str, help="Model name to use (requires admin)")
-    parser.add_argument("--admin", action="store_true", help="Enable admin mode for advanced models")
+    parser.add_argument("--model", type=str, help="Override model (e.g. anthropic/claude-haiku-4.5)")
     args = parser.parse_args()
 
     # Setup MLflow if requested
@@ -51,7 +50,7 @@ def main():
 
     # Create AgentConfig with command-line arguments
     test_config = AgentConfig(
-        chat_id=args.chat_id, language=args.language, timezone=args.timezone, model_name=args.model, is_admin=args.admin
+        chat_id=args.chat_id, language=args.language, timezone=args.timezone, model_name=args.model
     )
 
     try:
