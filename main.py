@@ -44,9 +44,7 @@ from handlers.settings.ai import (
     handle_btn_toggle_ai_agent,
     handle_btn_toggle_show_transcription,
     handle_set_ai_language,
-    handle_set_ai_model,
     handle_set_language,
-    handle_set_model,
 )
 from handlers.settings.general import handle_btn_done_settings, handle_settings, handle_settings_menu
 from handlers.settings.schedule_rendering import (
@@ -174,8 +172,6 @@ def add_settings_callback_query_handlers(app):
     app.add_handler(CallbackQueryHandler(handle_btn_toggle_show_transcription, pattern=r"^toggleShowTranscription"))
     app.add_handler(CallbackQueryHandler(handle_set_ai_language, pattern=r"^setAILanguage"))
     app.add_handler(CallbackQueryHandler(handle_set_language, pattern=r"^setLanguage_"))
-    app.add_handler(CallbackQueryHandler(handle_set_ai_model, pattern=r"^setAIModel"))
-    app.add_handler(CallbackQueryHandler(handle_set_model, pattern=r"^setModel_"))
 
     # Session settings
     app.add_handler(CallbackQueryHandler(handle_btn_set_token_from_button, pattern=r"^registerToken$"))

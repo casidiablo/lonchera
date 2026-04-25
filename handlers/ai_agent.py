@@ -9,7 +9,7 @@ from lunch import get_lunch_client_for_chat_id
 from persistence import get_db
 from telegram_extensions import Update
 from tx_messaging import send_transaction_message
-from utils import Keyboard, is_admin_user
+from utils import Keyboard
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -49,15 +49,9 @@ def get_agent_response(
     settings = get_db().get_current_settings(chat_id)
     user_language = settings.ai_response_language if settings else "English"
     user_timezone = settings.timezone if settings else "UTC"
-    model_name = settings.ai_model if settings else None
-
-    # Determine if user is admin
-    is_admin = is_admin_user(chat_id)
 
     # Create AgentConfig with fetched settings
-    config = AgentConfig(
-        chat_id=chat_id, language=user_language, timezone=user_timezone, model_name=model_name, is_admin=is_admin
-    )
+    config = AgentConfig(chat_id=chat_id, language=user_language, timezone=user_timezone)
 
     try:
         # Call execute_agent from core module

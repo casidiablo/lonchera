@@ -52,6 +52,10 @@ Optionally, add API keys for AI features to your `.env` file:
 # Optional: For AI agent features (categorization, natural language queries)
 OPENROUTER_API_KEY=<YOUR OPENROUTER API KEY>
 
+# Optional: Override the AI model used by the agent (default: anthropic/claude-haiku-4.5).
+# Must be a model identifier supported by OpenRouter, e.g. openai/gpt-4.1-mini, google/gemini-2.5-flash.
+AI_MODEL=anthropic/claude-haiku-4.5
+
 # Optional: For audio transcription (voice messages)
 DEEPINFRA_API_KEY=<YOUR DEEPINFRA API KEY>
 ```
@@ -77,6 +81,7 @@ docker run -d \
     -e DB_PATH=/data/lonchera.db \
     -e TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN}" \
     -e OPENROUTER_API_KEY="${OPENROUTER_API_KEY}" \
+    -e AI_MODEL="${AI_MODEL}" \
     -e DEEPINFRA_API_KEY="${DEEPINFRA_API_KEY}" \
     --name lonchera \
     lonchera
@@ -133,6 +138,12 @@ fly secrets set OPENROUTER_API_KEY=<YOUR OPENROUTER API KEY>
 ```
 
 Get your API key from https://openrouter.ai/
+
+Optionally, override the AI model the agent uses (default: `anthropic/claude-haiku-4.5`). The value must be an OpenRouter model identifier such as `openai/gpt-4.1-mini` or `google/gemini-2.5-flash`:
+
+```
+fly secrets set AI_MODEL=anthropic/claude-haiku-4.5
+```
 
 **DeepInfra API Key** (optional) - Enables audio transcription:
 - Voice message transcription using Whisper API
