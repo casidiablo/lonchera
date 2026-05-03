@@ -51,8 +51,8 @@ async def handle_amazon_sync(update: Update, context: ContextTypes.DEFAULT_TYPE)
             7. Wait an hour or so for them to email you a link to download your data.
             8. Download the zip file and upload it here.
 
-            You can upload the whole zip file or just the CSV with the purchase history, which is found in the
-            `Retail.OrderHistory.1/` folder.
+            You can upload the whole zip file or just the CSV with the purchase history, which is found at
+            `Your Amazon Orders/Order History.csv`.
 
             *Note*: _this is a very experimental feature and may not work as expected.
             It is also a little brittle because the data provided by Amazon does not include gift card
@@ -159,7 +159,7 @@ async def extract_amazon_csv_file(update: Update, file_name: str, downloads_path
     logger.info(f"Downloading file to {download_path}")
     await file.download_to_drive(custom_path=download_path)
 
-    # if zip, extract and find the csv file inside the Retail.OrderHistory.1/ folder
+    # if zip, extract and find the csv file inside the Your Amazon Orders/ folder
     if file_name.lower().endswith(".zip"):
         # Create a temporary directory for extracted CSV only
         temp_dir = tempfile.mkdtemp(dir=downloads_path)
@@ -173,7 +173,7 @@ async def extract_amazon_csv_file(update: Update, file_name: str, downloads_path
                 csv_found = False
                 for info in zip_ref.infolist():
                     # Look only for CSV files in the right directory
-                    if info.filename.lower().endswith(".csv") and "Retail.OrderHistory.1" in info.filename:
+                    if info.filename.lower().endswith(".csv") and "Your Amazon Orders" in info.filename:
                         logger.info(f"Found CSV file: {info.filename}")
                         # Extract just this one file
                         with zip_ref.open(info) as source, open(target_csv_path, "wb") as target:
@@ -185,7 +185,7 @@ async def extract_amazon_csv_file(update: Update, file_name: str, downloads_path
                 if not csv_found:
                     if update.message:
                         await update.message.reply_text(
-                            "Could not find the CSV file in the Retail.OrderHistory.1/ folder."
+                            "Could not find the CSV file in the Your Amazon Orders/ folder."
                         )
                     # Clean up
                     shutil.rmtree(temp_dir, ignore_errors=True)
