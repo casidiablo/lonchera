@@ -39,14 +39,14 @@ def find_closest_match(
                 closest_date_diff = date_diff
                 closest_result = {
                     "Order ID": order_id,
-                    "Total Owed": str(data.total_owed),
+                    "Total Amount": str(data.total_owed),
                     "Currency": data.currency,
                     "Product Name": ", ".join(data.product_names),
                 }
         else:
             # Check individual rows if the aggregated total does not match
             for row in data.rows:
-                total_owed = float(row["Total Owed"].replace(",", ""))
+                total_owed = float(row["Total Amount"].replace(",", ""))
                 currency = row["Currency"]
                 if abs(total_owed - target_price) <= margin_of_error and currency.lower() == target_currency.lower():
                     date_diff = abs(target_date_dt - parse_date_time(row["Order Date"]))
@@ -54,7 +54,7 @@ def find_closest_match(
                         closest_date_diff = date_diff
                         closest_result = {
                             "Order ID": row["Order ID"],
-                            "Total Owed": row["Total Owed"],
+                            "Total Amount": row["Total Amount"],
                             "Currency": row["Currency"],
                             "Product Name": row["Product Name"],
                         }
@@ -93,8 +93,7 @@ def parse_csv_and_filter(
             # Convert the "Order Date" in the row to a datetime object
             order_date = parse_date_time(row["Order Date"])
 
-            # Remove commas from the "Total Owed" string and convert to float
-            total_owed = float(row["Total Owed"].replace(",", ""))
+            total_owed = float(row["Total Amount"].replace(",", ""))
             currency = row["Currency"]
             order_id = row["Order ID"]
             product_name = row["Product Name"]
