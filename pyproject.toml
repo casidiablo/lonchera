@@ -15,7 +15,7 @@ dependencies = [
     "lunchable>=1.4.2",
     "mlflow>=3.11.1",
     "python-telegram-bot[job-queue]>=22.7",
-    "pytz>=2025.2",
+    "pytz>=2026.2",
     "requests>=2.32.4",
     "sqlalchemy>=2.0.41",
 ]
