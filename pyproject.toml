@@ -21,7 +21,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["ruff>=0.15.12"]
+dev = ["ruff>=0.15.13"]
 
 [tool.ruff]
 # Line length matching your flake8 configuration
