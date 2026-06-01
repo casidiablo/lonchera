@@ -17,7 +17,7 @@ dependencies = [
     "python-telegram-bot[job-queue]>=22.7",
     "pytz>=2025.2",
     "requests>=2.34.2",
-    "sqlalchemy>=2.0.41",
+    "sqlalchemy>=2.0.50",
 ]
 
 [project.optional-dependencies]
