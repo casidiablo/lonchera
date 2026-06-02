@@ -5,7 +5,7 @@ description = "A Telegram bot to manage your budget"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "aiohttp>=3.12.13",
+    "aiohttp>=3.14.0",
     "alembic>=1.17.1",
     "boto3>=1.43.14",
     "dateparser>=1.2.2",
