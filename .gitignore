@@ -103,3 +103,4 @@ ENV/
 dump.py
 output.md
 .crush/
+.claude/worktrees/
