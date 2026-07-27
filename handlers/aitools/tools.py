@@ -34,7 +34,7 @@ def transaction_to_dict(transaction) -> dict:
         "payee": transaction.payee,
         "amount": float(transaction.amount),
         "currency": transaction.currency.upper() if transaction.currency else "USD",
-        "category_name": transaction.category_name if transaction.category_name else "Uncategorized",
+        "category_name": transaction.category_name or "Uncategorized",
         "category_id": transaction.category_id,
         "notes": transaction.notes,
         "tags": tags_list,
@@ -270,7 +270,7 @@ def add_manual_transaction(
                     "amount": float(transaction.amount),
                     "currency": transaction.currency.upper() if transaction.currency else "USD",
                     "account_name": account.name,
-                    "category_name": transaction.category_name if transaction.category_name else "Uncategorized",
+                    "category_name": transaction.category_name or "Uncategorized",
                     "notes": transaction.notes,
                 },
             }
