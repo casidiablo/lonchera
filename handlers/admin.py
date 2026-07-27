@@ -192,7 +192,7 @@ async def create_database_backup(db_path: str, backup_path: str) -> bool:
         )
 
         try:
-            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=30.0)
+            _stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=30.0)
         except TimeoutError:
             logger.exception("Database backup timed out after 30 seconds")
             process.kill()

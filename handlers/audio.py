@@ -132,7 +132,7 @@ async def _process_audio_transcription(
 
     # Transcribe the audio
     transcription_start = time.time()
-    transcription, language = transcribe_audio(temp_path)
+    transcription, _language = transcribe_audio(temp_path)
     transcription_time = time.time() - transcription_start
     get_db().inc_metric("audio_transcription_time_seconds", transcription_time)
 
