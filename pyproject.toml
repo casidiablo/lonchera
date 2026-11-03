@@ -10,10 +10,7 @@ dependencies = [
     "boto3>=1.43.71",
     "dateparser>=1.4.2",
     "dotenv>=0.9.9",
-    "dspy>=3.3.0",
-    "emoji>=2.14.1",
     "lunchable>=1.4.2",
-    "mlflow>=3.15.1",
     "python-telegram-bot[job-queue]>=22.8",
     "pytz>=2026.3.post1",
     "requests>=2.34.2",
@@ -22,6 +19,16 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["ruff>=0.16.3"]
+
+# Heavyweight tooling only used by handlers/aitools/test_agent.py (the local eval
+# harness). Kept out of the runtime dependencies so the production image and the
+# bot process stay small: importing dspy pulls in litellm which alone adds ~180MB
+# of RSS.
+[dependency-groups]
+dev = [
+    "dspy>=3.3.0",
+    "mlflow>=3.15.1",
+]
 
 [tool.ruff]
 # Line length matching your flake8 configuration

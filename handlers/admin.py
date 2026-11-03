@@ -7,8 +7,6 @@ import logging
 import os
 from datetime import datetime
 
-import boto3
-from botocore.exceptions import BotoCoreError, ClientError
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
@@ -245,6 +243,11 @@ async def upload_backup_to_s3(local_path: str, s3_key: str) -> bool:
     Returns:
         True if upload successful, False otherwise
     """
+    # Imported lazily: boto3/botocore add ~35MB of RSS and this is the only
+    # place in the app that talks to S3 (a rarely used admin backup command).
+    import boto3  # noqa: PLC0415
+    from botocore.exceptions import BotoCoreError, ClientError  # noqa: PLC0415
+
     bucket_name = "lonchera-backups"
 
     try:

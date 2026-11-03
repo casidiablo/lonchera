@@ -41,6 +41,9 @@ COPY --from=builder --chown=app:app /app /app
 # Place executables in the environment at the front of the path
 ENV PATH="/app/.venv/bin:/python/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
+# Keep glibc's malloc arenas in check (fewer arenas = less fragmentation-driven
+# RSS growth in a long-running, multi-threaded process)
+ENV MALLOC_ARENA_MAX=2
 
 WORKDIR /app
 

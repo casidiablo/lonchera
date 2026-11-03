@@ -1,15 +1,28 @@
 import os
 
-import emoji
+import regex
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from persistence import Settings, get_db
 from telegram_extensions import Update
 from telegram_extensions import get_chat_id as _get_chat_id
 
+# Single-character emoji test, equivalent to `char in emoji.EMOJI_DATA` from the
+# `emoji` package (which adds ~21MB of RSS for one dict lookup). Compared char by
+# char against the package across all of Unicode; the only differences are regional
+# indicator symbols (flag halves, deliberately not treated as standalone emoji here)
+# and a handful of emoji newer than the Unicode data baked into the `regex` module,
+# listed explicitly below.
+_EMOJI_PRESENTATION = regex.compile(r"[\p{Emoji_Presentation}\p{Emoji_Modifier}]")
+_EMOJI_PICTOGRAPHIC = regex.compile(r"[\p{Emoji}&\p{Extended_Pictographic}]")
+_REGIONAL_INDICATOR = regex.compile(r"\p{Regional_Indicator}")
+_EMOJI_NEWER_THAN_REGEX_DATA = "\U0001F6D8\U0001FA8A\U0001FA8E\U0001FAC8\U0001FACD\U0001FAEA\U0001FAEF"
+
 
 def is_emoji(char):
-    return char in emoji.EMOJI_DATA
+    if len(char) != 1 or _REGIONAL_INDICATOR.match(char):
+        return False
+    return bool(_EMOJI_PRESENTATION.match(char) or _EMOJI_PICTOGRAPHIC.match(char) or char in _EMOJI_NEWER_THAN_REGEX_DATA)
 
 
 def clean_md_v2(text: str) -> str:
@@ -26,7 +39,7 @@ def clean_md_v2(text: str) -> str:
 
 
 def make_tag(t: str, title=False, tagging=True, no_emojis=False) -> str:
-    result = "".join([char for char in t if char not in emoji.EMOJI_DATA])
+    result = "".join([char for char in t if not is_emoji(char)])
     if tagging:
         result = (
             result.title()
@@ -41,7 +54,7 @@ def make_tag(t: str, title=False, tagging=True, no_emojis=False) -> str:
 
     # find emojis so we can all put them at the beginning
     # otherwise tagging will break
-    emojis = "".join([char for char in t if char in emoji.EMOJI_DATA])
+    emojis = "".join([char for char in t if is_emoji(char)])
     if no_emojis:
         emojis = ""
     else:
